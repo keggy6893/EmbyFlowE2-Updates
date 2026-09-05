@@ -1,6 +1,11 @@
 {
-  "version": "2026-RCDEV",
-  "build": 2026090501,
+  "version": "2026-RCDEV3",
+  "build": 2026090503,
   "channel": "rcdev",
-  "message": "EmbyFlow GitHub Update-Test erfolgreich"
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/embyflow_update_test.txt",
+  "sha256": "71BD9B1FBFA8D2460D7F56EDCDF315633F3F598BE1850C16FA931D2AC1BFD64D",
+  "changelog": [
+    "GitHub-Updater Test",
+    "SHA256-Prüfung aktiviert"
+  ]
 }
