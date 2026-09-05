@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV3",
-  "build": 2026090503,
+  "version": "2026-RCDEV3-TIME1",
+  "build": 2026090504,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV3.py",
-  "sha256": "47F2D8D838BCF4F87188B01BEA08E86F9D3FE8E9983325BD53C2D91117B353D5",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV3_TIME_V1.py",
+  "sha256": "191E9E48213EAB41AF3CE7225CDB80D4ACC2F08A45FA103D69CE7B388E7A1C5C",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "GitHub-Selbstupdate aktiviert",
-    "SHA256-Prüfung vor Installation",
-    "Python-Compile vor Austausch",
-    "Backup und automatischer Rollback",
-    "Updater-Oberfläche überarbeitet"
+    "Datum und Uhrzeit der letzten Update-Prüfung",
+    "Installationsdatum und Installationszeit gespeichert",
+    "GitHub-Selbstupdate",
+    "SHA256-Prüfung",
+    "Backup und automatischer Rollback"
   ]
 }
