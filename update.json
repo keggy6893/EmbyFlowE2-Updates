@@ -2,10 +2,15 @@
   "version": "2026-RCDEV3",
   "build": 2026090503,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/embyflow_update_test.txt",
-  "sha256": "71BD9B1FBFA8D2460D7F56EDCDF315633F3F598BE1850C16FA931D2AC1BFD64D",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV3.py",
+  "sha256": "47F2D8D838BCF4F87188B01BEA08E86F9D3FE8E9983325BD53C2D91117B353D5",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
   "changelog": [
-    "GitHub-Updater Test",
-    "SHA256-Prüfung aktiviert"
+    "GitHub-Selbstupdate aktiviert",
+    "SHA256-Prüfung vor Installation",
+    "Python-Compile vor Austausch",
+    "Backup und automatischer Rollback",
+    "Updater-Oberfläche überarbeitet"
   ]
 }
