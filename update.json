@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV4",
-  "build": 2026090505,
+  "version": "2026-RCDEV5",
+  "build": 2026090506,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV4_LOGFIX_V1.py",
-  "sha256": "BBDFB5B491A069F5683F9CAA8217CFF53E90F8A527669D5A555AD41C07C1CA36",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV5_SEEKBURST_V1.py",
+  "sha256": "BF23ED3059E81FBC5C55DD230BD3810F1CAA52DE5CCE56BECBE2001876CDF5B4",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "4K-Seek-Debounce mit 500 ms",
-    "Marker-Fallback auf gültigen User-Endpunkt bereinigt",
-    "Untertitel-Timeout für große 4K-Dateien erhöht",
-    "Spinner bei schnellen Sprüngen reduziert",
-    "RCDEV4 Logfix"
+    "Seek-Burst-Fenster von 500 auf 1200 ms erweitert",
+    "Schnelle Seek-Tasten werden vor dem Stream-Neustart gesammelt",
+    "Virtuelle Zielposition bleibt während des Bursts stabil",
+    "Nur ein Emby-Neustart nach der letzten Seek-Taste",
+    "Millisekunden-Diagnoselog für Seek-Bursts"
   ]
 }
