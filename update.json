@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV5",
-  "build": 2026090506,
+  "version": "2026-RCDEV6",
+  "build": 2026090507,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV5_SEEKBURST_V1.py",
-  "sha256": "BF23ED3059E81FBC5C55DD230BD3810F1CAA52DE5CCE56BECBE2001876CDF5B4",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV6_ASYNCSEEK_V1.py",
+  "sha256": "187D1AFEB75D4125D946FFAC459385A19CA0C70BB162CE63E9D142C6A012EC95",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Seek-Burst-Fenster von 500 auf 1200 ms erweitert",
-    "Schnelle Seek-Tasten werden vor dem Stream-Neustart gesammelt",
-    "Virtuelle Zielposition bleibt während des Bursts stabil",
-    "Nur ein Emby-Neustart nach der letzten Seek-Taste",
-    "Millisekunden-Diagnoselog für Seek-Bursts"
+    "Seek-Restart entlastet den Enigma2-Hauptthread",
+    "ActiveEncoding-Cleanup läuft beim Seek asynchron",
+    "Playing und Progress werden beim Seek asynchron gemeldet",
+    "Veraltete Seek-Reports werden per Session- und Generation-Guard verworfen",
+    "Bewährter StartTimeTicks-Restart bleibt erhalten"
   ]
 }
