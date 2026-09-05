@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV6",
-  "build": 2026090507,
+  "version": "2026-RCDEV6-CLEAN2",
+  "build": 2026090509,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV6_ASYNCSEEK_V1.py",
-  "sha256": "187D1AFEB75D4125D946FFAC459385A19CA0C70BB162CE63E9D142C6A012EC95",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV6_CLEAN2_OVERINSTALL.py",
+  "sha256": "61BDDC033B352BBCEA1F685FE05009FB719B37A69CB0B56687E9D26F71FF98A5",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Seek-Restart entlastet den Enigma2-Hauptthread",
-    "ActiveEncoding-Cleanup läuft beim Seek asynchron",
-    "Playing und Progress werden beim Seek asynchron gemeldet",
-    "Veraltete Seek-Reports werden per Session- und Generation-Guard verworfen",
-    "Bewährter StartTimeTicks-Restart bleibt erhalten"
+    "Persoenliche Emby-Serverdaten aus dem Plugin entfernt",
+    "Benutzername und Passwort nicht mehr als Default enthalten",
+    "Server-Slots enthalten keine privaten Server-Adressen mehr",
+    "Vorhandene Benutzereinstellungen bleiben bei Updates erhalten",
+    "RCDEV6 Async-Seek bleibt enthalten"
   ]
 }
