@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV3-TIME1",
-  "build": 2026090504,
+  "version": "2026-RCDEV4",
+  "build": 2026090505,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV3_TIME_V1.py",
-  "sha256": "191E9E48213EAB41AF3CE7225CDB80D4ACC2F08A45FA103D69CE7B388E7A1C5C",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV4_LOGFIX_V1.py",
+  "sha256": "BBDFB5B491A069F5683F9CAA8217CFF53E90F8A527669D5A555AD41C07C1CA36",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Datum und Uhrzeit der letzten Update-Prüfung",
-    "Installationsdatum und Installationszeit gespeichert",
-    "GitHub-Selbstupdate",
-    "SHA256-Prüfung",
-    "Backup und automatischer Rollback"
+    "4K-Seek-Debounce mit 500 ms",
+    "Marker-Fallback auf gültigen User-Endpunkt bereinigt",
+    "Untertitel-Timeout für große 4K-Dateien erhöht",
+    "Spinner bei schnellen Sprüngen reduziert",
+    "RCDEV4 Logfix"
   ]
 }
