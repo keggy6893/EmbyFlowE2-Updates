@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090617,
+  "build": 2026090618,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090617/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "a380bb7b5879c31e6f99b4509b2382630605bcdb73d796c54e0224ce588e5e3e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090618/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "9d1fbb476271e7a1f18e2c3ad73fcff7d98b39adf7d1f2dc2c55bd67f3023a8a",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -12,6 +12,7 @@
     "HTTP-Pool: belegte Slots blockieren den nächsten Filmstart nicht mehr; Requests weichen non-blocking aus",
     "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten",
     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten",
-    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv"
+    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv",
+    "Release-Build auf 2026090618 angehoben, damit REF17-Teststände das öffentliche Update korrekt erkennen"
   ]
 }
