@@ -1,0 +1,70 @@
+name: Bump PUBLICCLEAN1 to build 2026090618
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/bump-publicclean1-0618.yml
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump build and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET="plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py"
+          BUILD="2026090618"
+          TAG="build-${BUILD}"
+          EXPECTED_SHA="9d1fbb476271e7a1f18e2c3ad73fcff7d98b39adf7d1f2dc2c55bd67f3023a8a"
+
+          test -f "$TARGET"
+          sed -i 's/PLUGIN_UPDATE_BUILD = 2026090617/PLUGIN_UPDATE_BUILD = 2026090618/' "$TARGET"
+          grep -q '^PLUGIN_UPDATE_BUILD = 2026090618$' "$TARGET"
+          python3 -m py_compile "$TARGET"
+
+          SHA="$(sha256sum "$TARGET" | awk '{print $1}')"
+          test "$SHA" = "$EXPECTED_SHA"
+
+          cat > update.json <<'JSON'
+          {
+            "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
+            "build": 2026090618,
+            "channel": "rcdev",
+            "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090618/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+            "sha256": "9d1fbb476271e7a1f18e2c3ad73fcff7d98b39adf7d1f2dc2c55bd67f3023a8a",
+            "target": "plugin.py",
+            "artifact_type": "plugin_py",
+            "changelog": [
+              "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode",
+              "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback",
+              "HTTP-Pool: belegte Slots blockieren den nächsten Filmstart nicht mehr; Requests weichen non-blocking aus",
+              "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten",
+              "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten",
+              "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv",
+              "Release-Build auf 2026090618 angehoben, damit REF17-Teststände das öffentliche Update korrekt erkennen"
+            ]
+          }
+          JSON
+
+          python3 -m json.tool update.json >/dev/null
+
+          git config user.name "EmbyFlowE2 Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$TARGET" update.json
+          git commit -m "Bump PUBLICCLEAN1 release build to ${BUILD}"
+          COMMIT="$(git rev-parse HEAD)"
+          git push origin HEAD:main
+          git tag -a "$TAG" -m "EmbyFlowE2 PUBLICCLEAN1 build ${BUILD}"
+          git push origin "$TAG"
