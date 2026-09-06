@@ -120,9 +120,9 @@ jobs:
               raise SystemExit("metadata cleaner call marker mismatch")
           text = text.replace(old, new, 1)
 
-          needle = '"vorhandene leere Cacheeinträge werden verworfen"'
+          needle = 'vorhandene leere Cacheeinträge werden verworfen"'
           replacement = (
-              '"vorhandene leere Cacheeinträge werden verworfen|"\n'
+              'vorhandene leere Cacheeinträge werden verworfen|"\n'
               '    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt"'
           )
           if text.count(needle) != 1:
