@@ -1,0 +1,103 @@
+name: Shadow35 empty metadata cache protection 2026090620
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/shadow35-empty-cache-0620.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Shadow35 metadata cache protection
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET="plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py"
+          BUILD="2026090620"
+          TAG="build-${BUILD}"
+          BEFORE_SHA="67eb35dedb351bfa95b21b6be83e9b31a96ceadbee3f5126a51a6f76077594a5"
+          EXPECTED_SHA="ba4cda78e422e4ca92685dbebeeb1eee147c3fbf7b5441f6e23032a62b13c41f"
+
+          test -f "$TARGET"
+          CURRENT_SHA="$(sha256sum "$TARGET" | awk '{print $1}')"
+          test "$CURRENT_SHA" = "$BEFORE_SHA"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py")
+          data = path.read_text()
+
+          replacements = []
+          replacements.append((
+              "PLUGIN_UPDATE_BUILD = 2026090619",
+              "PLUGIN_UPDATE_BUILD = 2026090620",
+          ))
+          replacements.append((
+              '''    "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten|"\n    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv"\n)''',
+              '''    "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten|"\n    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv|"\n    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen"\n)''',
+          ))
+          replacements.append((
+              '''            with open(path, "r") as f:\n                data = json.loads(f.read())\n            if isinstance(data, dict) and isinstance(data.get("items"), list):\n                return data.get("items")\n''',
+              '''            with open(path, "r") as f:\n                data = json.loads(f.read())\n            if isinstance(data, dict) and isinstance(data.get("items"), list):\n                items = data.get("items")\n                if not items:\n                    try:\n                        os.remove(path)\n                    except Exception:\n                        pass\n                    self._log("EMPTY_INVALID key=%s" % key)\n                    return None\n                return items\n''',
+          ))
+          replacements.append((
+              '''    def save(self, key, items):\n        try:\n            ensure_dir(METADATA_CACHE_DIR)\n''',
+              '''    def save(self, key, items):\n        if not items:\n            self._log("EMPTY_NOSAVE key=%s" % key)\n            return False\n        try:\n            ensure_dir(METADATA_CACHE_DIR)\n''',
+          ))
+
+          for old, new in replacements:
+              if old not in data:
+                  raise SystemExit("expected source block not found")
+              data = data.replace(old, new, 1)
+
+          path.write_text(data)
+          PY
+
+          grep -q '^PLUGIN_UPDATE_BUILD = 2026090620$' "$TARGET"
+          python3 -m py_compile "$TARGET"
+          SHA="$(sha256sum "$TARGET" | awk '{print $1}')"
+          test "$SHA" = "$EXPECTED_SHA"
+
+          cat > update.json <<'JSON'
+          {
+            "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
+            "build": 2026090620,
+            "channel": "rcdev",
+            "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090620/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+            "sha256": "ba4cda78e422e4ca92685dbebeeb1eee147c3fbf7b5441f6e23032a62b13c41f",
+            "target": "plugin.py",
+            "artifact_type": "plugin_py",
+            "changelog": [
+              "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode",
+              "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback",
+              "HTTP-Pool: belegte Slots blockieren den nächsten Filmstart nicht mehr; Requests weichen non-blocking aus",
+              "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten",
+              "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten",
+              "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv",
+              "Update-Seite: kompakte Versionsanzeige bleibt erhalten",
+              "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht als gültiger Cache gespeichert; vorhandene leere Cacheeinträge werden verworfen"
+            ]
+          }
+          JSON
+
+          python3 -m json.tool update.json >/dev/null
+
+          git config user.name "EmbyFlowE2 Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$TARGET" update.json
+          git commit -m "Add Shadow35 empty metadata cache protection build ${BUILD}"
+          git push origin HEAD:main
+          git tag -a "$TAG" -m "EmbyFlowE2 Shadow35 metadata cache protection build ${BUILD}"
+          git push origin "$TAG"
