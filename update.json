@@ -1,17 +1,17 @@
 {
-    "version":  "2026-RCDEV7-SERVERSAFE1-LOGINREF4",
-    "build":  2026090606,
-    "channel":  "rcdev",
-    "download":  "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090606/plugin_RCDEV7_SERVERSAFE1_LOGINREF4.py",
-    "sha256":  "e37a381570c943c6e1b29ec8e93bd9a9c77b934dff727cfe406871d0f477aed1",
-    "target":  "plugin.py",
-    "artifact_type":  "plugin_py",
-    "changelog":  [
-                      "SERVERSAFE1: DirectPlay-Seeks bleiben Static=true und verwenden keine neue Server-Session",
-                      "Alte Ersatz-Sessions senden Stopped vor dem ActiveEncodings-Cleanup",
-                      "Kompaktes Login-Layout in der EmbyFlow-Farbwelt",
-                      "Beschriftung auf Emby für Enigma2 verallgemeinert",
-                      "Update-Seite: kompakte Versionsanzeige und aktuelle Release-Notes",
-                      "Updater: Manifest-Abfragen mit Cache-Buster und No-Cache-Headern"
-                  ]
+  "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
+  "build": 2026090617,
+  "channel": "rcdev",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090617/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "a380bb7b5879c31e6f99b4509b2382630605bcdb73d796c54e0224ce588e5e3e",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
+  "changelog": [
+    "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode",
+    "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback",
+    "HTTP-Pool: belegte Slots blockieren den nächsten Filmstart nicht mehr; Requests weichen non-blocking aus",
+    "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten",
+    "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten",
+    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv"
+  ]
 }
