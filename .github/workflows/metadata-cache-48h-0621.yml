@@ -120,18 +120,14 @@ jobs:
               raise SystemExit("metadata cleaner call marker mismatch")
           text = text.replace(old, new, 1)
 
-          old = (
-              "    \"Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; \"\n"
-              "    \"vorhandene leere Cacheeinträge werden verworfen\"\n"
+          needle = '"vorhandene leere Cacheeinträge werden verworfen"'
+          replacement = (
+              '"vorhandene leere Cacheeinträge werden verworfen|"\n'
+              '    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt"'
           )
-          new = (
-              "    \"Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; \"\n"
-              "    \"vorhandene leere Cacheeinträge werden verworfen|\"\n"
-              "    \"Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt\"\n"
-          )
-          if text.count(old) != 1:
+          if text.count(needle) != 1:
               raise SystemExit("Embedded changelog marker mismatch")
-          text = text.replace(old, new, 1)
+          text = text.replace(needle, replacement, 1)
 
           p.write_text(text, encoding="utf-8", newline="\n")
           final_sha = hashlib.sha256(p.read_bytes()).hexdigest()
