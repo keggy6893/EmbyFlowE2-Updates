@@ -1,0 +1,140 @@
+name: Local bitmap PGS renderer 2026090627
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bitmap-pgs-renderer-0627.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-bitmap-pgs-renderer-2026090627
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply local bitmap PGS renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import ast
+          import hashlib
+          import json
+
+          p = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          m = Path('update.json')
+          fragment_path = Path('bitmap_pgs_renderer_0627.inc.py')
+
+          raw = p.read_bytes()
+          expected = 'fd3358cc088c4c4c8253e28fc4cc04f77e526b4ecb8e66d22eba622550c4b8e4'
+          got = hashlib.sha256(raw).hexdigest()
+          if got != expected:
+              raise SystemExit('Unexpected 0626 baseline sha256: %s' % got)
+
+          text = raw.decode('utf-8')
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090626') != 1:
+              raise SystemExit('build marker mismatch')
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090626',
+              'PLUGIN_UPDATE_BUILD = 2026090627',
+              1,
+          )
+
+          marker = '# EMBYFLOW_BITMAP_EXTEPLAYER3_0626_RELEASE\n'
+          if text.count(marker) != 1:
+              raise SystemExit('0626 marker mismatch: %s' % text.count(marker))
+          if 'EMBYFLOW_BITMAP_PGS_RENDERER_0627_RELEASE' in text:
+              raise SystemExit('0627 already present')
+
+          fragment = fragment_path.read_text(encoding='utf-8')
+          text = text.replace(marker, marker + '\n' + fragment + '\n', 1)
+
+          old_changelog = '"Untertitel Hybrid V1: Textspuren direkt von Emby, Bitmap-/native Spuren wieder über Enigma2; eigenes UT-Menü bleibt unverändert"'
+          new_changelog = '"Untertitel Hybrid V1: Textspuren direkt von Emby, Bitmap-/native Spuren wieder über Enigma2; eigenes UT-Menü bleibt unverändert|"\n    "PGS/DVB/XSUB 0627: ExtEplayer3-Grafikausgabe lokal über -G/-W/-H; EmbyFlow rendert PNG-Rechtecke selbst, Static-URL und PlaySession bleiben unverändert"'
+          if text.count(old_changelog) != 1:
+              raise SystemExit('embedded changelog marker mismatch: %s' % text.count(old_changelog))
+          text = text.replace(old_changelog, new_changelog, 1)
+
+          p.write_text(text, encoding='utf-8', newline='\n')
+          final_sha = hashlib.sha256(p.read_bytes()).hexdigest()
+
+          data = json.loads(m.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090626:
+              raise SystemExit('manifest baseline mismatch')
+          data['build'] = 2026090627
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090627/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = final_sha
+          msg = 'PGS/DVB/XSUB 0627: lokaler ExtEplayer3-Grafikpfad mit -G/-W/-H und eigenem EmbyFlow-PNG-Overlay; gleiche Static=true URL und PlaySession, kein Server-Video-Transcode'
+          changelog = list(data.get('changelog') or [])
+          if msg not in changelog:
+              changelog.append(msg)
+          data['changelog'] = changelog
+          m.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
+
+          # Validate the embedded wrapper as Python, not only the plugin itself.
+          tree = ast.parse(fragment, filename=str(fragment_path))
+          wrapper = None
+          for node in tree.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id == '_EMBYFLOW_PGS_0627_WRAPPER':
+                          wrapper = ast.literal_eval(node.value)
+                          break
+          if not isinstance(wrapper, str) or not wrapper:
+              raise SystemExit('wrapper string not found')
+          compile(wrapper, 'embyflow_ext3_wrapper.py', 'exec')
+
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile bitmap_pgs_renderer_0627.inc.py
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090627' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_BITMAP_PGS_RENDERER_0627_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_BITMAP_EXTEPLAYER3_0626_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_HYBRID_SUBTITLES_0625_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_CHAPTER_CARDS_V18_SINGLE_SELECTED_0624_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_LOGINREF17_DREAMSAFE2_HTTPPOOL_NONBLOCK_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'MAX_STALE = 172800' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+          grep -q 'args.extend(\["-G", pgs_dir\])' bitmap_pgs_renderer_0627.inc.py
+          grep -q 'args.extend(\["-W", str(width)\])' bitmap_pgs_renderer_0627.inc.py
+          grep -q 'args.extend(\["-H", str(height)\])' bitmap_pgs_renderer_0627.inc.py
+          grep -q 'EmbyFlowBitmapSubtitleOverlay0627' bitmap_pgs_renderer_0627.inc.py
+          grep -q 'intercepted = True' bitmap_pgs_renderer_0627.inc.py
+
+          ! grep -q '/PlaybackInfo' bitmap_pgs_renderer_0627.inc.py
+          ! grep -q 'Static=false' bitmap_pgs_renderer_0627.inc.py
+          ! grep -q 'TranscodingUrl' bitmap_pgs_renderer_0627.inc.py
+          ! grep -q '_embyflow_qs_v1_build_stream' bitmap_pgs_renderer_0627.inc.py
+          ! grep -q 'cancel_active_encoding' bitmap_pgs_renderer_0627.inc.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Add local bitmap PGS renderer build 2026090627'
+          git push origin main
+          git tag -a build-2026090627 -m 'EmbyFlow E2 build 2026090627'
+          git push origin build-2026090627
