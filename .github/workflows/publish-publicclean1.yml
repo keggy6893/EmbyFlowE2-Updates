@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - PUBLICCLEAN1.patch.gz.b64
+      - PUBLICCLEAN1.publish
   workflow_dispatch:
 
 permissions:
@@ -32,10 +32,13 @@ jobs:
           EXPECTED_SHA="a380bb7b5879c31e6f99b4509b2382630605bcdb73d796c54e0224ce588e5e3e"
 
           test -f "$BASE"
-          test -f PUBLICCLEAN1.patch.gz.b64
+          test -f PUBLICCLEAN1.patch.xz.b64.part00
+          test -f PUBLICCLEAN1.patch.xz.b64.part01
+          test -f PUBLICCLEAN1.patch.xz.b64.part02
+          test -f PUBLICCLEAN1.patch.xz.b64.part03
 
           cp "$BASE" "$TARGET"
-          base64 -d PUBLICCLEAN1.patch.gz.b64 | gzip -d > /tmp/PUBLICCLEAN1.patch
+          cat PUBLICCLEAN1.patch.xz.b64.part00 PUBLICCLEAN1.patch.xz.b64.part01 PUBLICCLEAN1.patch.xz.b64.part02 PUBLICCLEAN1.patch.xz.b64.part03 | base64 -d | xz -d > /tmp/PUBLICCLEAN1.patch
           patch --batch -p0 < /tmp/PUBLICCLEAN1.patch
 
           python3 -m py_compile "$TARGET"
