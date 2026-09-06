@@ -1,0 +1,2695 @@
+===== TOP 1-260 =====
+000001 | # EMBYFLOW_HOME_FIX_V9_1: server-scoped poster cache + resilient home fetch + perf-log collision fix
+000002 | 
+000003 | 
+000004 | 
+000005 | 
+000006 | # -*- coding: utf-8 -*-
+000007 | from __future__ import absolute_import
+000008 | from skin import parseColor
+000009 | import os
+000010 | import io
+000011 | import json
+000012 | import sys
+000013 | import re
+000014 | import random
+000015 | import unicodedata
+000016 | from uuid import uuid4
+000017 | 
+000018 | from Screens.Screen import Screen
+000019 | from Screens.ChoiceBox import ChoiceBox
+000020 | try:
+000021 |     from Screens.VirtualKeyBoard import VirtualKeyBoard
+000022 | except Exception:
+000023 |     VirtualKeyBoard = None
+000024 | from Screens.MessageBox import MessageBox
+000025 | try:
+000026 |     from Screens.SubtitleDisplay import SubtitleDisplay
+000027 | except Exception:
+000028 |     SubtitleDisplay = None
+000029 | from Components.ActionMap import ActionMap
+000030 | from Components.ServiceEventTracker import ServiceEventTracker
+000031 | from Components.Pixmap import Pixmap
+000032 | from Tools.LoadPixmap import LoadPixmap
+000033 | from Components.Label import Label
+000034 | try:
+000035 |     from Components.ScrollLabel import ScrollLabel
+000036 | except Exception:
+000037 |     ScrollLabel = None
+000038 | from Components.config import config, ConfigSubsection, ConfigText, ConfigPassword, ConfigYesNo, ConfigSelection, getConfigListEntry, configfile
+000039 | from Components.ConfigList import ConfigListScreen
+000040 | from Plugins.Plugin import PluginDescriptor
+000041 | from enigma import ePoint, eSize, eServiceReference, eTimer, iPlayableService
+000042 | try:
+000043 |     from enigma import ePicLoad
+000044 | except Exception:
+000045 |     ePicLoad = None
+000046 | try:
+000047 |     from enigma import getPrevAsciiCode
+000048 | except Exception:
+000049 |     getPrevAsciiCode = None
+000050 | 
+000051 | try:
+000052 |     from Screens.InfoBar import MoviePlayer as InfoBarMoviePlayer
+000053 | except Exception:
+000054 |     InfoBarMoviePlayer = None
+000055 | 
+000056 | # EMBYFLOW_OWN_PLAYER_ONLY_V1
+000057 | # EmbyFlow E2 verwendet ausschließlich den eigenen Player.
+000058 | # Es wird kein Playercode eines anderen Plugins importiert oder verteilt.
+000059 | E2EmbyPlayer = None
+000060 | E2EmbyApiClient = None
+000061 | 
+000062 | # EMBYFLOW_RC14_ROBUST_OPTIONAL_IMPORTS_V1
+000063 | try:
+000064 |     import requests
+000065 | except Exception:
+000066 |     requests = None
+000067 | 
+000068 | import json
+000069 | import time
+000070 | from datetime import datetime, timedelta
+000071 | 
+000072 | try:
+000073 |     from PIL import Image
+000074 | except Exception:
+000075 |     Image = None
+000076 | 
+000077 | try:
+000078 |     from Plugins.Extensions.EmbyFlowE2.emby_config import (
+000079 |         EMBY_SERVER,
+000080 |         EMBY_USERNAME,
+000081 |         EMBY_PASSWORD,
+000082 |     )
+000083 | except Exception:
+000084 |     EMBY_SERVER = ""
+000085 |     EMBY_USERNAME = ""
+000086 |     EMBY_PASSWORD = ""
+000087 | 
+000088 | try:
+000089 |     from Plugins.Extensions.EmbyFlowE2.emby_live import fetch_detail
+000090 | except Exception:
+000091 |     def fetch_detail(search_term):
+000092 |         return None
+000093 | 
+000094 | 
+000095 | # EMBYFLOW_RC14_RECEIVER_NEUTRAL_MODULES_V1
+000096 | try:
+000097 |     from Plugins.Extensions.EmbyFlowE2.compat import (
+000098 |         get_runtime_profile as embyflow_get_runtime_profile,
+000099 |         get_safe_player_delay_ms as embyflow_safe_player_delay_ms,
+000100 |         runtime_profile_text as embyflow_runtime_profile_text,
+000101 |     )
+000102 | except Exception:
+000103 |     def embyflow_get_runtime_profile():
+000104 |         return {
+000105 |             "distro": "unknown",
+000106 |             "model": "unknown",
+000107 |             "brand": "unknown",
+000108 |             "width": 1920,
+000109 |             "height": 1080,
+000110 |             "service_type": 4097,
+000111 |             "safe_player_delay_ms": 350,
+000112 |         }
+000113 | 
+000114 |     def embyflow_safe_player_delay_ms(default=350):
+000115 |         return int(default)
+000116 | 
+000117 |     def embyflow_runtime_profile_text(profile=None):
+000118 |         return "fallback=1"
+000119 | 
+000120 | try:
+000121 |     from Plugins.Extensions.EmbyFlowE2.stream_strategy import (
+000122 |         build_static_stream_url as embyflow_build_static_stream_url,
+000123 |         add_session_params as embyflow_add_session_params,
+000124 |         add_start_ticks as embyflow_add_start_ticks,
+000125 |         is_static_stream_url as embyflow_is_static_stream_url,
+000126 |     )
+000127 | except Exception:
+000128 |     embyflow_build_static_stream_url = None
+000129 |     embyflow_add_session_params = None
+000130 |     embyflow_add_start_ticks = None
+000131 | 
+000132 |     def embyflow_is_static_stream_url(url):
+000133 |         lowered = str(url or "").lower()
+000134 |         return "/stream." in lowered and "static=true" in lowered
+000135 | 
+000136 | try:
+000137 |     from Plugins.Extensions.EmbyFlowE2.skin_utils import (
+000138 |         get_desktop_metrics as embyflow_get_desktop_metrics,
+000139 |     )
+000140 | except Exception:
+000141 |     embyflow_get_desktop_metrics = None
+000142 | 
+000143 | try:
+000144 |     from Plugins.Extensions.EmbyFlowE2.item_types import (
+000145 |         is_series_item as embyflow_is_series_item,
+000146 |         requested_type_allows as embyflow_item_type_allowed,
+000147 |     )
+000148 | except Exception:
+000149 |     def embyflow_is_series_item(item):
+000150 |         data = item or {}
+000151 |         value = str(
+000152 |             data.get("type")
+000153 |             or data.get("Type")
+000154 |             or data.get("item_type")
+000155 |             or ""
+000156 |         ).strip().lower()
+000157 |         return value in ("series", "serie")
+000158 | 
+000159 |     def embyflow_item_type_allowed(actual_type, requested_types):
+000160 |         return str(actual_type or "").strip() in tuple(requested_types or ())
+000161 | 
+000162 | PLUGIN_NAME = "EmbyFlow E2"
+000163 | PLUGIN_VERSION = "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1"
+000164 | PLUGIN_BUILD_DATE = "06.09.2026"
+000165 | PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
+000166 | 
+000167 | # EMBYFLOW_GITHUB_UPDATER_V1
+000168 | # Monotonic integer used for update comparison. Do not compare version strings.
+000169 | PLUGIN_UPDATE_BUILD = 2026090626
+000170 | PLUGIN_UPDATE_CHANGELOG = (
+000171 |     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
+000172 |     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
+000173 |     "HTTP-Pool: belegte Slots blockieren den nächsten Filmstart nicht mehr; Requests weichen non-blocking aus|"
+000174 |     "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten|"
+000175 |     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten|"
+000176 |     "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv|"
+000177 |     "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen|"
+000178 |     "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt|"
+000179 |     "Server-Cache-Trennung: Metadaten- und V11-Library-Cache werden pro Emby-Server und Benutzer getrennt|"
+000180 |     "Kapitelansicht V18: sechs Bildkarten, sofortige lokale Artwork-Platzhalter und echte Kapitelbilder im Hintergrund|"
+000181 |     "Kapitelbilder V18: kein 6er-Vorladen mehr; nur das ausgewählte fehlende Kapitelbild wird erzeugt|"
+000182 |     "Untertitel Hybrid V1: Textspuren direkt von Emby, Bitmap-/native Spuren wieder über Enigma2; eigenes UT-Menü bleibt unverändert"
+000183 | )
+000184 | EMBYFLOW_UPDATE_CHANNEL = "rcdev"
+000185 | EMBYFLOW_UPDATE_MANIFEST_URL = (
+000186 |     "https://raw.githubusercontent.com/keggy6893/"
+000187 |     "EmbyFlowE2-Updates/refs/heads/main/update.json"
+000188 | )
+000189 | 
+000190 | # EMBYFLOW_BETA83_PERFORMANCE_V1
+000191 | # Normale Diagnose-Logs sind im Release standardmäßig deaktiviert.
+000192 | # Für eine gezielte Fehlersuche kann dieser Wert vorübergehend auf
+000193 | # True gesetzt werden. Fehler- und Crashlogs bleiben immer aktiv.
+000194 | # TEMPORAER AUF True FUER DIE AV1/SCHWARZBILD-DIAGNOSE (Verflucht normal) -
+000195 | # nach abgeschlossener Fehlersuche wieder auf False zurücksetzen!
+000196 | EMBYFLOW_DEBUG_LOGS = False
+000197 | # EMBYFLOW_PUBLIC_LOG_CLEAN_V1: normal diagnostics disabled; error/crash logs remain enabled.
+000198 | 
+000199 | 
+000200 | def embyflow_log_path(path):
+000201 |     try:
+000202 |         log_path = str(path or "")
+000203 |         lowered = log_path.lower()
+000204 | 
+000205 |         if (
+000206 |             EMBYFLOW_DEBUG_LOGS
+000207 |             or "error" in lowered
+000208 |             or "crash" in lowered
+000209 |         ):
+000210 |             return log_path
+000211 | 
+000212 |     except Exception:
+000213 |         pass
+000214 | 
+000215 |     return "/dev/null"
+000216 | 
+000217 | 
+000218 | # EMBYFLOW_PERFORMANCE_PATCH23_RELEASE_LOG_GATE_V1
+000219 | # Normale Diagnose-Logs werden bei EMBYFLOW_DEBUG_LOGS=False bereits vor
+000220 | # dem Datei-Open verworfen. Fehler- und Crashlogs bleiben aktiv.
+000221 | class _EmbyFlowNullLog(object):
+000222 |     def write(self, data):
+000223 |         return 0
+000224 | 
+000225 |     def flush(self):
+000226 |         return None
+000227 | 
+000228 |     def close(self):
+000229 |         return None
+000230 | 
+000231 |     def __enter__(self):
+000232 |         return self
+000233 | 
+000234 |     def __exit__(self, exc_type, exc_value, traceback):
+000235 |         return False
+000236 | 
+000237 | 
+000238 | EMBYFLOW_NULL_LOG = _EmbyFlowNullLog()
+000239 | 
+000240 | 
+000241 | def embyflow_open_log(path, mode="a", *args, **kwargs):
+000242 |     try:
+000243 |         log_path = str(path or "")
+000244 |         lowered = log_path.lower()
+000245 | 
+000246 |         if not (
+000247 |             EMBYFLOW_DEBUG_LOGS
+000248 |             or "error" in lowered
+000249 |             or "crash" in lowered
+000250 |         ):
+000251 |             return EMBYFLOW_NULL_LOG
+000252 | 
+000253 |         return io.open(
+000254 |             log_path,
+000255 |             mode,
+000256 |             *args,
+000257 |             **kwargs
+000258 |         )
+000259 | 
+000260 |     except Exception:
+===== class EmbyFlowTrackSelectionScreen @ 24783 =====
+024753 |                 size="1920,1080"
+024754 |                 flags="wfNoBorder"
+024755 |                 backgroundColor="transparent">
+024756 |             <widget name="subtitle_text"
+024757 |                     position="120,760"
+024758 |                     size="1680,250"
+024759 |                     font="Regular;42"
+024760 |                     foregroundColor="#FFFFFF"
+024761 |                     backgroundColor="transparent"
+024762 |                     transparent="1"
+024763 |                     halign="center"
+024764 |                     valign="bottom"
+024765 |                     shadowColor="#000000"
+024766 |                     shadowOffset="2,2"
+024767 |                     zPosition="20" />
+024768 |         </screen>
+024769 |         '''
+024770 |     )
+024771 | 
+024772 |     def __init__(self, session):
+024773 |         Screen.__init__(self, session)
+024774 |         self["subtitle_text"] = Label("")
+024775 | 
+024776 |     def set_subtitle_text(self, text):
+024777 |         try:
+024778 |             self["subtitle_text"].setText(str(text or ""))
+024779 |         except Exception:
+024780 |             pass
+024781 | 
+024782 | # EMBYFLOW_INFUSE_TRACK_SELECTOR_V1
+024783 | class EmbyFlowTrackSelectionScreen(Screen):
+024784 |     # Eigene skinunabhängige Audio-/Untertitelauswahl im EmbyFlow-Stil.
+024785 | 
+024786 |     VISIBLE_ROWS = 7
+024787 |     ROW_X = 625
+024788 |     ROW_Y = 165
+024789 |     ROW_W = 670
+024790 |     ROW_H = 58
+024791 |     ROW_STEP = 68
+024792 | 
+024793 |     def __init__(
+024794 |         self,
+024795 |         session,
+024796 |         title="Auswählen",
+024797 |         entries=None,
+024798 |         active_index=0,
+024799 |     ):
+024800 |         row_skin = []
+024801 | 
+024802 |         for slot in range(self.VISIBLE_ROWS):
+024803 |             y_pos = self.ROW_Y + (slot * self.ROW_STEP)
+024804 |             row_skin.append(
+024805 |                 '''
+024806 |                 <widget name="row_bg%(slot)s"
+024807 |                         position="%(x)s,%(y)s"
+024808 |                         size="%(w)s,%(h)s"
+024809 |                         backgroundColor="#201C18"
+024810 |                         transparent="0"
+024811 |                         cornerRadius="20"
+024812 |                         zPosition="2" />
+024813 |                 <widget name="row_check%(slot)s"
+024814 |                         position="650,%(check_y)s"
+024815 |                         size="42,34"
+024816 |                         font="Bold;27"
+024817 |                         foregroundColor="layer-a-accent1"
+024818 |                         backgroundColor="#201C18"
+024819 |                         transparent="1"
+024820 |                         halign="center"
+024821 |                         valign="center"
+024822 |                         zPosition="5" />
+024823 |                 <widget name="row_primary%(slot)s"
+024824 |                         position="704,%(text_y)s"
+024825 |                         size="310,34"
+024826 |                         font="Regular;25"
+024827 |                         foregroundColor="#F2F2F2"
+024828 |                         backgroundColor="#201C18"
+024829 |                         transparent="1"
+024830 |                         valign="center"
+024831 |                         noWrap="1"
+024832 |                         zPosition="5" />
+024833 |                 <widget name="row_secondary%(slot)s"
+024834 |                         position="1010,%(text_y)s"
+024835 |                         size="165,34"
+024836 |                         font="Regular;23"
+024837 |                         foregroundColor="#E2E2E2"
+024838 |                         backgroundColor="#201C18"
+024839 |                         transparent="1"
+024840 |                         halign="right"
+024841 |                         valign="center"
+024842 |                         noWrap="1"
+024843 |                         zPosition="5" />
+024844 |                 <widget name="row_tertiary%(slot)s"
+024845 |                         position="1184,%(text_y)s"
+024846 |                         size="88,34"
+024847 |                         font="Regular;23"
+024848 |                         foregroundColor="#E2E2E2"
+024849 |                         backgroundColor="#201C18"
+024850 |                         transparent="1"
+024851 |                         halign="right"
+024852 |                         valign="center"
+024853 |                         noWrap="1"
+024854 |                         zPosition="5" />
+024855 |                 ''' % {
+024856 |                     "slot": slot,
+024857 |                     "x": self.ROW_X,
+024858 |                     "y": y_pos,
+024859 |                     "w": self.ROW_W,
+024860 |                     "h": self.ROW_H,
+024861 |                     "check_y": y_pos + 12,
+024862 |                     "text_y": y_pos + 12,
+===== class EmbyFlowTextSubtitleOverlay @ 24746 =====
+024716 |         self.finished = True
+024717 |         self.stop_countdown()
+024718 | 
+024719 |         try:
+024720 |             with embyflow_open_log(
+024721 |                 "/tmp/embyflow_autonext_action.log",
+024722 |                 "a"
+024723 |             ) as log:
+024724 |                 log.write(
+024725 |                     "%s CANCEL\n"
+024726 |                     % time.strftime(
+024727 |                         "%Y-%m-%d %H:%M:%S"
+024728 |                     )
+024729 |                 )
+024730 |         except Exception:
+024731 |             pass
+024732 | 
+024733 |         self.close("cancel")
+024734 | 
+024735 | 
+024736 | EMBYFLOW_AUTONEXT_TIMERS = []
+024737 | 
+024738 | 
+024739 | # Timer werden global gehalten, bis die verzögerte Rückkehr
+024740 | # zum vorherigen TV-/Radiodienst abgeschlossen ist.
+024741 | EMBYFLOW_PLAYER_EXIT_TIMERS = []
+024742 | 
+024743 | 
+024744 | 
+024745 | # EMBYFLOW_TEXT_SUBTITLE_RENDERER_V8
+024746 | class EmbyFlowTextSubtitleOverlay(Screen):
+024747 |     # Lightweight subtitle-only overlay. This does not call the native
+024748 |     # Enigma2 subtitle renderer and does not alter the video service.
+024749 |     skin = scale_skin(
+024750 |         '''
+024751 |         <screen name="EmbyFlowTextSubtitleOverlay"
+024752 |                 position="0,0"
+024753 |                 size="1920,1080"
+024754 |                 flags="wfNoBorder"
+024755 |                 backgroundColor="transparent">
+024756 |             <widget name="subtitle_text"
+024757 |                     position="120,760"
+024758 |                     size="1680,250"
+024759 |                     font="Regular;42"
+024760 |                     foregroundColor="#FFFFFF"
+024761 |                     backgroundColor="transparent"
+024762 |                     transparent="1"
+024763 |                     halign="center"
+024764 |                     valign="bottom"
+024765 |                     shadowColor="#000000"
+024766 |                     shadowOffset="2,2"
+024767 |                     zPosition="20" />
+024768 |         </screen>
+024769 |         '''
+024770 |     )
+024771 | 
+024772 |     def __init__(self, session):
+024773 |         Screen.__init__(self, session)
+024774 |         self["subtitle_text"] = Label("")
+024775 | 
+024776 |     def set_subtitle_text(self, text):
+024777 |         try:
+024778 |             self["subtitle_text"].setText(str(text or ""))
+024779 |         except Exception:
+024780 |             pass
+024781 | 
+024782 | # EMBYFLOW_INFUSE_TRACK_SELECTOR_V1
+024783 | class EmbyFlowTrackSelectionScreen(Screen):
+024784 |     # Eigene skinunabhängige Audio-/Untertitelauswahl im EmbyFlow-Stil.
+024785 | 
+024786 |     VISIBLE_ROWS = 7
+024787 |     ROW_X = 625
+024788 |     ROW_Y = 165
+024789 |     ROW_W = 670
+024790 |     ROW_H = 58
+024791 |     ROW_STEP = 68
+024792 | 
+024793 |     def __init__(
+024794 |         self,
+024795 |         session,
+024796 |         title="Auswählen",
+024797 |         entries=None,
+024798 |         active_index=0,
+024799 |     ):
+024800 |         row_skin = []
+024801 | 
+024802 |         for slot in range(self.VISIBLE_ROWS):
+024803 |             y_pos = self.ROW_Y + (slot * self.ROW_STEP)
+024804 |             row_skin.append(
+024805 |                 '''
+024806 |                 <widget name="row_bg%(slot)s"
+024807 |                         position="%(x)s,%(y)s"
+024808 |                         size="%(w)s,%(h)s"
+024809 |                         backgroundColor="#201C18"
+024810 |                         transparent="0"
+024811 |                         cornerRadius="20"
+024812 |                         zPosition="2" />
+024813 |                 <widget name="row_check%(slot)s"
+024814 |                         position="650,%(check_y)s"
+024815 |                         size="42,34"
+024816 |                         font="Bold;27"
+024817 |                         foregroundColor="layer-a-accent1"
+024818 |                         backgroundColor="#201C18"
+024819 |                         transparent="1"
+024820 |                         halign="center"
+024821 |                         valign="center"
+024822 |                         zPosition="5" />
+024823 |                 <widget name="row_primary%(slot)s"
+024824 |                         position="704,%(text_y)s"
+024825 |                         size="310,34"
+===== Pixmap( @ 473 =====
+000443 |         image_path = str(path or "")
+000444 |         if (
+000445 |             not image_path
+000446 |             or not os.path.isfile(image_path)
+000447 |             or os.path.getsize(image_path) <= 500
+000448 |         ):
+000449 |             return False
+000450 | 
+000451 |         target_w = max(1, int(width or 1))
+000452 |         target_h = max(1, int(height or 1))
+000453 |         request_token = str(token or widget_name or image_path)
+000454 | 
+000455 |         state = getattr(owner, "_embyflow_picload_state", None)
+000456 |         if not isinstance(state, dict):
+000457 |             state = {}
+000458 |             setattr(owner, "_embyflow_picload_state", state)
+000459 | 
+000460 |         request_id = str(uuid4())
+000461 | 
+000462 |         def apply_pixmap(data):
+000463 |             try:
+000464 |                 if callable(is_current) and not is_current():
+000465 |                     return False
+000466 | 
+000467 |                 widget = owner[widget_name]
+000468 |                 instance = getattr(widget, "instance", None)
+000469 |                 if instance is None or data is None:
+000470 |                     return False
+000471 | 
+000472 |                 try:
+000473 |                     instance.setPixmap(None)
+000474 |                 except Exception:
+000475 |                     pass
+000476 | 
+000477 |                 instance.setPixmap(data)
+000478 | 
+000479 |                 try:
+000480 |                     instance.setScale(1)
+000481 |                 except Exception:
+000482 |                     pass
+000483 | 
+000484 |                 try:
+000485 |                     widget.show()
+000486 |                     instance.show()
+000487 |                     instance.invalidate()
+000488 |                 except Exception:
+000489 |                     pass
+000490 | 
+000491 |                 embyflow_touch_cache_file(image_path)
+000492 |                 return True
+000493 | 
+000494 |             except Exception:
+000495 |                 return False
+000496 | 
+000497 |         if ePicLoad is not None:
+000498 |             loader = ePicLoad()
+000499 |             state[request_token] = {
+000500 |                 "request_id": request_id,
+000501 |                 "loader": loader,
+000502 |                 "path": image_path,
+000503 |             }
+000504 | 
+000505 |             def picture_ready(*_args):
+000506 |                 try:
+000507 |                     current = state.get(request_token) or {}
+000508 |                     if current.get("request_id") != request_id:
+000509 |                         return
+000510 |                     apply_pixmap(loader.getData())
+000511 |                 finally:
+000512 |                     current = state.get(request_token) or {}
+000513 |                     if current.get("request_id") == request_id:
+000514 |                         state.pop(request_token, None)
+000515 | 
+000516 |             connected = False
+000517 |             try:
+000518 |                 loader.PictureData.get().append(picture_ready)
+000519 |                 connected = True
+000520 |             except Exception:
+000521 |                 try:
+000522 |                     connection = loader.PictureData.connect(picture_ready)
+000523 |                     state[request_token]["connection"] = connection
+000524 |                     connected = True
+000525 |                 except Exception:
+000526 |                     connected = False
+000527 | 
+000528 |             if connected:
+000529 |                 loader.setPara((
+000530 |                     target_w,
+000531 |                     target_h,
+000532 |                     1,
+000533 |                     1,
+000534 |                     False,
+000535 |                     1,
+000536 |                     "#00000000",
+000537 |                 ))
+000538 |                 result = loader.startDecode(image_path)
+000539 |                 if result in (0, None):
+000540 |                     return True
+000541 | 
+000542 |             state.pop(request_token, None)
+000543 | 
+000544 |         pixmap = LoadPixmap(image_path)
+000545 |         return apply_pixmap(pixmap)
+000546 | 
+000547 |     except Exception:
+000548 |         return False
+000549 | 
+000550 | 
+000551 | def embyflow_cached_get_json(
+000552 |     url,
+===== Pixmap( @ 477 =====
+000447 |             or os.path.getsize(image_path) <= 500
+000448 |         ):
+000449 |             return False
+000450 | 
+000451 |         target_w = max(1, int(width or 1))
+000452 |         target_h = max(1, int(height or 1))
+000453 |         request_token = str(token or widget_name or image_path)
+000454 | 
+000455 |         state = getattr(owner, "_embyflow_picload_state", None)
+000456 |         if not isinstance(state, dict):
+000457 |             state = {}
+000458 |             setattr(owner, "_embyflow_picload_state", state)
+000459 | 
+000460 |         request_id = str(uuid4())
+000461 | 
+000462 |         def apply_pixmap(data):
+000463 |             try:
+000464 |                 if callable(is_current) and not is_current():
+000465 |                     return False
+000466 | 
+000467 |                 widget = owner[widget_name]
+000468 |                 instance = getattr(widget, "instance", None)
+000469 |                 if instance is None or data is None:
+000470 |                     return False
+000471 | 
+000472 |                 try:
+000473 |                     instance.setPixmap(None)
+000474 |                 except Exception:
+000475 |                     pass
+000476 | 
+000477 |                 instance.setPixmap(data)
+000478 | 
+000479 |                 try:
+000480 |                     instance.setScale(1)
+000481 |                 except Exception:
+000482 |                     pass
+000483 | 
+000484 |                 try:
+000485 |                     widget.show()
+000486 |                     instance.show()
+000487 |                     instance.invalidate()
+000488 |                 except Exception:
+000489 |                     pass
+000490 | 
+000491 |                 embyflow_touch_cache_file(image_path)
+000492 |                 return True
+000493 | 
+000494 |             except Exception:
+000495 |                 return False
+000496 | 
+000497 |         if ePicLoad is not None:
+000498 |             loader = ePicLoad()
+000499 |             state[request_token] = {
+000500 |                 "request_id": request_id,
+000501 |                 "loader": loader,
+000502 |                 "path": image_path,
+000503 |             }
+000504 | 
+000505 |             def picture_ready(*_args):
+000506 |                 try:
+000507 |                     current = state.get(request_token) or {}
+000508 |                     if current.get("request_id") != request_id:
+000509 |                         return
+000510 |                     apply_pixmap(loader.getData())
+000511 |                 finally:
+000512 |                     current = state.get(request_token) or {}
+000513 |                     if current.get("request_id") == request_id:
+000514 |                         state.pop(request_token, None)
+000515 | 
+000516 |             connected = False
+000517 |             try:
+000518 |                 loader.PictureData.get().append(picture_ready)
+000519 |                 connected = True
+000520 |             except Exception:
+000521 |                 try:
+000522 |                     connection = loader.PictureData.connect(picture_ready)
+000523 |                     state[request_token]["connection"] = connection
+000524 |                     connected = True
+000525 |                 except Exception:
+000526 |                     connected = False
+000527 | 
+000528 |             if connected:
+000529 |                 loader.setPara((
+000530 |                     target_w,
+000531 |                     target_h,
+000532 |                     1,
+000533 |                     1,
+000534 |                     False,
+000535 |                     1,
+000536 |                     "#00000000",
+000537 |                 ))
+000538 |                 result = loader.startDecode(image_path)
+000539 |                 if result in (0, None):
+000540 |                     return True
+000541 | 
+000542 |             state.pop(request_token, None)
+000543 | 
+000544 |         pixmap = LoadPixmap(image_path)
+000545 |         return apply_pixmap(pixmap)
+000546 | 
+000547 |     except Exception:
+000548 |         return False
+000549 | 
+000550 | 
+000551 | def embyflow_cached_get_json(
+000552 |     url,
+000553 |     headers=None,
+000554 |     params=None,
+000555 |     ttl=30,
+000556 |     timeout=10,
+===== Pixmap( @ 544 =====
+000514 |                         state.pop(request_token, None)
+000515 | 
+000516 |             connected = False
+000517 |             try:
+000518 |                 loader.PictureData.get().append(picture_ready)
+000519 |                 connected = True
+000520 |             except Exception:
+000521 |                 try:
+000522 |                     connection = loader.PictureData.connect(picture_ready)
+000523 |                     state[request_token]["connection"] = connection
+000524 |                     connected = True
+000525 |                 except Exception:
+000526 |                     connected = False
+000527 | 
+000528 |             if connected:
+000529 |                 loader.setPara((
+000530 |                     target_w,
+000531 |                     target_h,
+000532 |                     1,
+000533 |                     1,
+000534 |                     False,
+000535 |                     1,
+000536 |                     "#00000000",
+000537 |                 ))
+000538 |                 result = loader.startDecode(image_path)
+000539 |                 if result in (0, None):
+000540 |                     return True
+000541 | 
+000542 |             state.pop(request_token, None)
+000543 | 
+000544 |         pixmap = LoadPixmap(image_path)
+000545 |         return apply_pixmap(pixmap)
+000546 | 
+000547 |     except Exception:
+000548 |         return False
+000549 | 
+000550 | 
+000551 | def embyflow_cached_get_json(
+000552 |     url,
+000553 |     headers=None,
+000554 |     params=None,
+000555 |     ttl=30,
+000556 |     timeout=10,
+000557 |     verify=True,
+000558 |     cache_key=""
+000559 | ):
+000560 |     """Kleiner RAM-Cache nur für sichere, wiederholte GET-Abfragen."""
+000561 |     global EMBYFLOW_API_RAM_CACHE_LOCK
+000562 | 
+000563 |     if not requests:
+000564 |         return {}
+000565 | 
+000566 |     try:
+000567 |         import copy
+000568 |         import threading
+000569 | 
+000570 |         if EMBYFLOW_API_RAM_CACHE_LOCK is None:
+000571 |             EMBYFLOW_API_RAM_CACHE_LOCK = threading.RLock()
+000572 | 
+000573 |         normalized_params = tuple(
+000574 |             sorted(
+000575 |                 (str(key), str(value))
+000576 |                 for key, value in (params or {}).items()
+000577 |             )
+000578 |         )
+000579 |         token_tail = str(
+000580 |             (headers or {}).get("X-Emby-Token", "")
+000581 |             or ""
+000582 |         )[-8:]
+000583 |         key = (
+000584 |             str(cache_key or ""),
+000585 |             str(url or ""),
+000586 |             normalized_params,
+000587 |             token_tail,
+000588 |         )
+000589 |         now = time.time()
+000590 | 
+000591 |         with EMBYFLOW_API_RAM_CACHE_LOCK:
+000592 |             entry = EMBYFLOW_API_RAM_CACHE.get(key)
+000593 |             if entry and now - float(entry.get("ts", 0.0) or 0.0) < max(1, int(ttl or 0)):
+000594 |                 entry["access"] = now
+000595 |                 return copy.deepcopy(entry.get("data") or {})
+000596 | 
+000597 |         response = embyflow_http_get(
+000598 |             url,
+000599 |             headers=headers,
+000600 |             params=params,
+000601 |             timeout=timeout,
+000602 |             verify=verify,
+000603 |         )
+000604 |         if int(getattr(response, "status_code", 0) or 0) != 200:
+000605 |             raise RuntimeError(
+000606 |                 "HTTP %s" % getattr(response, "status_code", "?")
+000607 |             )
+000608 | 
+000609 |         data = response.json() or {}
+000610 | 
+000611 |         with EMBYFLOW_API_RAM_CACHE_LOCK:
+000612 |             EMBYFLOW_API_RAM_CACHE[key] = {
+000613 |                 "ts": now,
+000614 |                 "access": now,
+000615 |                 "data": copy.deepcopy(data),
+000616 |             }
+000617 | 
+000618 |             while len(EMBYFLOW_API_RAM_CACHE) > EMBYFLOW_API_RAM_CACHE_MAX:
+000619 |                 oldest_key = min(
+000620 |                     EMBYFLOW_API_RAM_CACHE,
+000621 |                     key=lambda candidate: float(
+000622 |                         EMBYFLOW_API_RAM_CACHE[candidate].get(
+000623 |                             "access",
+===== Pixmap( @ 7207 =====
+007177 |                 foregroundColor="#ffffff"
+007178 |                 backgroundColor="#05070b"
+007179 |                 transparent="1"
+007180 |                 zPosition="6" />
+007181 | 
+007182 |             <eLabel
+007183 |                 position="285,1037"
+007184 |                 size="18,18"
+007185 |                 backgroundColor="#39a935"
+007186 |                 zPosition="6" />
+007187 | 
+007188 |             <widget
+007189 |                 name="key_green"
+007190 |                 position="315,1024"
+007191 |                 size="300,40"
+007192 |                 font="Regular;28"
+007193 |                 foregroundColor="#ffffff"
+007194 |                 backgroundColor="#05070b"
+007195 |                 transparent="1"
+007196 |                 zPosition="6" />
+007197 | 
+007198 |         </screen>
+007199 |     """
+007200 | 
+007201 |     def __init__(self, session, term=""):
+007202 |         Screen.__init__(self, session)
+007203 | 
+007204 |         self.session = session
+007205 |         self.term = str(term or "")
+007206 | 
+007207 |         self["gag_bg"] = Pixmap()
+007208 | 
+007209 |         self["fallback_title"] = Label(
+007210 |             "EmbyFlow hilft nach"
+007211 |         )
+007212 | 
+007213 |         self["fallback_text"] = Label(
+007214 |             "Wenn du selbst nicht weißt,\n"
+007215 |             "was du suchst,\n"
+007216 |             "kann ich auch nur noch\n"
+007217 |             "Google holen."
+007218 |         )
+007219 | 
+007220 |         self["key_red"] = Label(
+007221 |             "Zurück"
+007222 |         )
+007223 | 
+007224 |         self["key_green"] = Label(
+007225 |             "Zurück zur Suche"
+007226 |         )
+007227 | 
+007228 |         self["actions"] = ActionMap(
+007229 |             [
+007230 |                 "OkCancelActions",
+007231 |                 "ColorActions",
+007232 |             ],
+007233 |             {
+007234 |                 "ok": self.close,
+007235 |                 "cancel": self.close,
+007236 |                 "red": self.close,
+007237 |                 "green": self.close,
+007238 |             },
+007239 |             -1,
+007240 |         )
+007241 | 
+007242 |         self.onLayoutFinish.append(
+007243 |             self._load_google_gag_art
+007244 |         )
+007245 | 
+007246 |     # EMBYFLOW_BROWSER_DISABLED_RETURN_SEARCH_V1
+007247 | 
+007248 |     def _load_google_gag_art(self):
+007249 |         image_path = os.path.join(
+007250 |             PLUGIN_PATH,
+007251 |             "embyflow_google_gag.png",
+007252 |         )
+007253 | 
+007254 |         if not os.path.isfile(image_path):
+007255 |             print(
+007256 |                 "[EmbyFlow] Google-Gag-PNG fehlt:",
+007257 |                 image_path,
+007258 |             )
+007259 |             return
+007260 | 
+007261 |         try:
+007262 |             self["gag_bg"].instance.setPixmapFromFile(
+007263 |                 image_path
+007264 |             )
+007265 | 
+007266 |             self["fallback_title"].hide()
+007267 |             self["fallback_text"].hide()
+007268 | 
+007269 |         except Exception as error:
+007270 |             print(
+007271 |                 "[EmbyFlow] Google-Gag-PNG Fehler:",
+007272 |                 error,
+007273 |             )
+007274 | 
+007275 | 
+007276 | class EmbyFlowCurvedSearchKeyboard(Screen):
+007277 |     KEY_ROWS = [
+007278 |         [
+007279 |             "1", "2", "3", "4", "5", "6",
+007280 |             "7", "8", "9", "0", "ß", "DEL"
+007281 |         ],
+007282 |         [
+007283 |             "q", "w", "e", "r", "t", "z",
+007284 |             "u", "i", "o", "p", "ü"
+007285 |         ],
+007286 |         [
+===== Pixmap( @ 8389 =====
+008359 |             ("poster_movie_1", "movies", 0, 292, 470, 221, 314),
+008360 |             ("poster_movie_2", "movies", 1, 556, 470, 221, 314),
+008361 |             ("poster_series_1", "series", 0, 853, 470, 221, 314),
+008362 |             ("poster_series_2", "series", 1, 1117, 470, 221, 314),
+008363 |             ("poster_doc_1", "docs", 0, 1414, 470, 221, 314),
+008364 |             ("poster_doc_2", "docs", 1, 1678, 470, 221, 314),
+008365 |             ("action_back", "back", 0, 1340, 900, 96, 48),
+008366 |             ("action_play", "play", 1, 1462, 900, 145, 48),
+008367 |             ("action_search", "search", 1, 1634, 900, 116, 48),
+008368 |             ("action_details", "details", 1, 1768, 900, 116, 48),
+008369 |         ]
+008370 |         # EMBYFLOW_HOME_SIDEBAR_V24_FINAL_HIERARCHY
+008371 |         self.home_focus_items = list(self.focus_items)
+008372 |         self.sidebar_mode = "main"
+008373 |         self.sidebar_parent_focus = "side_movies"
+008374 |         self.sidebar_parent_title = ""
+008375 |         self.sidebar_child_entries = []
+008376 |         self.sidebar_entries = []
+008377 |         self.sidebar_cursor = -1
+008378 |         self.sidebar_page_start = 0
+008379 |         self.sidebar_page_size = 18
+008380 | 
+008381 |         # EMBYFLOW_REF12_DYNAMIC_SERVER_NAV_LOCALTEST
+008382 |         # The normal Home navigation stays in EmbyFlow's own visual language,
+008383 |         # but the actual library rows are taken directly from the active server.
+008384 |         self.direct_nav_entries_ref12 = []
+008385 |         self.direct_nav_cursor_ref12 = 0
+008386 |         self.direct_nav_page_start_ref12 = 0
+008387 |         self.direct_nav_page_size_ref12 = 18
+008388 | 
+008389 |         self["poster1"] = Pixmap()
+008390 |         self["poster2"] = Pixmap()
+008391 |         self["poster3"] = Pixmap()
+008392 |         self["poster4"] = Pixmap()
+008393 |         self["poster5"] = Pixmap()
+008394 |         self["poster6"] = Pixmap()
+008395 |         self["poster_title1"] = Label("")
+008396 |         self["poster_meta1"] = Label("")
+008397 |         self["poster_title2"] = Label("")
+008398 |         self["poster_meta2"] = Label("")
+008399 |         self["poster_title3"] = Label("")
+008400 |         self["poster_meta3"] = Label("")
+008401 |         self["poster_title4"] = Label("")
+008402 |         self["poster_meta4"] = Label("")
+008403 |         self["poster_title5"] = Label("")
+008404 |         self["poster_meta5"] = Label("")
+008405 |         self["poster_title6"] = Label("")
+008406 |         self["poster_meta6"] = Label("")
+008407 |         self["hero_backdrop"] = Pixmap()
+008408 |         # Sidebar V2.3: dynamic pink selection accent.
+008409 |         self["nav_focus_accent"] = Label(" ")
+008410 |         # V2.4 final: hierarchical left-navigation overlay.
+008411 |         self["side_sub_bg"] = Label(" ")
+008412 |         self["side_sub_title"] = Label("")
+008413 |         for _side_sub_i in range(18):
+008414 |             self["side_sub_%d" % _side_sub_i] = Label("")
+008415 |         self["side_sub_page"] = Label("")
+008416 |         for i in range(1, 7):
+008417 |             self["progress_bg%d" % i] = Label(" ")
+008418 |             self["progress_fill%d" % i] = Label(" ")
+008419 |             self["progress_text%d" % i] = Label("")
+008420 | 
+008421 |         self["lib_movies"] = Label("Filme ...")
+008422 |         self["lib_series"] = Label("Serien ...")
+008423 |         self["lib_docs"] = Label("Doku ...")
+008424 |         self["lib_docseries"] = Label("Doku-Serien ...")
+008425 |         self["lib_episodes"] = Label("Episoden ...")
+008426 |         self["lib_last_sync"] = Label("Sync --:--")
+008427 |         self["server_state"] = Label("Server")
+008428 |         self["server_host"] = Label("-")
+008429 |         self["server_online"] = Label("Offline")
+008430 |         self["top_username"] = Label(EMBY_USERNAME or "User")
+008431 |         self["row1_title"] = Label("Weiter schauen")
+008432 |         self["row2_title"] = Label("Entdecken")
+008433 |         self["row3_title"] = Label("Empfohlen fuer dich")
+008434 |         self.dynamic_poster_items = {}
+008435 | 
+008436 |         # DYNAMIC_HOME_PIXMAP_SCALING_V17
+008437 |         try:
+008438 |             self.onLayoutFinish.append(self.apply_dynamic_home_pixmap_scaling)
+008439 |         except Exception:
+008440 |             pass
+008441 | 
+008442 |         self.last_home_refresh = 0
+008443 | 
+008444 |         self["hero_title"] = Label("The Last Horizon")
+008445 |         self["hero_meta"] = Label("2026 | 118 min | 4K | Abenteuer")
+008446 |         self["hero_overview"] = Label("Eine letzte Expedition. Ein Geheimnis am Ende der bekannten Welt.")
+008447 |         self.hero_slides = []
+008448 |         self.hero_index = 0
+008449 |         self.hero_timer = eTimer()
+008450 |         try:
+008451 |             self.hero_timer.callback.append(self.next_hero_slide)
+008452 |         except:
+008453 |             pass
+008454 | 
+008455 |         self.startup_timer = eTimer()
+008456 |         try:
+008457 |             self.startup_timer.callback.append(self.load_dynamic_posters)
+008458 |         except:
+008459 |             pass
+008460 | 
+008461 |         # METADATA_PREWARM_TIMER_V10
+008462 |         self.metadata_prewarm_timer = eTimer()
+008463 |         try:
+008464 |             self.metadata_prewarm_timer.callback.append(self._run_metadata_prewarm)
+008465 |         except:
+008466 |             pass
+008467 | 
+008468 |         self.hero_startup_timer = eTimer()
+===== ePicLoad @ 43 =====
+000013 | import re
+000014 | import random
+000015 | import unicodedata
+000016 | from uuid import uuid4
+000017 | 
+000018 | from Screens.Screen import Screen
+000019 | from Screens.ChoiceBox import ChoiceBox
+000020 | try:
+000021 |     from Screens.VirtualKeyBoard import VirtualKeyBoard
+000022 | except Exception:
+000023 |     VirtualKeyBoard = None
+000024 | from Screens.MessageBox import MessageBox
+000025 | try:
+000026 |     from Screens.SubtitleDisplay import SubtitleDisplay
+000027 | except Exception:
+000028 |     SubtitleDisplay = None
+000029 | from Components.ActionMap import ActionMap
+000030 | from Components.ServiceEventTracker import ServiceEventTracker
+000031 | from Components.Pixmap import Pixmap
+000032 | from Tools.LoadPixmap import LoadPixmap
+000033 | from Components.Label import Label
+000034 | try:
+000035 |     from Components.ScrollLabel import ScrollLabel
+000036 | except Exception:
+000037 |     ScrollLabel = None
+000038 | from Components.config import config, ConfigSubsection, ConfigText, ConfigPassword, ConfigYesNo, ConfigSelection, getConfigListEntry, configfile
+000039 | from Components.ConfigList import ConfigListScreen
+000040 | from Plugins.Plugin import PluginDescriptor
+000041 | from enigma import ePoint, eSize, eServiceReference, eTimer, iPlayableService
+000042 | try:
+000043 |     from enigma import ePicLoad
+000044 | except Exception:
+000045 |     ePicLoad = None
+000046 | try:
+000047 |     from enigma import getPrevAsciiCode
+000048 | except Exception:
+000049 |     getPrevAsciiCode = None
+000050 | 
+000051 | try:
+000052 |     from Screens.InfoBar import MoviePlayer as InfoBarMoviePlayer
+000053 | except Exception:
+000054 |     InfoBarMoviePlayer = None
+000055 | 
+000056 | # EMBYFLOW_OWN_PLAYER_ONLY_V1
+000057 | # EmbyFlow E2 verwendet ausschließlich den eigenen Player.
+000058 | # Es wird kein Playercode eines anderen Plugins importiert oder verteilt.
+000059 | E2EmbyPlayer = None
+000060 | E2EmbyApiClient = None
+000061 | 
+000062 | # EMBYFLOW_RC14_ROBUST_OPTIONAL_IMPORTS_V1
+000063 | try:
+000064 |     import requests
+000065 | except Exception:
+000066 |     requests = None
+000067 | 
+000068 | import json
+000069 | import time
+000070 | from datetime import datetime, timedelta
+000071 | 
+000072 | try:
+000073 |     from PIL import Image
+000074 | except Exception:
+000075 |     Image = None
+000076 | 
+000077 | try:
+000078 |     from Plugins.Extensions.EmbyFlowE2.emby_config import (
+000079 |         EMBY_SERVER,
+000080 |         EMBY_USERNAME,
+000081 |         EMBY_PASSWORD,
+000082 |     )
+000083 | except Exception:
+000084 |     EMBY_SERVER = ""
+000085 |     EMBY_USERNAME = ""
+000086 |     EMBY_PASSWORD = ""
+000087 | 
+000088 | try:
+000089 |     from Plugins.Extensions.EmbyFlowE2.emby_live import fetch_detail
+000090 | except Exception:
+000091 |     def fetch_detail(search_term):
+000092 |         return None
+000093 | 
+000094 | 
+000095 | # EMBYFLOW_RC14_RECEIVER_NEUTRAL_MODULES_V1
+000096 | try:
+000097 |     from Plugins.Extensions.EmbyFlowE2.compat import (
+000098 |         get_runtime_profile as embyflow_get_runtime_profile,
+000099 |         get_safe_player_delay_ms as embyflow_safe_player_delay_ms,
+000100 |         runtime_profile_text as embyflow_runtime_profile_text,
+000101 |     )
+000102 | except Exception:
+000103 |     def embyflow_get_runtime_profile():
+000104 |         return {
+000105 |             "distro": "unknown",
+000106 |             "model": "unknown",
+000107 |             "brand": "unknown",
+000108 |             "width": 1920,
+000109 |             "height": 1080,
+000110 |             "service_type": 4097,
+000111 |             "safe_player_delay_ms": 350,
+000112 |         }
+000113 | 
+000114 |     def embyflow_safe_player_delay_ms(default=350):
+000115 |         return int(default)
+000116 | 
+000117 |     def embyflow_runtime_profile_text(profile=None):
+000118 |         return "fallback=1"
+000119 | 
+000120 | try:
+000121 |     from Plugins.Extensions.EmbyFlowE2.stream_strategy import (
+000122 |         build_static_stream_url as embyflow_build_static_stream_url,
+===== ePicLoad @ 45 =====
+000015 | import unicodedata
+000016 | from uuid import uuid4
+000017 | 
+000018 | from Screens.Screen import Screen
+000019 | from Screens.ChoiceBox import ChoiceBox
+000020 | try:
+000021 |     from Screens.VirtualKeyBoard import VirtualKeyBoard
+000022 | except Exception:
+000023 |     VirtualKeyBoard = None
+000024 | from Screens.MessageBox import MessageBox
+000025 | try:
+000026 |     from Screens.SubtitleDisplay import SubtitleDisplay
+000027 | except Exception:
+000028 |     SubtitleDisplay = None
+000029 | from Components.ActionMap import ActionMap
+000030 | from Components.ServiceEventTracker import ServiceEventTracker
+000031 | from Components.Pixmap import Pixmap
+000032 | from Tools.LoadPixmap import LoadPixmap
+000033 | from Components.Label import Label
+000034 | try:
+000035 |     from Components.ScrollLabel import ScrollLabel
+000036 | except Exception:
+000037 |     ScrollLabel = None
+000038 | from Components.config import config, ConfigSubsection, ConfigText, ConfigPassword, ConfigYesNo, ConfigSelection, getConfigListEntry, configfile
+000039 | from Components.ConfigList import ConfigListScreen
+000040 | from Plugins.Plugin import PluginDescriptor
+000041 | from enigma import ePoint, eSize, eServiceReference, eTimer, iPlayableService
+000042 | try:
+000043 |     from enigma import ePicLoad
+000044 | except Exception:
+000045 |     ePicLoad = None
+000046 | try:
+000047 |     from enigma import getPrevAsciiCode
+000048 | except Exception:
+000049 |     getPrevAsciiCode = None
+000050 | 
+000051 | try:
+000052 |     from Screens.InfoBar import MoviePlayer as InfoBarMoviePlayer
+000053 | except Exception:
+000054 |     InfoBarMoviePlayer = None
+000055 | 
+000056 | # EMBYFLOW_OWN_PLAYER_ONLY_V1
+000057 | # EmbyFlow E2 verwendet ausschließlich den eigenen Player.
+000058 | # Es wird kein Playercode eines anderen Plugins importiert oder verteilt.
+000059 | E2EmbyPlayer = None
+000060 | E2EmbyApiClient = None
+000061 | 
+000062 | # EMBYFLOW_RC14_ROBUST_OPTIONAL_IMPORTS_V1
+000063 | try:
+000064 |     import requests
+000065 | except Exception:
+000066 |     requests = None
+000067 | 
+000068 | import json
+000069 | import time
+000070 | from datetime import datetime, timedelta
+000071 | 
+000072 | try:
+000073 |     from PIL import Image
+000074 | except Exception:
+000075 |     Image = None
+000076 | 
+000077 | try:
+000078 |     from Plugins.Extensions.EmbyFlowE2.emby_config import (
+000079 |         EMBY_SERVER,
+000080 |         EMBY_USERNAME,
+000081 |         EMBY_PASSWORD,
+000082 |     )
+000083 | except Exception:
+000084 |     EMBY_SERVER = ""
+000085 |     EMBY_USERNAME = ""
+000086 |     EMBY_PASSWORD = ""
+000087 | 
+000088 | try:
+000089 |     from Plugins.Extensions.EmbyFlowE2.emby_live import fetch_detail
+000090 | except Exception:
+000091 |     def fetch_detail(search_term):
+000092 |         return None
+000093 | 
+000094 | 
+000095 | # EMBYFLOW_RC14_RECEIVER_NEUTRAL_MODULES_V1
+000096 | try:
+000097 |     from Plugins.Extensions.EmbyFlowE2.compat import (
+000098 |         get_runtime_profile as embyflow_get_runtime_profile,
+000099 |         get_safe_player_delay_ms as embyflow_safe_player_delay_ms,
+000100 |         runtime_profile_text as embyflow_runtime_profile_text,
+000101 |     )
+000102 | except Exception:
+000103 |     def embyflow_get_runtime_profile():
+000104 |         return {
+000105 |             "distro": "unknown",
+000106 |             "model": "unknown",
+000107 |             "brand": "unknown",
+000108 |             "width": 1920,
+000109 |             "height": 1080,
+000110 |             "service_type": 4097,
+000111 |             "safe_player_delay_ms": 350,
+000112 |         }
+000113 | 
+000114 |     def embyflow_safe_player_delay_ms(default=350):
+000115 |         return int(default)
+000116 | 
+000117 |     def embyflow_runtime_profile_text(profile=None):
+000118 |         return "fallback=1"
+000119 | 
+000120 | try:
+000121 |     from Plugins.Extensions.EmbyFlowE2.stream_strategy import (
+000122 |         build_static_stream_url as embyflow_build_static_stream_url,
+000123 |         add_session_params as embyflow_add_session_params,
+000124 |         add_start_ticks as embyflow_add_start_ticks,
+===== ePicLoad @ 430 =====
+000400 |             return False
+000401 |         ensure_dir(os.path.dirname(path))
+000402 |         temporary = path + ".tmp"
+000403 |         with open(temporary, "w") as handle:
+000404 |             handle.write(str(reason or "missing"))
+000405 |         try:
+000406 |             os.replace(temporary, path)
+000407 |         except AttributeError:
+000408 |             try:
+000409 |                 os.remove(path)
+000410 |             except Exception:
+000411 |                 pass
+000412 |             os.rename(temporary, path)
+000413 |         return True
+000414 |     except Exception:
+000415 |         return False
+000416 | 
+000417 | 
+000418 | def embyflow_clear_negative_cache(marker_path):
+000419 |     try:
+000420 |         path = str(marker_path or "")
+000421 |         if path and os.path.isfile(path):
+000422 |             os.remove(path)
+000423 |         return True
+000424 |     except Exception:
+000425 |         return False
+000426 | 
+000427 | 
+000428 | # EMBYFLOW_PERFORMANCE_PATCH2_EPICLOAD_V1
+000429 | # Normale Poster werden bereits passend vom Emby-Server angefordert und
+000430 | # im GUI-Thread asynchron mit ePicLoad in die jeweilige Widgetgröße dekodiert.
+000431 | # Aufwendige PIL-Normalisierung bleibt nur für echte Sonderfälle wie
+000432 | # abgedunkelte Backdrops, Hero-Crops und Auto-Next-Artwork erhalten.
+000433 | def embyflow_decode_image_to_widget(
+000434 |     owner,
+000435 |     widget_name,
+000436 |     path,
+000437 |     width,
+000438 |     height,
+000439 |     token="",
+000440 |     is_current=None,
+000441 | ):
+000442 |     try:
+000443 |         image_path = str(path or "")
+000444 |         if (
+000445 |             not image_path
+000446 |             or not os.path.isfile(image_path)
+000447 |             or os.path.getsize(image_path) <= 500
+000448 |         ):
+000449 |             return False
+000450 | 
+000451 |         target_w = max(1, int(width or 1))
+000452 |         target_h = max(1, int(height or 1))
+000453 |         request_token = str(token or widget_name or image_path)
+000454 | 
+000455 |         state = getattr(owner, "_embyflow_picload_state", None)
+000456 |         if not isinstance(state, dict):
+000457 |             state = {}
+000458 |             setattr(owner, "_embyflow_picload_state", state)
+000459 | 
+000460 |         request_id = str(uuid4())
+000461 | 
+000462 |         def apply_pixmap(data):
+000463 |             try:
+000464 |                 if callable(is_current) and not is_current():
+000465 |                     return False
+000466 | 
+000467 |                 widget = owner[widget_name]
+000468 |                 instance = getattr(widget, "instance", None)
+000469 |                 if instance is None or data is None:
+000470 |                     return False
+000471 | 
+000472 |                 try:
+000473 |                     instance.setPixmap(None)
+000474 |                 except Exception:
+000475 |                     pass
+000476 | 
+000477 |                 instance.setPixmap(data)
+000478 | 
+000479 |                 try:
+000480 |                     instance.setScale(1)
+000481 |                 except Exception:
+000482 |                     pass
+000483 | 
+000484 |                 try:
+000485 |                     widget.show()
+000486 |                     instance.show()
+000487 |                     instance.invalidate()
+000488 |                 except Exception:
+000489 |                     pass
+000490 | 
+000491 |                 embyflow_touch_cache_file(image_path)
+000492 |                 return True
+000493 | 
+000494 |             except Exception:
+000495 |                 return False
+000496 | 
+000497 |         if ePicLoad is not None:
+000498 |             loader = ePicLoad()
+000499 |             state[request_token] = {
+000500 |                 "request_id": request_id,
+000501 |                 "loader": loader,
+000502 |                 "path": image_path,
+000503 |             }
+000504 | 
+000505 |             def picture_ready(*_args):
+000506 |                 try:
+000507 |                     current = state.get(request_token) or {}
+000508 |                     if current.get("request_id") != request_id:
+000509 |                         return
+===== ePicLoad @ 497 =====
+000467 |                 widget = owner[widget_name]
+000468 |                 instance = getattr(widget, "instance", None)
+000469 |                 if instance is None or data is None:
+000470 |                     return False
+000471 | 
+000472 |                 try:
+000473 |                     instance.setPixmap(None)
+000474 |                 except Exception:
+000475 |                     pass
+000476 | 
+000477 |                 instance.setPixmap(data)
+000478 | 
+000479 |                 try:
+000480 |                     instance.setScale(1)
+000481 |                 except Exception:
+000482 |                     pass
+000483 | 
+000484 |                 try:
+000485 |                     widget.show()
+000486 |                     instance.show()
+000487 |                     instance.invalidate()
+000488 |                 except Exception:
+000489 |                     pass
+000490 | 
+000491 |                 embyflow_touch_cache_file(image_path)
+000492 |                 return True
+000493 | 
+000494 |             except Exception:
+000495 |                 return False
+000496 | 
+000497 |         if ePicLoad is not None:
+000498 |             loader = ePicLoad()
+000499 |             state[request_token] = {
+000500 |                 "request_id": request_id,
+000501 |                 "loader": loader,
+000502 |                 "path": image_path,
+000503 |             }
+000504 | 
+000505 |             def picture_ready(*_args):
+000506 |                 try:
+000507 |                     current = state.get(request_token) or {}
+000508 |                     if current.get("request_id") != request_id:
+000509 |                         return
+000510 |                     apply_pixmap(loader.getData())
+000511 |                 finally:
+000512 |                     current = state.get(request_token) or {}
+000513 |                     if current.get("request_id") == request_id:
+000514 |                         state.pop(request_token, None)
+000515 | 
+000516 |             connected = False
+000517 |             try:
+000518 |                 loader.PictureData.get().append(picture_ready)
+000519 |                 connected = True
+000520 |             except Exception:
+000521 |                 try:
+000522 |                     connection = loader.PictureData.connect(picture_ready)
+000523 |                     state[request_token]["connection"] = connection
+000524 |                     connected = True
+000525 |                 except Exception:
+000526 |                     connected = False
+000527 | 
+000528 |             if connected:
+000529 |                 loader.setPara((
+000530 |                     target_w,
+000531 |                     target_h,
+000532 |                     1,
+000533 |                     1,
+000534 |                     False,
+000535 |                     1,
+000536 |                     "#00000000",
+000537 |                 ))
+000538 |                 result = loader.startDecode(image_path)
+000539 |                 if result in (0, None):
+000540 |                     return True
+000541 | 
+000542 |             state.pop(request_token, None)
+000543 | 
+000544 |         pixmap = LoadPixmap(image_path)
+000545 |         return apply_pixmap(pixmap)
+000546 | 
+000547 |     except Exception:
+000548 |         return False
+000549 | 
+000550 | 
+000551 | def embyflow_cached_get_json(
+000552 |     url,
+000553 |     headers=None,
+000554 |     params=None,
+000555 |     ttl=30,
+000556 |     timeout=10,
+000557 |     verify=True,
+000558 |     cache_key=""
+000559 | ):
+000560 |     """Kleiner RAM-Cache nur für sichere, wiederholte GET-Abfragen."""
+000561 |     global EMBYFLOW_API_RAM_CACHE_LOCK
+000562 | 
+000563 |     if not requests:
+000564 |         return {}
+000565 | 
+000566 |     try:
+000567 |         import copy
+000568 |         import threading
+000569 | 
+000570 |         if EMBYFLOW_API_RAM_CACHE_LOCK is None:
+000571 |             EMBYFLOW_API_RAM_CACHE_LOCK = threading.RLock()
+000572 | 
+000573 |         normalized_params = tuple(
+000574 |             sorted(
+000575 |                 (str(key), str(value))
+000576 |                 for key, value in (params or {}).items()
+===== ePicLoad @ 498 =====
+000468 |                 instance = getattr(widget, "instance", None)
+000469 |                 if instance is None or data is None:
+000470 |                     return False
+000471 | 
+000472 |                 try:
+000473 |                     instance.setPixmap(None)
+000474 |                 except Exception:
+000475 |                     pass
+000476 | 
+000477 |                 instance.setPixmap(data)
+000478 | 
+000479 |                 try:
+000480 |                     instance.setScale(1)
+000481 |                 except Exception:
+000482 |                     pass
+000483 | 
+000484 |                 try:
+000485 |                     widget.show()
+000486 |                     instance.show()
+000487 |                     instance.invalidate()
+000488 |                 except Exception:
+000489 |                     pass
+000490 | 
+000491 |                 embyflow_touch_cache_file(image_path)
+000492 |                 return True
+000493 | 
+000494 |             except Exception:
+000495 |                 return False
+000496 | 
+000497 |         if ePicLoad is not None:
+000498 |             loader = ePicLoad()
+000499 |             state[request_token] = {
+000500 |                 "request_id": request_id,
+000501 |                 "loader": loader,
+000502 |                 "path": image_path,
+000503 |             }
+000504 | 
+000505 |             def picture_ready(*_args):
+000506 |                 try:
+000507 |                     current = state.get(request_token) or {}
+000508 |                     if current.get("request_id") != request_id:
+000509 |                         return
+000510 |                     apply_pixmap(loader.getData())
+000511 |                 finally:
+000512 |                     current = state.get(request_token) or {}
+000513 |                     if current.get("request_id") == request_id:
+000514 |                         state.pop(request_token, None)
+000515 | 
+000516 |             connected = False
+000517 |             try:
+000518 |                 loader.PictureData.get().append(picture_ready)
+000519 |                 connected = True
+000520 |             except Exception:
+000521 |                 try:
+000522 |                     connection = loader.PictureData.connect(picture_ready)
+000523 |                     state[request_token]["connection"] = connection
+000524 |                     connected = True
+000525 |                 except Exception:
+000526 |                     connected = False
+000527 | 
+000528 |             if connected:
+000529 |                 loader.setPara((
+000530 |                     target_w,
+000531 |                     target_h,
+000532 |                     1,
+000533 |                     1,
+000534 |                     False,
+000535 |                     1,
+000536 |                     "#00000000",
+000537 |                 ))
+000538 |                 result = loader.startDecode(image_path)
+000539 |                 if result in (0, None):
+000540 |                     return True
+000541 | 
+000542 |             state.pop(request_token, None)
+000543 | 
+000544 |         pixmap = LoadPixmap(image_path)
+000545 |         return apply_pixmap(pixmap)
+000546 | 
+000547 |     except Exception:
+000548 |         return False
+000549 | 
+000550 | 
+000551 | def embyflow_cached_get_json(
+000552 |     url,
+000553 |     headers=None,
+000554 |     params=None,
+000555 |     ttl=30,
+000556 |     timeout=10,
+000557 |     verify=True,
+000558 |     cache_key=""
+000559 | ):
+000560 |     """Kleiner RAM-Cache nur für sichere, wiederholte GET-Abfragen."""
+000561 |     global EMBYFLOW_API_RAM_CACHE_LOCK
+000562 | 
+000563 |     if not requests:
+000564 |         return {}
+000565 | 
+000566 |     try:
+000567 |         import copy
+000568 |         import threading
+000569 | 
+000570 |         if EMBYFLOW_API_RAM_CACHE_LOCK is None:
+000571 |             EMBYFLOW_API_RAM_CACHE_LOCK = threading.RLock()
+000572 | 
+000573 |         normalized_params = tuple(
+000574 |             sorted(
+000575 |                 (str(key), str(value))
+000576 |                 for key, value in (params or {}).items()
+000577 |             )
+===== setPixmapFromFile @ 7262 =====
+007232 |             ],
+007233 |             {
+007234 |                 "ok": self.close,
+007235 |                 "cancel": self.close,
+007236 |                 "red": self.close,
+007237 |                 "green": self.close,
+007238 |             },
+007239 |             -1,
+007240 |         )
+007241 | 
+007242 |         self.onLayoutFinish.append(
+007243 |             self._load_google_gag_art
+007244 |         )
+007245 | 
+007246 |     # EMBYFLOW_BROWSER_DISABLED_RETURN_SEARCH_V1
+007247 | 
+007248 |     def _load_google_gag_art(self):
+007249 |         image_path = os.path.join(
+007250 |             PLUGIN_PATH,
+007251 |             "embyflow_google_gag.png",
+007252 |         )
+007253 | 
+007254 |         if not os.path.isfile(image_path):
+007255 |             print(
+007256 |                 "[EmbyFlow] Google-Gag-PNG fehlt:",
+007257 |                 image_path,
+007258 |             )
+007259 |             return
+007260 | 
+007261 |         try:
+007262 |             self["gag_bg"].instance.setPixmapFromFile(
+007263 |                 image_path
+007264 |             )
+007265 | 
+007266 |             self["fallback_title"].hide()
+007267 |             self["fallback_text"].hide()
+007268 | 
+007269 |         except Exception as error:
+007270 |             print(
+007271 |                 "[EmbyFlow] Google-Gag-PNG Fehler:",
+007272 |                 error,
+007273 |             )
+007274 | 
+007275 | 
+007276 | class EmbyFlowCurvedSearchKeyboard(Screen):
+007277 |     KEY_ROWS = [
+007278 |         [
+007279 |             "1", "2", "3", "4", "5", "6",
+007280 |             "7", "8", "9", "0", "ß", "DEL"
+007281 |         ],
+007282 |         [
+007283 |             "q", "w", "e", "r", "t", "z",
+007284 |             "u", "i", "o", "p", "ü"
+007285 |         ],
+007286 |         [
+007287 |             "a", "s", "d", "f", "g", "h",
+007288 |             "j", "k", "l", "ö", "ä"
+007289 |         ],
+007290 |         [
+007291 |             "SHIFT", "y", "x", "c", "v", "b",
+007292 |             "n", "m", ",", ".", "-", "ENTER"
+007293 |         ],
+007294 |         [
+007295 |             "LEERTASTE", "SUCHEN"
+007296 |         ],
+007297 |     ]
+007298 | 
+007299 |     ROW_OFFSETS = []
+007300 |     KEY_GEOMETRY = []
+007301 |     KEY_COUNT = 0
+007302 | 
+007303 |     _skin_parts = [
+007304 |         """
+007305 |         <screen
+007306 |             name="EmbyFlowCurvedSearchKeyboard"
+007307 |             position="0,0"
+007308 |             size="1920,1080"
+007309 |             flags="wfNoBorder"
+007310 |             backgroundColor="#070D13">
+007311 | 
+007312 |             <eLabel
+007313 |                 text="EmbyFlow"
+007314 |                 position="90,42"
+007315 |                 size="430,42"
+007316 |                 font="Regular;32"
+007317 |                 foregroundColor="#C2CBD6"
+007318 |                 backgroundColor="#070D13"
+007319 |                 transparent="1" />
+007320 | 
+007321 |             <widget
+007322 |                 name="keyboard_title"
+007323 |                 position="90,94"
+007324 |                 size="900,58"
+007325 |                 font="Bold;42"
+007326 |                 foregroundColor="#F5F7FA"
+007327 |                 backgroundColor="#070D13"
+007328 |                 transparent="1" />
+007329 | 
+007330 |             <widget
+007331 |                 name="input"
+007332 |                 position="90,174"
+007333 |                 size="1740,90"
+007334 |                 zPosition="5"
+007335 |                 font="Regular;38"
+007336 |                 foregroundColor="#FFFFFF"
+007337 |                 backgroundColor="#0C151F"
+007338 |                 transparent="0"
+007339 |                 valign="center"
+007340 |                 cornerRadius="12"
+007341 |                 widgetBorderWidth="2"
+===== setPixmapFromFile @ 16661 =====
+016631 |         self.update_grid_backdrop(force=True)
+016632 | 
+016633 |     def _stop_perf24_async_workers(self):
+016634 |         try:
+016635 |             self.background_cache_closed = True
+016636 |         except Exception:
+016637 |             pass
+016638 |         for timer_name in (
+016639 |             "grid_backdrop_poll_timer",
+016640 |             "userdata_refresh_apply_timer",
+016641 |             "userdata_refresh_timer",
+016642 |         ):
+016643 |             try:
+016644 |                 getattr(self, timer_name).stop()
+016645 |             except Exception:
+016646 |                 pass
+016647 | 
+016648 |     def _apply_grid_backdrop_path(self, selected_key, final_path, used_id):
+016649 |         try:
+016650 |             if self.background_cache_closed:
+016651 |                 return False
+016652 |             if selected_key != self.grid_backdrop_requested_key:
+016653 |                 return False
+016654 |             if not final_path or not os.path.isfile(final_path):
+016655 |                 return False
+016656 |             if os.path.getsize(final_path) <= 1000:
+016657 |                 return False
+016658 |             if not self["grid_backdrop"].instance:
+016659 |                 return False
+016660 | 
+016661 |             self["grid_backdrop"].instance.setPixmapFromFile(final_path)
+016662 |             self["grid_backdrop"].instance.show()
+016663 |             try:
+016664 |                 self["grid_backdrop"].instance.invalidate()
+016665 |             except Exception:
+016666 |                 pass
+016667 | 
+016668 |             self.grid_backdrop_item_key = selected_key
+016669 |             self.grid_backdrop_image_id = used_id
+016670 |             return True
+016671 |         except Exception:
+016672 |             return False
+016673 | 
+016674 |     def _poll_grid_backdrop_worker(self):
+016675 |         """GUI-Thread: übernimmt nur das fertige Hintergrundbild."""
+016676 |         try:
+016677 |             if self.background_cache_closed:
+016678 |                 return
+016679 | 
+016680 |             ready = self.grid_backdrop_ready
+016681 |             if ready is None:
+016682 |                 if self.grid_backdrop_worker_running:
+016683 |                     self.grid_backdrop_poll_timer.start(100, True)
+016684 |                 return
+016685 | 
+016686 |             self.grid_backdrop_ready = None
+016687 |             self.grid_backdrop_worker_running = False
+016688 |             worker_key, final_path, used_id = ready
+016689 | 
+016690 |             applied = self._apply_grid_backdrop_path(
+016691 |                 worker_key,
+016692 |                 final_path,
+016693 |                 used_id,
+016694 |             )
+016695 | 
+016696 |             # Wurde während des Downloads weiter navigiert, jetzt das
+016697 |             # aktuell markierte Backdrop aus Cache laden bzw. neu anfordern.
+016698 |             if (
+016699 |                 not applied
+016700 |                 and worker_key != self.grid_backdrop_requested_key
+016701 |                 and not self.background_cache_closed
+016702 |             ):
+016703 |                 self.update_grid_backdrop(force=True)
+016704 | 
+016705 |         except Exception:
+016706 |             self.grid_backdrop_worker_running = False
+016707 |             self.grid_backdrop_ready = None
+016708 | 
+016709 |     def update_grid_backdrop(self, force=False):
+016710 |         """Cachetreffer sofort; Netzwerk und PIL ausschließlich im Worker."""
+016711 |         try:
+016712 |             if getattr(self, "az_mode", False) or self.background_cache_closed:
+016713 |                 return
+016714 | 
+016715 |             current = self.page_items()
+016716 |             if not current:
+016717 |                 return
+016718 | 
+016719 |             focus = int(getattr(self, "focus", 0) or 0)
+016720 |             if focus < 0 or focus >= len(current):
+016721 |                 return
+016722 | 
+016723 |             item = current[focus] or {}
+016724 |             item_type = item.get("type") or item.get("Type") or ""
+016725 |             item_id = item.get("id") or item.get("Id") or ""
+016726 |             series_id = item.get("series_id") or item.get("SeriesId") or ""
+016727 |             season_id = item.get("season_id") or item.get("SeasonId") or ""
+016728 |             parent_id = item.get("parent_id") or item.get("ParentId") or ""
+016729 | 
+016730 |             if item_type in ("Episode", "Season"):
+016731 |                 raw_candidates = [series_id, season_id, parent_id, item_id]
+016732 |             else:
+016733 |                 raw_candidates = [item_id, series_id, season_id, parent_id]
+016734 | 
+016735 |             candidate_ids = []
+016736 |             for value in raw_candidates:
+016737 |                 value = str(value or "").strip()
+016738 |                 if value and value not in candidate_ids:
+016739 |                     candidate_ids.append(value)
+016740 | 
+===== setPixmapFromFile @ 56865 =====
+056835 |                 "right": self.move_right,
+056836 |                 "up": self.move_left,
+056837 |                 "down": self.move_right,
+056838 |             },
+056839 |             -1,
+056840 |         )
+056841 | 
+056842 |         self.apply_timer = eTimer()
+056843 |         try:
+056844 |             self.apply_timer.callback.append(self.apply_async_results)
+056845 |         except Exception:
+056846 |             try:
+056847 |                 self.apply_connection = self.apply_timer.timeout.connect(self.apply_async_results)
+056848 |             except Exception:
+056849 |                 self.apply_connection = None
+056850 | 
+056851 |         self.onLayoutFinish.append(self.layout_ready)
+056852 |         self.onClose.append(self.cleanup)
+056853 | 
+056854 |     def cleanup(self):
+056855 |         self.closed_sources_v16 = True
+056856 |         try:
+056857 |             self.apply_timer.stop()
+056858 |         except Exception:
+056859 |             pass
+056860 | 
+056861 |     def layout_ready(self):
+056862 |         try:
+056863 |             gear = os.path.join(EMBYFLOW_LOCAL_SOURCE_ASSET_DIR_V16, "gear.png")
+056864 |             if os.path.isfile(gear):
+056865 |                 self["manager_gear"].instance.setPixmapFromFile(gear)
+056866 |                 self["manager_gear"].instance.setScale(1)
+056867 |         except Exception:
+056868 |             pass
+056869 |         self.load_cached_stats()
+056870 |         self.refresh()
+056871 |         self.refresh_sources()
+056872 | 
+056873 |     def load_cached_stats(self):
+056874 |         data = read_json_file(EMBYFLOW_LOCAL_SOURCES_STATS_FILE_V16, {}) or {}
+056875 |         stats = data.get("stats") if isinstance(data, dict) else {}
+056876 |         if isinstance(stats, dict):
+056877 |             self.apply_stats(stats)
+056878 | 
+056879 |     def current_source(self):
+056880 |         if not self.sources:
+056881 |             return None
+056882 |         if self.selected_index < 0 or self.selected_index >= len(self.sources):
+056883 |             return None
+056884 |         return self.sources[self.selected_index]
+056885 | 
+056886 |     def _set_text_color(self, widget_name, color):
+056887 |         try:
+056888 |             if self[widget_name].instance:
+056889 |                 self[widget_name].instance.setForegroundColor(parseColor(color))
+056890 |         except Exception:
+056891 |             pass
+056892 | 
+056893 |     def _set_bg_color(self, widget_name, color):
+056894 |         try:
+056895 |             if self[widget_name].instance:
+056896 |                 self[widget_name].instance.setBackgroundColor(parseColor(color))
+056897 |         except Exception:
+056898 |             pass
+056899 | 
+056900 |     def _show_icon(self, widget_name, source):
+056901 |         try:
+056902 |             path = os.path.join(EMBYFLOW_LOCAL_SOURCE_ASSET_DIR_V16, _embyflow_v16_icon_name(source))
+056903 |             if os.path.isfile(path):
+056904 |                 self[widget_name].instance.setPixmapFromFile(path)
+056905 |                 self[widget_name].instance.setScale(1)
+056906 |                 self[widget_name].show()
+056907 |                 self[widget_name].instance.show()
+056908 |             else:
+056909 |                 self[widget_name].hide()
+056910 |         except Exception:
+056911 |             try:
+056912 |                 self[widget_name].hide()
+056913 |             except Exception:
+056914 |                 pass
+056915 | 
+056916 |     def refresh(self):
+056917 |         total = len(self.sources)
+056918 |         if total:
+056919 |             self.selected_index = max(0, min(self.selected_index, total - 1))
+056920 |         else:
+056921 |             self.selected_index = 0
+056922 | 
+056923 |         if self.selected_index < self.card_offset:
+056924 |             self.card_offset = self.selected_index
+056925 |         if self.selected_index >= self.card_offset + 5:
+056926 |             self.card_offset = self.selected_index - 4
+056927 |         self.card_offset = max(0, min(self.card_offset, max(0, total - 5)))
+056928 | 
+056929 |         for visible in range(5):
+056930 |             absolute = self.card_offset + visible
+056931 |             source = self.sources[absolute] if absolute < total else None
+056932 |             widgets = (
+056933 |                 "card_name%d" % visible, "card_type%d" % visible,
+056934 |                 "card_path%d" % visible, "card_state%d" % visible,
+056935 |                 "mgr_name%d" % visible, "mgr_path%d" % visible,
+056936 |                 "mgr_type%d" % visible, "mgr_state%d" % visible,
+056937 |             )
+056938 |             if source is None:
+056939 |                 for widget in widgets:
+056940 |                     self[widget].setText("")
+056941 |                 try:
+056942 |                     self["card_icon%d" % visible].hide()
+056943 |                     self["mgr_icon%d" % visible].hide()
+056944 |                 except Exception:
+===== setPixmapFromFile @ 56904 =====
+056874 |         data = read_json_file(EMBYFLOW_LOCAL_SOURCES_STATS_FILE_V16, {}) or {}
+056875 |         stats = data.get("stats") if isinstance(data, dict) else {}
+056876 |         if isinstance(stats, dict):
+056877 |             self.apply_stats(stats)
+056878 | 
+056879 |     def current_source(self):
+056880 |         if not self.sources:
+056881 |             return None
+056882 |         if self.selected_index < 0 or self.selected_index >= len(self.sources):
+056883 |             return None
+056884 |         return self.sources[self.selected_index]
+056885 | 
+056886 |     def _set_text_color(self, widget_name, color):
+056887 |         try:
+056888 |             if self[widget_name].instance:
+056889 |                 self[widget_name].instance.setForegroundColor(parseColor(color))
+056890 |         except Exception:
+056891 |             pass
+056892 | 
+056893 |     def _set_bg_color(self, widget_name, color):
+056894 |         try:
+056895 |             if self[widget_name].instance:
+056896 |                 self[widget_name].instance.setBackgroundColor(parseColor(color))
+056897 |         except Exception:
+056898 |             pass
+056899 | 
+056900 |     def _show_icon(self, widget_name, source):
+056901 |         try:
+056902 |             path = os.path.join(EMBYFLOW_LOCAL_SOURCE_ASSET_DIR_V16, _embyflow_v16_icon_name(source))
+056903 |             if os.path.isfile(path):
+056904 |                 self[widget_name].instance.setPixmapFromFile(path)
+056905 |                 self[widget_name].instance.setScale(1)
+056906 |                 self[widget_name].show()
+056907 |                 self[widget_name].instance.show()
+056908 |             else:
+056909 |                 self[widget_name].hide()
+056910 |         except Exception:
+056911 |             try:
+056912 |                 self[widget_name].hide()
+056913 |             except Exception:
+056914 |                 pass
+056915 | 
+056916 |     def refresh(self):
+056917 |         total = len(self.sources)
+056918 |         if total:
+056919 |             self.selected_index = max(0, min(self.selected_index, total - 1))
+056920 |         else:
+056921 |             self.selected_index = 0
+056922 | 
+056923 |         if self.selected_index < self.card_offset:
+056924 |             self.card_offset = self.selected_index
+056925 |         if self.selected_index >= self.card_offset + 5:
+056926 |             self.card_offset = self.selected_index - 4
+056927 |         self.card_offset = max(0, min(self.card_offset, max(0, total - 5)))
+056928 | 
+056929 |         for visible in range(5):
+056930 |             absolute = self.card_offset + visible
+056931 |             source = self.sources[absolute] if absolute < total else None
+056932 |             widgets = (
+056933 |                 "card_name%d" % visible, "card_type%d" % visible,
+056934 |                 "card_path%d" % visible, "card_state%d" % visible,
+056935 |                 "mgr_name%d" % visible, "mgr_path%d" % visible,
+056936 |                 "mgr_type%d" % visible, "mgr_state%d" % visible,
+056937 |             )
+056938 |             if source is None:
+056939 |                 for widget in widgets:
+056940 |                     self[widget].setText("")
+056941 |                 try:
+056942 |                     self["card_icon%d" % visible].hide()
+056943 |                     self["mgr_icon%d" % visible].hide()
+056944 |                 except Exception:
+056945 |                     pass
+056946 |                 self._set_bg_color("card_bg%d" % visible, "#081827")
+056947 |                 self._set_bg_color("mgr_bg%d" % visible, "#0A1C30")
+056948 |                 continue
+056949 | 
+056950 |             source_id = str(source.get("id") or "")
+056951 |             name = str(source.get("name") or "Medienquelle")
+056952 |             path = str(source.get("path") or "")
+056953 |             mode = str(source.get("mode") or "mixed")
+056954 |             status = self.source_status.get(source_id)
+056955 |             state_text = "Online" if status is True else "Offline" if status is False else "Prüfe …"
+056956 |             state_color = "#53D769" if status is True else "#FF5B57" if status is False else "#8190A4"
+056957 |             type_label = _embyflow_v16_source_type_label(mode)
+056958 |             type_color = _embyflow_v16_source_type_color(mode)
+056959 | 
+056960 |             self["card_name%d" % visible].setText(name[:24])
+056961 |             self["card_type%d" % visible].setText(type_label)
+056962 |             self["card_path%d" % visible].setText(path[:30])
+056963 |             self["card_state%d" % visible].setText(state_text)
+056964 |             self["mgr_name%d" % visible].setText(name[:23])
+056965 |             self["mgr_path%d" % visible].setText(path[:32])
+056966 |             self["mgr_type%d" % visible].setText(type_label)
+056967 |             self["mgr_state%d" % visible].setText(state_text)
+056968 | 
+056969 |             for widget in ("card_type%d" % visible, "mgr_type%d" % visible):
+056970 |                 self._set_text_color(widget, type_color)
+056971 |             for widget in ("card_state%d" % visible, "mgr_state%d" % visible):
+056972 |                 self._set_text_color(widget, state_color)
+056973 |             self._show_icon("card_icon%d" % visible, source)
+056974 |             self._show_icon("mgr_icon%d" % visible, source)
+056975 | 
+056976 |             selected = absolute == self.selected_index
+056977 |             self._set_bg_color("card_bg%d" % visible, "#12355C" if selected else "#0D2138")
+056978 |             self._set_bg_color("mgr_bg%d" % visible, "#102B48" if selected else "#0B1D31")
+056979 | 
+056980 |         if total:
+056981 |             visible = self.selected_index - self.card_offset
+056982 |             x = 205 + visible * 216
+056983 |             try:
+===== setPixmapFromFile @ 58704 =====
+058674 | 
+058675 |         self.apply_timer = eTimer()
+058676 |         try:
+058677 |             self.apply_timer.callback.append(self.apply_async)
+058678 |         except Exception:
+058679 |             try:
+058680 |                 self.apply_connection = self.apply_timer.timeout.connect(self.apply_async)
+058681 |             except Exception:
+058682 |                 self.apply_connection = None
+058683 |         self.onLayoutFinish.append(self.layout_ready)
+058684 |         self.onClose.append(self.cleanup)
+058685 | 
+058686 |     def cleanup(self):
+058687 |         self.closed_v18 = True
+058688 |         try:
+058689 |             self.apply_timer.stop()
+058690 |         except Exception:
+058691 |             pass
+058692 | 
+058693 |     def layout_ready(self):
+058694 |         assets = (
+058695 |             ("card_icon0", "drive.png"),
+058696 |             ("card_icon1", "nas.png"),
+058697 |             ("card_icon2", "globe_v18.png"),
+058698 |             ("card_icon3", "folder.png"),
+058699 |         )
+058700 |         for widget_name, filename in assets:
+058701 |             try:
+058702 |                 path = os.path.join(EMBYFLOW_LOCAL_SOURCE_ASSET_DIR_V16, filename)
+058703 |                 if os.path.isfile(path):
+058704 |                     self[widget_name].instance.setPixmapFromFile(path)
+058705 |                     self[widget_name].instance.setScale(1)
+058706 |             except Exception:
+058707 |                 pass
+058708 |         self.refresh_locations()
+058709 |         self.apply_focus()
+058710 | 
+058711 |     def refresh_locations(self):
+058712 |         self.locations = _embyflow_v18_storage_locations()[:4]
+058713 |         self.storage_index = min(self.storage_index, max(0, len(self.locations) - 1))
+058714 |         for index in range(4):
+058715 |             item = self.locations[index] if index < len(self.locations) else None
+058716 |             if item:
+058717 |                 self["storage_name%d" % index].setText(str(item.get("name") or "Speicherort"))
+058718 |                 self["storage_path%d" % index].setText(str(item.get("path") or ""))
+058719 |                 self["storage_free%d" % index].setText(str(item.get("free") or ""))
+058720 |                 self["storage_state%d" % index].setText("Online" if item.get("online", True) else "Offline")
+058721 |                 try:
+058722 |                     icon = os.path.join(EMBYFLOW_LOCAL_SOURCE_ASSET_DIR_V16, str(item.get("icon") or "folder.png"))
+058723 |                     if os.path.isfile(icon):
+058724 |                         self["storage_icon%d" % index].instance.setPixmapFromFile(icon)
+058725 |                         self["storage_icon%d" % index].instance.setScale(1)
+058726 |                         self["storage_icon%d" % index].show()
+058727 |                     else:
+058728 |                         self["storage_icon%d" % index].hide()
+058729 |                 except Exception:
+058730 |                     pass
+058731 |             else:
+058732 |                 self["storage_name%d" % index].setText("")
+058733 |                 self["storage_path%d" % index].setText("")
+058734 |                 self["storage_free%d" % index].setText("")
+058735 |                 self["storage_state%d" % index].setText("")
+058736 |                 try:
+058737 |                     self["storage_icon%d" % index].hide()
+058738 |                 except Exception:
+058739 |                     pass
+058740 |         self["status"].setText("%d Speicherort%s erkannt" % (len(self.locations), "" if len(self.locations) == 1 else "e"))
+058741 |         self.apply_focus()
+058742 | 
+058743 |     def _show_focus_rect(self, x, y, width, height):
+058744 |         try:
+058745 |             self["focus_top"].instance.move(EFP(x, y)); self["focus_top"].instance.resize(EFS(width, 3))
+058746 |             self["focus_bottom"].instance.move(EFP(x, y + height - 3)); self["focus_bottom"].instance.resize(EFS(width, 3))
+058747 |             self["focus_left"].instance.move(EFP(x, y)); self["focus_left"].instance.resize(EFS(3, height))
+058748 |             self["focus_right"].instance.move(EFP(x + width - 3, y)); self["focus_right"].instance.resize(EFS(3, height))
+058749 |             for name in ("focus_top", "focus_bottom", "focus_left", "focus_right"):
+058750 |                 self[name].show(); self[name].instance.show()
+058751 |         except Exception:
+058752 |             pass
+058753 | 
+058754 |     def apply_focus(self):
+058755 |         zone = self.focus_zone
+058756 |         try:
+058757 |             self["storage_focus"].hide(); self["storage_focus"].instance.hide()
+058758 |         except Exception:
+058759 |             pass
+058760 |         if zone == "cards":
+058761 |             x, y = _EMBYFLOW_V18_ADD_CARD_POSITIONS[self.card_index]
+058762 |             self._show_focus_rect(x, y, 258, 250)
+058763 |         elif zone == "storage" and self.locations:
+058764 |             y = _EMBYFLOW_V18_STORAGE_Y[self.storage_index]
+058765 |             self._show_focus_rect(220, y - 4, 1094, 58)
+058766 |             try:
+058767 |                 self["storage_focus"].instance.move(EFP(220, y - 4))
+058768 |                 self["storage_focus"].instance.resize(EFS(1094, 58))
+058769 |                 self["storage_focus"].show(); self["storage_focus"].instance.show()
+058770 |             except Exception:
+058771 |                 pass
+058772 |         else:
+058773 |             self._show_focus_rect(220, 890, 1094, 54)
+058774 | 
+058775 |     def move_left(self):
+058776 |         if self.focus_zone == "cards":
+058777 |             self.card_index = (self.card_index - 1) % 4
+058778 |         elif self.focus_zone in ("storage", "manual"):
+058779 |             self.focus_zone = "cards"
+058780 |         self.apply_focus()
+058781 | 
+058782 |     def move_right(self):
+058783 |         if self.focus_zone == "cards":
+===== SubtitleDisplay @ 26 =====
+000001 | # EMBYFLOW_HOME_FIX_V9_1: server-scoped poster cache + resilient home fetch + perf-log collision fix
+000002 | 
+000003 | 
+000004 | 
+000005 | 
+000006 | # -*- coding: utf-8 -*-
+000007 | from __future__ import absolute_import
+000008 | from skin import parseColor
+000009 | import os
+000010 | import io
+000011 | import json
+000012 | import sys
+000013 | import re
+000014 | import random
+000015 | import unicodedata
+000016 | from uuid import uuid4
+000017 | 
+000018 | from Screens.Screen import Screen
+000019 | from Screens.ChoiceBox import ChoiceBox
+000020 | try:
+000021 |     from Screens.VirtualKeyBoard import VirtualKeyBoard
+000022 | except Exception:
+000023 |     VirtualKeyBoard = None
+000024 | from Screens.MessageBox import MessageBox
+000025 | try:
+000026 |     from Screens.SubtitleDisplay import SubtitleDisplay
+000027 | except Exception:
+000028 |     SubtitleDisplay = None
+000029 | from Components.ActionMap import ActionMap
+000030 | from Components.ServiceEventTracker import ServiceEventTracker
+000031 | from Components.Pixmap import Pixmap
+000032 | from Tools.LoadPixmap import LoadPixmap
+000033 | from Components.Label import Label
+000034 | try:
+000035 |     from Components.ScrollLabel import ScrollLabel
+000036 | except Exception:
+000037 |     ScrollLabel = None
+000038 | from Components.config import config, ConfigSubsection, ConfigText, ConfigPassword, ConfigYesNo, ConfigSelection, getConfigListEntry, configfile
+000039 | from Components.ConfigList import ConfigListScreen
+000040 | from Plugins.Plugin import PluginDescriptor
+000041 | from enigma import ePoint, eSize, eServiceReference, eTimer, iPlayableService
+000042 | try:
+000043 |     from enigma import ePicLoad
+000044 | except Exception:
+000045 |     ePicLoad = None
+000046 | try:
+000047 |     from enigma import getPrevAsciiCode
+000048 | except Exception:
+000049 |     getPrevAsciiCode = None
+000050 | 
+000051 | try:
+000052 |     from Screens.InfoBar import MoviePlayer as InfoBarMoviePlayer
+000053 | except Exception:
+000054 |     InfoBarMoviePlayer = None
+000055 | 
+000056 | # EMBYFLOW_OWN_PLAYER_ONLY_V1
+000057 | # EmbyFlow E2 verwendet ausschließlich den eigenen Player.
+000058 | # Es wird kein Playercode eines anderen Plugins importiert oder verteilt.
+000059 | E2EmbyPlayer = None
+000060 | E2EmbyApiClient = None
+000061 | 
+000062 | # EMBYFLOW_RC14_ROBUST_OPTIONAL_IMPORTS_V1
+000063 | try:
+000064 |     import requests
+000065 | except Exception:
+000066 |     requests = None
+000067 | 
+000068 | import json
+000069 | import time
+000070 | from datetime import datetime, timedelta
+000071 | 
+000072 | try:
+000073 |     from PIL import Image
+000074 | except Exception:
+000075 |     Image = None
+000076 | 
+000077 | try:
+000078 |     from Plugins.Extensions.EmbyFlowE2.emby_config import (
+000079 |         EMBY_SERVER,
+000080 |         EMBY_USERNAME,
+000081 |         EMBY_PASSWORD,
+000082 |     )
+000083 | except Exception:
+000084 |     EMBY_SERVER = ""
+000085 |     EMBY_USERNAME = ""
+000086 |     EMBY_PASSWORD = ""
+000087 | 
+000088 | try:
+000089 |     from Plugins.Extensions.EmbyFlowE2.emby_live import fetch_detail
+000090 | except Exception:
+000091 |     def fetch_detail(search_term):
+000092 |         return None
+000093 | 
+000094 | 
+000095 | # EMBYFLOW_RC14_RECEIVER_NEUTRAL_MODULES_V1
+000096 | try:
+000097 |     from Plugins.Extensions.EmbyFlowE2.compat import (
+000098 |         get_runtime_profile as embyflow_get_runtime_profile,
+000099 |         get_safe_player_delay_ms as embyflow_safe_player_delay_ms,
+000100 |         runtime_profile_text as embyflow_runtime_profile_text,
+000101 |     )
+000102 | except Exception:
+000103 |     def embyflow_get_runtime_profile():
+000104 |         return {
+000105 |             "distro": "unknown",
+===== SubtitleDisplay @ 28 =====
+000001 | # EMBYFLOW_HOME_FIX_V9_1: server-scoped poster cache + resilient home fetch + perf-log collision fix
+000002 | 
+000003 | 
+000004 | 
+000005 | 
+000006 | # -*- coding: utf-8 -*-
+000007 | from __future__ import absolute_import
+000008 | from skin import parseColor
+000009 | import os
+000010 | import io
+000011 | import json
+000012 | import sys
+000013 | import re
+000014 | import random
+000015 | import unicodedata
+000016 | from uuid import uuid4
+000017 | 
+000018 | from Screens.Screen import Screen
+000019 | from Screens.ChoiceBox import ChoiceBox
+000020 | try:
+000021 |     from Screens.VirtualKeyBoard import VirtualKeyBoard
+000022 | except Exception:
+000023 |     VirtualKeyBoard = None
+000024 | from Screens.MessageBox import MessageBox
+000025 | try:
+000026 |     from Screens.SubtitleDisplay import SubtitleDisplay
+000027 | except Exception:
+000028 |     SubtitleDisplay = None
+000029 | from Components.ActionMap import ActionMap
+000030 | from Components.ServiceEventTracker import ServiceEventTracker
+000031 | from Components.Pixmap import Pixmap
+000032 | from Tools.LoadPixmap import LoadPixmap
+000033 | from Components.Label import Label
+000034 | try:
+000035 |     from Components.ScrollLabel import ScrollLabel
+000036 | except Exception:
+000037 |     ScrollLabel = None
+000038 | from Components.config import config, ConfigSubsection, ConfigText, ConfigPassword, ConfigYesNo, ConfigSelection, getConfigListEntry, configfile
+000039 | from Components.ConfigList import ConfigListScreen
+000040 | from Plugins.Plugin import PluginDescriptor
+000041 | from enigma import ePoint, eSize, eServiceReference, eTimer, iPlayableService
+000042 | try:
+000043 |     from enigma import ePicLoad
+000044 | except Exception:
+000045 |     ePicLoad = None
+000046 | try:
+000047 |     from enigma import getPrevAsciiCode
+000048 | except Exception:
+000049 |     getPrevAsciiCode = None
+000050 | 
+000051 | try:
+000052 |     from Screens.InfoBar import MoviePlayer as InfoBarMoviePlayer
+000053 | except Exception:
+000054 |     InfoBarMoviePlayer = None
+000055 | 
+000056 | # EMBYFLOW_OWN_PLAYER_ONLY_V1
+000057 | # EmbyFlow E2 verwendet ausschließlich den eigenen Player.
+000058 | # Es wird kein Playercode eines anderen Plugins importiert oder verteilt.
+000059 | E2EmbyPlayer = None
+000060 | E2EmbyApiClient = None
+000061 | 
+000062 | # EMBYFLOW_RC14_ROBUST_OPTIONAL_IMPORTS_V1
+000063 | try:
+000064 |     import requests
+000065 | except Exception:
+000066 |     requests = None
+000067 | 
+000068 | import json
+000069 | import time
+000070 | from datetime import datetime, timedelta
+000071 | 
+000072 | try:
+000073 |     from PIL import Image
+000074 | except Exception:
+000075 |     Image = None
+000076 | 
+000077 | try:
+000078 |     from Plugins.Extensions.EmbyFlowE2.emby_config import (
+000079 |         EMBY_SERVER,
+000080 |         EMBY_USERNAME,
+000081 |         EMBY_PASSWORD,
+000082 |     )
+000083 | except Exception:
+000084 |     EMBY_SERVER = ""
+000085 |     EMBY_USERNAME = ""
+000086 |     EMBY_PASSWORD = ""
+000087 | 
+000088 | try:
+000089 |     from Plugins.Extensions.EmbyFlowE2.emby_live import fetch_detail
+000090 | except Exception:
+000091 |     def fetch_detail(search_term):
+000092 |         return None
+000093 | 
+000094 | 
+000095 | # EMBYFLOW_RC14_RECEIVER_NEUTRAL_MODULES_V1
+000096 | try:
+000097 |     from Plugins.Extensions.EmbyFlowE2.compat import (
+000098 |         get_runtime_profile as embyflow_get_runtime_profile,
+000099 |         get_safe_player_delay_ms as embyflow_safe_player_delay_ms,
+000100 |         runtime_profile_text as embyflow_runtime_profile_text,
+000101 |     )
+000102 | except Exception:
+000103 |     def embyflow_get_runtime_profile():
+000104 |         return {
+000105 |             "distro": "unknown",
+000106 |             "model": "unknown",
+000107 |             "brand": "unknown",
+===== SubtitleDisplay @ 32973 =====
+032943 |                 raise RuntimeError("Keine Untertitelspuren gefunden")
+032944 | 
+032945 |             active_index = (
+032946 |                 0
+032947 |                 if self.embyflow_active_subtitle_index is None
+032948 |                 else self.embyflow_active_subtitle_index + 1
+032949 |             )
+032950 |             self.session.openWithCallback(
+032951 |                 self.subtitle_selection_finished,
+032952 |                 EmbyFlowTrackSelectionScreen,
+032953 |                 title="Untertitel auswählen",
+032954 |                 entries=entries,
+032955 |                 active_index=active_index,
+032956 |             )
+032957 | 
+032958 |         except Exception as error:
+032959 |             self.session.open(
+032960 |                 MessageBox,
+032961 |                 "Untertitelauswahl nicht verfügbar: %s" % str(error),
+032962 |                 MessageBox.TYPE_INFO,
+032963 |                 timeout=4,
+032964 |             )
+032965 | 
+032966 |     # EMBYFLOW_SUBTITLE_WINDOW_V2
+032967 |     def embyflow_get_subtitle_window(self):
+032968 |         window = getattr(self, "embyflow_subtitle_window", None)
+032969 | 
+032970 |         if window is not None and getattr(window, "instance", None) is not None:
+032971 |             return window
+032972 | 
+032973 |         if SubtitleDisplay is None:
+032974 |             raise RuntimeError("Screens.SubtitleDisplay ist nicht verfügbar")
+032975 | 
+032976 |         window = self.session.instantiateDialog(SubtitleDisplay)
+032977 | 
+032978 |         try:
+032979 |             window.setAnimationMode(0)
+032980 |         except Exception:
+032981 |             pass
+032982 | 
+032983 |         window.hide()
+032984 |         self.embyflow_subtitle_window = window
+032985 |         return window
+032986 | 
+032987 |     def embyflow_set_embedded_subtitle(self, selected_subtitle):
+032988 |         service = self.session.nav.getCurrentService()
+032989 |         subtitle = service and service.subtitle()
+032990 | 
+032991 |         if not subtitle:
+032992 |             raise RuntimeError("service.subtitle() ist nicht verfügbar")
+032993 | 
+032994 |         window = self.embyflow_get_subtitle_window()
+032995 |         widget = getattr(window, "instance", None)
+032996 | 
+032997 |         if widget is None:
+032998 |             raise RuntimeError("SubtitleDisplay besitzt keine eWidget-Instanz")
+032999 | 
+033000 |         if selected_subtitle is None:
+033001 |             try:
+033002 |                 subtitle.disableSubtitles(widget)
+033003 |             except Exception:
+033004 |                 # Ausschalten darf auch dann als erfolgreich gelten, wenn der
+033005 |                 # Dienst aktuell keine aktive Untertitelspur mehr führt.
+033006 |                 pass
+033007 | 
+033008 |             window.hide()
+033009 |             self.embyflow_selected_subtitle = None
+033010 |             return
+033011 | 
+033012 |         subtitle.enableSubtitles(widget, selected_subtitle)
+033013 |         self.embyflow_selected_subtitle = selected_subtitle
+033014 |         window.show()
+033015 | 
+033016 |     def embyflow_close_subtitle_window(self):
+033017 |         window = getattr(self, "embyflow_subtitle_window", None)
+033018 | 
+033019 |         if window is None:
+033020 |             return
+033021 | 
+033022 |         try:
+033023 |             service = self.session.nav.getCurrentService()
+033024 |             subtitle = service and service.subtitle()
+033025 |             widget = getattr(window, "instance", None)
+033026 | 
+033027 |             if subtitle is not None and widget is not None:
+033028 |                 try:
+033029 |                     subtitle.disableSubtitles(widget)
+033030 |                 except Exception:
+033031 |                     pass
+033032 |         except Exception:
+033033 |             pass
+033034 | 
+033035 |         try:
+033036 |             window.hide()
+033037 |         except Exception:
+033038 |             pass
+033039 | 
+033040 |         try:
+033041 |             self.session.deleteDialog(window)
+033042 |         except Exception:
+033043 |             try:
+033044 |                 window.close()
+033045 |             except Exception:
+033046 |                 pass
+033047 | 
+033048 |         self.embyflow_subtitle_window = None
+033049 |         self.embyflow_selected_subtitle = None
+033050 | 
+033051 |     def subtitle_selection_finished(self, result):
+033052 |         if not result:
+===== SubtitleDisplay @ 32974 =====
+032944 | 
+032945 |             active_index = (
+032946 |                 0
+032947 |                 if self.embyflow_active_subtitle_index is None
+032948 |                 else self.embyflow_active_subtitle_index + 1
+032949 |             )
+032950 |             self.session.openWithCallback(
+032951 |                 self.subtitle_selection_finished,
+032952 |                 EmbyFlowTrackSelectionScreen,
+032953 |                 title="Untertitel auswählen",
+032954 |                 entries=entries,
+032955 |                 active_index=active_index,
+032956 |             )
+032957 | 
+032958 |         except Exception as error:
+032959 |             self.session.open(
+032960 |                 MessageBox,
+032961 |                 "Untertitelauswahl nicht verfügbar: %s" % str(error),
+032962 |                 MessageBox.TYPE_INFO,
+032963 |                 timeout=4,
+032964 |             )
+032965 | 
+032966 |     # EMBYFLOW_SUBTITLE_WINDOW_V2
+032967 |     def embyflow_get_subtitle_window(self):
+032968 |         window = getattr(self, "embyflow_subtitle_window", None)
+032969 | 
+032970 |         if window is not None and getattr(window, "instance", None) is not None:
+032971 |             return window
+032972 | 
+032973 |         if SubtitleDisplay is None:
+032974 |             raise RuntimeError("Screens.SubtitleDisplay ist nicht verfügbar")
+032975 | 
+032976 |         window = self.session.instantiateDialog(SubtitleDisplay)
+032977 | 
+032978 |         try:
+032979 |             window.setAnimationMode(0)
+032980 |         except Exception:
+032981 |             pass
+032982 | 
+032983 |         window.hide()
+032984 |         self.embyflow_subtitle_window = window
+032985 |         return window
+032986 | 
+032987 |     def embyflow_set_embedded_subtitle(self, selected_subtitle):
+032988 |         service = self.session.nav.getCurrentService()
+032989 |         subtitle = service and service.subtitle()
+032990 | 
+032991 |         if not subtitle:
+032992 |             raise RuntimeError("service.subtitle() ist nicht verfügbar")
+032993 | 
+032994 |         window = self.embyflow_get_subtitle_window()
+032995 |         widget = getattr(window, "instance", None)
+032996 | 
+032997 |         if widget is None:
+032998 |             raise RuntimeError("SubtitleDisplay besitzt keine eWidget-Instanz")
+032999 | 
+033000 |         if selected_subtitle is None:
+033001 |             try:
+033002 |                 subtitle.disableSubtitles(widget)
+033003 |             except Exception:
+033004 |                 # Ausschalten darf auch dann als erfolgreich gelten, wenn der
+033005 |                 # Dienst aktuell keine aktive Untertitelspur mehr führt.
+033006 |                 pass
+033007 | 
+033008 |             window.hide()
+033009 |             self.embyflow_selected_subtitle = None
+033010 |             return
+033011 | 
+033012 |         subtitle.enableSubtitles(widget, selected_subtitle)
+033013 |         self.embyflow_selected_subtitle = selected_subtitle
+033014 |         window.show()
+033015 | 
+033016 |     def embyflow_close_subtitle_window(self):
+033017 |         window = getattr(self, "embyflow_subtitle_window", None)
+033018 | 
+033019 |         if window is None:
+033020 |             return
+033021 | 
+033022 |         try:
+033023 |             service = self.session.nav.getCurrentService()
+033024 |             subtitle = service and service.subtitle()
+033025 |             widget = getattr(window, "instance", None)
+033026 | 
+033027 |             if subtitle is not None and widget is not None:
+033028 |                 try:
+033029 |                     subtitle.disableSubtitles(widget)
+033030 |                 except Exception:
+033031 |                     pass
+033032 |         except Exception:
+033033 |             pass
+033034 | 
+033035 |         try:
+033036 |             window.hide()
+033037 |         except Exception:
+033038 |             pass
+033039 | 
+033040 |         try:
+033041 |             self.session.deleteDialog(window)
+033042 |         except Exception:
+033043 |             try:
+033044 |                 window.close()
+033045 |             except Exception:
+033046 |                 pass
+033047 | 
+033048 |         self.embyflow_subtitle_window = None
+033049 |         self.embyflow_selected_subtitle = None
+033050 | 
+033051 |     def subtitle_selection_finished(self, result):
+033052 |         if not result:
+033053 |             self.embyflow_v14_ut_state_log("selection_cancel")
+===== SubtitleDisplay @ 32976 =====
+032946 |                 0
+032947 |                 if self.embyflow_active_subtitle_index is None
+032948 |                 else self.embyflow_active_subtitle_index + 1
+032949 |             )
+032950 |             self.session.openWithCallback(
+032951 |                 self.subtitle_selection_finished,
+032952 |                 EmbyFlowTrackSelectionScreen,
+032953 |                 title="Untertitel auswählen",
+032954 |                 entries=entries,
+032955 |                 active_index=active_index,
+032956 |             )
+032957 | 
+032958 |         except Exception as error:
+032959 |             self.session.open(
+032960 |                 MessageBox,
+032961 |                 "Untertitelauswahl nicht verfügbar: %s" % str(error),
+032962 |                 MessageBox.TYPE_INFO,
+032963 |                 timeout=4,
+032964 |             )
+032965 | 
+032966 |     # EMBYFLOW_SUBTITLE_WINDOW_V2
+032967 |     def embyflow_get_subtitle_window(self):
+032968 |         window = getattr(self, "embyflow_subtitle_window", None)
+032969 | 
+032970 |         if window is not None and getattr(window, "instance", None) is not None:
+032971 |             return window
+032972 | 
+032973 |         if SubtitleDisplay is None:
+032974 |             raise RuntimeError("Screens.SubtitleDisplay ist nicht verfügbar")
+032975 | 
+032976 |         window = self.session.instantiateDialog(SubtitleDisplay)
+032977 | 
+032978 |         try:
+032979 |             window.setAnimationMode(0)
+032980 |         except Exception:
+032981 |             pass
+032982 | 
+032983 |         window.hide()
+032984 |         self.embyflow_subtitle_window = window
+032985 |         return window
+032986 | 
+032987 |     def embyflow_set_embedded_subtitle(self, selected_subtitle):
+032988 |         service = self.session.nav.getCurrentService()
+032989 |         subtitle = service and service.subtitle()
+032990 | 
+032991 |         if not subtitle:
+032992 |             raise RuntimeError("service.subtitle() ist nicht verfügbar")
+032993 | 
+032994 |         window = self.embyflow_get_subtitle_window()
+032995 |         widget = getattr(window, "instance", None)
+032996 | 
+032997 |         if widget is None:
+032998 |             raise RuntimeError("SubtitleDisplay besitzt keine eWidget-Instanz")
+032999 | 
+033000 |         if selected_subtitle is None:
+033001 |             try:
+033002 |                 subtitle.disableSubtitles(widget)
+033003 |             except Exception:
+033004 |                 # Ausschalten darf auch dann als erfolgreich gelten, wenn der
+033005 |                 # Dienst aktuell keine aktive Untertitelspur mehr führt.
+033006 |                 pass
+033007 | 
+033008 |             window.hide()
+033009 |             self.embyflow_selected_subtitle = None
+033010 |             return
+033011 | 
+033012 |         subtitle.enableSubtitles(widget, selected_subtitle)
+033013 |         self.embyflow_selected_subtitle = selected_subtitle
+033014 |         window.show()
+033015 | 
+033016 |     def embyflow_close_subtitle_window(self):
+033017 |         window = getattr(self, "embyflow_subtitle_window", None)
+033018 | 
+033019 |         if window is None:
+033020 |             return
+033021 | 
+033022 |         try:
+033023 |             service = self.session.nav.getCurrentService()
+033024 |             subtitle = service and service.subtitle()
+033025 |             widget = getattr(window, "instance", None)
+033026 | 
+033027 |             if subtitle is not None and widget is not None:
+033028 |                 try:
+033029 |                     subtitle.disableSubtitles(widget)
+033030 |                 except Exception:
+033031 |                     pass
+033032 |         except Exception:
+033033 |             pass
+033034 | 
+033035 |         try:
+033036 |             window.hide()
+033037 |         except Exception:
+033038 |             pass
+033039 | 
+033040 |         try:
+033041 |             self.session.deleteDialog(window)
+033042 |         except Exception:
+033043 |             try:
+033044 |                 window.close()
+033045 |             except Exception:
+033046 |                 pass
+033047 | 
+033048 |         self.embyflow_subtitle_window = None
+033049 |         self.embyflow_selected_subtitle = None
+033050 | 
+033051 |     def subtitle_selection_finished(self, result):
+033052 |         if not result:
+033053 |             self.embyflow_v14_ut_state_log("selection_cancel")
+033054 |             return
+033055 |         try:
