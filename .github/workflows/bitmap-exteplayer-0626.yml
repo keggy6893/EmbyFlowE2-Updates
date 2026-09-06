@@ -1,0 +1,96 @@
+name: Bitmap subtitles ExtEplayer3 2026090626
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bitmap-exteplayer-0626.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-bitmap-exteplayer-2026090626
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply bitmap subtitle ExtEplayer3 fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          p=Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          m=Path('update.json')
+          raw=p.read_bytes()
+          expected='1a60f5cbef76c66a6bc2d9752cb1fc0c077c6e693a8ac6e90c30ec3ea68cfae1'
+          got=hashlib.sha256(raw).hexdigest()
+          if got != expected:
+              raise SystemExit('Unexpected 0625 baseline sha256: %s' % got)
+
+          text=raw.decode('utf-8')
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090625') != 1:
+              raise SystemExit('build marker mismatch')
+          text=text.replace('PLUGIN_UPDATE_BUILD = 2026090625','PLUGIN_UPDATE_BUILD = 2026090626',1)
+
+          marker='# EMBYFLOW_HYBRID_SUBTITLES_0625_RELEASE\n'
+          if text.count(marker) != 1:
+              raise SystemExit('0625 hybrid marker mismatch: %s' % text.count(marker))
+          if 'EMBYFLOW_BITMAP_EXTEPLAYER3_0626_RELEASE' in text:
+              raise SystemExit('0626 patch already present')
+          fragment=Path('bitmap_exteplayer_0626.inc.py').read_text(encoding='utf-8')
+          text=text.replace(marker, marker+'\n'+fragment+'\n', 1)
+
+          p.write_text(text,encoding='utf-8',newline='\n')
+          final_sha=hashlib.sha256(p.read_bytes()).hexdigest()
+
+          data=json.loads(m.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090625:
+              raise SystemExit('manifest baseline mismatch')
+          data['build']=2026090626
+          data['download']='https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090626/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256']=final_sha
+          msg='Bitmap-Untertitel: fehlende native PGS/DVB/DVD-Spuren wechseln bei Static Direct Play nur lokal von 4097 auf ExtEplayer3/5002; URL und PlaySession bleiben unverändert, kein Server-Transcode'
+          changelog=list(data.get('changelog') or [])
+          if msg not in changelog:
+              changelog.append(msg)
+          data['changelog']=changelog
+          m.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090626' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_BITMAP_EXTEPLAYER3_0626_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_HYBRID_SUBTITLES_0625_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_CHAPTER_CARDS_V18_SINGLE_SELECTED_0624_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_LOGINREF17_DREAMSAFE2_HTTPPOOL_NONBLOCK_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'MAX_STALE = 172800' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q '_embyflow_rcdev7_switch_static_to_ext(self, target_ticks)' bitmap_exteplayer_0626.inc.py
+          ! grep -q '/PlaybackInfo' bitmap_exteplayer_0626.inc.py
+          ! grep -q 'Static=false' bitmap_exteplayer_0626.inc.py
+          ! grep -q '_embyflow_qs_v1_build_stream' bitmap_exteplayer_0626.inc.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Add bitmap subtitle ExtEplayer3 fallback build 2026090626'
+          git push origin main
+          git tag -a build-2026090626 -m 'EmbyFlow E2 build 2026090626'
+          git push origin build-2026090626
