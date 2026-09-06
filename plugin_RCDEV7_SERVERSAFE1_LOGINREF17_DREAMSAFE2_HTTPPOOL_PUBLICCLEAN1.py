@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090622
+PLUGIN_UPDATE_BUILD = 2026090623
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -176,7 +176,8 @@ PLUGIN_UPDATE_CHANGELOG = (
     "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv|"
     "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen|"
     "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt|"
-    "Server-Cache-Trennung: Metadaten- und V11-Library-Cache werden pro Emby-Server und Benutzer getrennt"
+    "Server-Cache-Trennung: Metadaten- und V11-Library-Cache werden pro Emby-Server und Benutzer getrennt|"
+    "Kapitelansicht V18: sechs Bildkarten, sofortige lokale Artwork-Platzhalter und echte Kapitelbilder im Hintergrund"
 )
 EMBYFLOW_UPDATE_CHANNEL = "rcdev"
 EMBYFLOW_UPDATE_MANIFEST_URL = (
@@ -83076,3 +83077,724 @@ EmbyFlowConnectionWizard.refresh_all = _embyflow_login_reference_v13_refresh_all
 
 
 # EMBYFLOW_LOGINREF17_DREAMSAFE2_HTTPPOOL_NONBLOCK_RELEASE
+
+# EMBYFLOW_CHAPTER_CARDS_V18_START
+# 2026-09-06: six-card chapter browser matching the approved EmbyFlowE2 mockup.
+# The existing safe chapter-image pipeline remains unchanged. This layer only
+# changes presentation/scheduling and uses already-cached local artwork as an
+# immediate fallback so a visible card does not stay empty while its real
+# chapter frame is being prepared.
+class EmbyFlowChapterNavigatorV18(EmbyFlowChapterNavigator):
+    VISIBLE_CARDS = 6
+
+    skin = """
+    <screen name="EmbyFlowChapterNavigatorV18"
+            position="0,0" size="1920,1080" flags="wfNoBorder"
+            backgroundColor="#030811">
+
+        <widget name="brand_emby" position="54,30" size="145,46"
+                font="Bold;34" foregroundColor="#FFFFFF"
+                backgroundColor="#030811" transparent="1" />
+        <widget name="brand_flow" position="196,30" size="160,46"
+                font="Bold;34" foregroundColor="#35AFFF"
+                backgroundColor="#030811" transparent="1" />
+        <widget name="clock_text" position="1580,30" size="285,42"
+                font="Regular;27" foregroundColor="#F2F5F9"
+                backgroundColor="#030811" transparent="1" halign="right" />
+
+        <widget name="media_title" position="54,96" size="1110,52"
+                font="Bold;36" foregroundColor="#FFFFFF"
+                backgroundColor="#030811" transparent="1" noWrap="1" />
+        <widget name="media_meta" position="54,154" size="1110,34"
+                font="Regular;20" foregroundColor="#AAB7C7"
+                backgroundColor="#030811" transparent="1" noWrap="1" />
+        <widget name="position_text" position="1190,118" size="675,32"
+                font="Regular;20" foregroundColor="#91A2B7"
+                backgroundColor="#030811" transparent="1" halign="right" />
+
+        <widget name="section_title" position="54,220" size="650,42"
+                font="Bold;28" foregroundColor="#35AFFF"
+                backgroundColor="#030811" transparent="1" />
+        <widget name="status_text" position="780,222" size="1085,36"
+                font="Regular;19" foregroundColor="#91A2B7"
+                backgroundColor="#030811" transparent="1" halign="right" />
+
+        <widget name="arrow_left" position="14,342" size="34,110"
+                font="Bold;60" foregroundColor="#35AFFF"
+                backgroundColor="#030811" transparent="1" valign="center" halign="center" />
+        <widget name="arrow_right" position="1872,342" size="34,110"
+                font="Bold;60" foregroundColor="#35AFFF"
+                backgroundColor="#030811" transparent="1" valign="center" halign="center" />
+
+        <widget name="card0_frame" position="54,292" size="286,252" backgroundColor="#314559" transparent="0" />
+        <widget name="card0_image" position="59,297" size="276,155" alphatest="blend" transparent="1" />
+        <widget name="card0_title" position="66,463" size="262,36" font="Bold;20" foregroundColor="#FFFFFF" backgroundColor="#06101C" transparent="1" noWrap="1" />
+        <widget name="card0_time" position="66,504" size="262,30" font="Regular;19" foregroundColor="#B7C2D0" backgroundColor="#06101C" transparent="1" />
+
+        <widget name="card1_frame" position="360,292" size="286,252" backgroundColor="#314559" transparent="0" />
+        <widget name="card1_image" position="365,297" size="276,155" alphatest="blend" transparent="1" />
+        <widget name="card1_title" position="372,463" size="262,36" font="Bold;20" foregroundColor="#FFFFFF" backgroundColor="#06101C" transparent="1" noWrap="1" />
+        <widget name="card1_time" position="372,504" size="262,30" font="Regular;19" foregroundColor="#B7C2D0" backgroundColor="#06101C" transparent="1" />
+
+        <widget name="card2_frame" position="666,292" size="286,252" backgroundColor="#314559" transparent="0" />
+        <widget name="card2_image" position="671,297" size="276,155" alphatest="blend" transparent="1" />
+        <widget name="card2_title" position="678,463" size="262,36" font="Bold;20" foregroundColor="#FFFFFF" backgroundColor="#06101C" transparent="1" noWrap="1" />
+        <widget name="card2_time" position="678,504" size="262,30" font="Regular;19" foregroundColor="#B7C2D0" backgroundColor="#06101C" transparent="1" />
+
+        <widget name="card3_frame" position="972,292" size="286,252" backgroundColor="#314559" transparent="0" />
+        <widget name="card3_image" position="977,297" size="276,155" alphatest="blend" transparent="1" />
+        <widget name="card3_title" position="984,463" size="262,36" font="Bold;20" foregroundColor="#FFFFFF" backgroundColor="#06101C" transparent="1" noWrap="1" />
+        <widget name="card3_time" position="984,504" size="262,30" font="Regular;19" foregroundColor="#B7C2D0" backgroundColor="#06101C" transparent="1" />
+
+        <widget name="card4_frame" position="1278,292" size="286,252" backgroundColor="#314559" transparent="0" />
+        <widget name="card4_image" position="1283,297" size="276,155" alphatest="blend" transparent="1" />
+        <widget name="card4_title" position="1290,463" size="262,36" font="Bold;20" foregroundColor="#FFFFFF" backgroundColor="#06101C" transparent="1" noWrap="1" />
+        <widget name="card4_time" position="1290,504" size="262,30" font="Regular;19" foregroundColor="#B7C2D0" backgroundColor="#06101C" transparent="1" />
+
+        <widget name="card5_frame" position="1584,292" size="286,252" backgroundColor="#314559" transparent="0" />
+        <widget name="card5_image" position="1589,297" size="276,155" alphatest="blend" transparent="1" />
+        <widget name="card5_title" position="1596,463" size="262,36" font="Bold;20" foregroundColor="#FFFFFF" backgroundColor="#06101C" transparent="1" noWrap="1" />
+        <widget name="card5_time" position="1596,504" size="262,30" font="Regular;19" foregroundColor="#B7C2D0" backgroundColor="#06101C" transparent="1" />
+
+        <widget name="timeline_track" position="180,592" size="1560,4" backgroundColor="#34495F" transparent="0" />
+        <widget name="timeline_played" position="180,592" size="1,4" backgroundColor="#35AFFF" transparent="0" />
+        <widget name="timeline_current_marker" position="180,584" size="6,20" backgroundColor="#35AFFF" transparent="0" />
+        <widget name="timeline_selected_marker" position="180,582" size="18,24" backgroundColor="#35AFFF" transparent="0" />
+        <widget name="timeline_current_text" position="54,614" size="410,32" font="Bold;20" foregroundColor="#35AFFF" backgroundColor="#030811" transparent="1" />
+        <widget name="timeline_selected_text" position="760,614" size="400,32" font="Bold;20" foregroundColor="#35AFFF" backgroundColor="#030811" transparent="1" halign="center" />
+        <widget name="timeline_duration_text" position="1510,614" size="355,32" font="Bold;20" foregroundColor="#D6DEE8" backgroundColor="#030811" transparent="1" halign="right" />
+        <widget name="timeline_remaining_text" position="1430,650" size="435,28" font="Regular;18" foregroundColor="#91A2B7" backgroundColor="#030811" transparent="1" halign="right" />
+
+        <widget name="selected_title" position="54,690" size="1060,46" font="Bold;31" foregroundColor="#FFFFFF" backgroundColor="#030811" transparent="1" noWrap="1" />
+        <widget name="selected_time" position="54,744" size="420,34" font="Bold;22" foregroundColor="#35AFFF" backgroundColor="#030811" transparent="1" />
+        <widget name="chapter_count" position="500,744" size="615,34" font="Regular;20" foregroundColor="#91A2B7" backgroundColor="#030811" transparent="1" />
+        <widget name="detail_text" position="54,792" size="1060,92" font="Regular;21" foregroundColor="#D6DEE8" backgroundColor="#030811" transparent="1" />
+        <widget name="detail_art" position="1260,692" size="605,190" alphatest="blend" transparent="1" />
+
+        <widget name="footer_line" position="54,930" size="1812,2" backgroundColor="#22344B" transparent="0" />
+        <widget name="key_red" position="54,958" size="255,34" font="Regular;20" foregroundColor="#FF4938" backgroundColor="#030811" transparent="1" />
+        <widget name="key_ok" position="342,958" size="295,34" font="Regular;20" foregroundColor="#3AD96B" backgroundColor="#030811" transparent="1" />
+        <widget name="key_yellow" position="674,958" size="330,34" font="Regular;20" foregroundColor="#FFD84A" backgroundColor="#030811" transparent="1" />
+        <widget name="key_blue" position="1042,958" size="350,34" font="Regular;20" foregroundColor="#2E8FFF" backgroundColor="#030811" transparent="1" />
+        <widget name="key_nav" position="1420,958" size="445,34" font="Regular;20" foregroundColor="#AAB7C7" backgroundColor="#030811" transparent="1" halign="right" />
+    </screen>
+    """
+
+    def __init__(self, session, player):
+        Screen.__init__(self, session)
+        self.player = player
+        self.chapters = []
+        self.selected = 0
+        self.top_index = 0
+        self._v18_window_start = 0
+        self._closing = False
+
+        self._chapter_load_done = False
+        self._chapter_load_result = None
+        self._chapter_load_error = ""
+        self._chapter_thread = None
+
+        self._preview_process = None
+        self._carousel_generation = 0
+        self._carousel_queue = []
+        self._carousel_busy = False
+        self._carousel_result = None
+
+        self._chapter_content_v17_3_busy = False
+        self._chapter_content_v17_3_serial = 0
+        self._chapter_content_v17_3_result = None
+
+        self["brand_emby"] = Label("Emby")
+        self["brand_flow"] = Label("FlowE2")
+        self["clock_text"] = Label("")
+        self["media_title"] = Label(
+            str(
+                getattr(player, "overlay_main_title", "")
+                or getattr(player, "title_text", "")
+                or "EmbyFlow"
+            )
+        )
+        self["media_meta"] = Label(self._v18_media_meta())
+        self["position_text"] = Label("")
+        self["section_title"] = Label("Kapitel auswählen")
+        self["status_text"] = Label("Kapitel werden geladen …")
+        self["arrow_left"] = Label("‹")
+        self["arrow_right"] = Label("›")
+
+        for slot in range(self.VISIBLE_CARDS):
+            self["card%d_frame" % slot] = Label(" ")
+            self["card%d_image" % slot] = Pixmap()
+            self["card%d_image" % slot].hide()
+            self["card%d_title" % slot] = Label("")
+            self["card%d_time" % slot] = Label("")
+
+        self["timeline_track"] = Label(" ")
+        self["timeline_played"] = Label(" ")
+        self["timeline_current_marker"] = Label(" ")
+        self["timeline_selected_marker"] = Label(" ")
+        self["timeline_current_text"] = Label("")
+        self["timeline_selected_text"] = Label("")
+        self["timeline_duration_text"] = Label("")
+        self["timeline_remaining_text"] = Label("")
+
+        self["selected_title"] = Label("")
+        self["selected_time"] = Label("")
+        self["chapter_count"] = Label("")
+        self["detail_text"] = Label("")
+        self["detail_art"] = Pixmap()
+        self["detail_art"].hide()
+
+        self["footer_line"] = Label(" ")
+        self["key_red"] = Label("ROT  Schließen")
+        self["key_ok"] = Label("GRÜN/OK  Springen")
+        self["key_yellow"] = Label("GELB  Aktuelles Kapitel")
+        self["key_blue"] = Label("BLAU  Kapitelinhalt")
+        self["key_nav"] = Label("◀/▶ Kapitel   ▲/▼ ±6")
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {
+                "cancel": self.close_screen,
+                "red": self.close_screen,
+                "green": self.jump_selected,
+                "yellow": self.focus_current_chapter_v17,
+                "blue": self.open_chapter_content_v17_1,
+                "ok": self.jump_selected,
+                "left": self.move_left_v17,
+                "right": self.move_right_v17,
+                "up": self.page_left_v17,
+                "down": self.page_right_v17,
+            },
+            -10,
+        )
+
+        self._poll_timer = eTimer()
+        try:
+            self._poll_timer.callback.append(self._poll_async_v17)
+        except Exception:
+            try:
+                self._poll_timer.timeout.connect(self._poll_async_v17)
+            except Exception:
+                pass
+
+        self.onLayoutFinish.append(self._layout_ready_v17)
+        try:
+            self.onClose.append(self._cleanup)
+        except Exception:
+            pass
+
+    def _v18_media_meta(self):
+        try:
+            item = dict(getattr(self.player, "item", None) or {})
+            sources = list(item.get("MediaSources") or item.get("media_sources") or [])
+            source = dict(sources[0] or {}) if sources else {}
+            streams = list(source.get("MediaStreams") or source.get("media_streams") or [])
+            video = next((s for s in streams if str((s or {}).get("Type") or "").lower() == "video"), {})
+            audio = next((s for s in streams if str((s or {}).get("Type") or "").lower() == "audio"), {})
+
+            parts = []
+            width = int(video.get("Width") or 0)
+            height = int(video.get("Height") or 0)
+            if width >= 3800 or height >= 2100:
+                parts.append("4K")
+            elif width or height:
+                parts.append("HD")
+
+            codec = str(video.get("Codec") or "").strip().upper()
+            if codec:
+                codec = codec.replace("H265", "HEVC").replace("H264", "H.264")
+                parts.append(codec)
+
+            acodec = str(audio.get("Codec") or "").strip().upper()
+            channels = int(audio.get("Channels") or 0)
+            if acodec:
+                label = acodec.replace("EAC3", "E-AC3").replace("AC3", "AC3")
+                if channels >= 6:
+                    label += " 5.1"
+                elif channels == 2:
+                    label += " 2.0"
+                parts.append(label)
+
+            return "   •   ".join(parts)
+        except Exception:
+            return ""
+
+    def _v18_clock(self):
+        try:
+            self["clock_text"].setText(time.strftime("%H:%M"))
+        except Exception:
+            pass
+
+    def _layout_ready_v17(self):
+        self._v18_clock()
+        self._refresh_position_v17()
+        self._v18_show_detail_art()
+        try:
+            self._poll_timer.start(150, False)
+        except Exception:
+            pass
+
+        local = []
+        try:
+            local = self.player.embyflow_extract_local_chapters()
+        except Exception:
+            local = []
+        if local:
+            self._apply_chapters_v17(local)
+            return
+        self["status_text"].setText("Kapitel werden von Emby geladen …")
+        self._start_chapter_load()
+
+    def _apply_chapters_v17(self, chapters):
+        self.chapters = list(chapters or [])
+        if not self.chapters:
+            self["status_text"].setText("Keine Kapitelinformationen für diesen Titel gefunden.")
+            return
+
+        try:
+            current = int(self.player.current_position_ticks() or 0)
+        except Exception:
+            current = 0
+
+        active = 0
+        for index, chapter in enumerate(self.chapters):
+            try:
+                if int(chapter.get("StartPositionTicks") or 0) <= current:
+                    active = index
+                else:
+                    break
+            except Exception:
+                pass
+
+        self.selected = active
+        self._v18_window_start = max(
+            0,
+            min(active, max(0, len(self.chapters) - self.VISIBLE_CARDS)),
+        )
+        self._refresh_carousel_v17()
+
+    def _v18_adjust_window(self):
+        if not self.chapters:
+            self._v18_window_start = 0
+            return
+        self.selected = max(0, min(int(self.selected), len(self.chapters) - 1))
+        start = max(0, int(getattr(self, "_v18_window_start", 0) or 0))
+        if self.selected < start:
+            start = self.selected
+        elif self.selected >= start + self.VISIBLE_CARDS:
+            start = self.selected - self.VISIBLE_CARDS + 1
+        max_start = max(0, len(self.chapters) - self.VISIBLE_CARDS)
+        self._v18_window_start = max(0, min(start, max_start))
+
+    def _slot_chapter_index_v17(self, slot):
+        try:
+            slot = int(slot)
+        except Exception:
+            return None
+        if slot < 0 or slot >= self.VISIBLE_CARDS:
+            return None
+        index = int(getattr(self, "_v18_window_start", 0) or 0) + slot
+        if index < 0 or index >= len(self.chapters):
+            return None
+        return index
+
+    def _v18_selected_slot(self):
+        try:
+            return int(self.selected) - int(self._v18_window_start)
+        except Exception:
+            return -1
+
+    def _refresh_position_v17(self):
+        try:
+            current = max(0, int(self.player.current_position_ticks() or 0))
+        except Exception:
+            current = 0
+        duration = max(1, int(self._duration_ticks_v17()))
+        remaining = max(0, duration - current)
+
+        self["position_text"].setText("Aktuelle Position  %s" % self._format_ticks(current))
+        self["timeline_current_text"].setText("Aktuell  %s" % self._format_ticks(current))
+        self["timeline_duration_text"].setText(self._format_ticks(duration))
+        self["timeline_remaining_text"].setText("Verbleibend  %s" % self._format_ticks(remaining))
+
+        fraction = min(1.0, max(0.0, float(current) / float(duration)))
+        width = max(1, int(round(1560.0 * fraction)))
+        marker_x = max(180, min(1734, 180 + width - 3))
+        try:
+            instance = getattr(self["timeline_played"], "instance", None)
+            if instance is not None:
+                instance.resize(eSize(width, 4))
+        except Exception:
+            pass
+        try:
+            instance = getattr(self["timeline_current_marker"], "instance", None)
+            if instance is not None:
+                instance.move(ePoint(marker_x, 584))
+        except Exception:
+            pass
+
+    def _refresh_selected_timeline_v17(self):
+        if not self.chapters:
+            return
+        duration = max(1, int(self._duration_ticks_v17()))
+        try:
+            selected_ticks = max(0, int(self.chapters[self.selected].get("StartPositionTicks") or 0))
+        except Exception:
+            selected_ticks = 0
+        fraction = min(1.0, max(0.0, float(selected_ticks) / float(duration)))
+        marker_x = int(round(180 + (1560.0 * fraction))) - 9
+        marker_x = max(171, min(1731, marker_x))
+        try:
+            instance = getattr(self["timeline_selected_marker"], "instance", None)
+            if instance is not None:
+                instance.move(ePoint(marker_x, 582))
+        except Exception:
+            pass
+        self["timeline_selected_text"].setText("Auswahl  %s" % self._format_ticks(selected_ticks))
+
+    def _set_card_frame_v17(self, slot, valid):
+        try:
+            selected = valid and self._slot_chapter_index_v17(slot) == int(self.selected)
+            color = "#168DDA" if selected else ("#314559" if valid else "#101A28")
+            instance = getattr(self["card%d_frame" % slot], "instance", None)
+            if instance is not None:
+                instance.setBackgroundColor(parseColor(color))
+                try:
+                    instance.invalidate()
+                except Exception:
+                    pass
+            self["card%d_frame" % slot].setText(" ")
+        except Exception:
+            pass
+
+    def _clear_card_v17(self, slot):
+        self._set_card_frame_v17(slot, False)
+        self["card%d_title" % slot].setText("")
+        self["card%d_time" % slot].setText("")
+        try:
+            self["card%d_image" % slot].hide()
+        except Exception:
+            pass
+
+    def _v18_fallback_art_path(self):
+        candidates = []
+        try:
+            item = dict(getattr(self.player, "item", None) or {})
+        except Exception:
+            item = {}
+
+        item_id = str(
+            item.get("Id") or item.get("id") or getattr(self.player, "item_id", "") or ""
+        ).strip()
+        series_id = str(item.get("SeriesId") or item.get("series_id") or "").strip()
+        item_type = str(item.get("Type") or item.get("type") or "").strip().lower()
+
+        ids = []
+        for value in (item_id, series_id):
+            if value and value not in ids:
+                ids.append(value)
+
+        try:
+            cache_dir = CACHE_DIR + "/grid_backdrops"
+            for image_id in ids:
+                for prefix in ("grid", "step1"):
+                    candidates.append(
+                        cache_dir + "/%s_%s_%sx%s.jpg" % (
+                            prefix,
+                            image_id,
+                            int(SCREEN_W or 1920),
+                            int(SCREEN_H or 1080),
+                        )
+                    )
+        except Exception:
+            pass
+
+        try:
+            if item_type == "episode":
+                candidates.append(_grid_cache_path(item, True))
+        except Exception:
+            pass
+
+        try:
+            candidates.append(str(getattr(self.player, "player_poster_ready_path", "") or ""))
+        except Exception:
+            pass
+
+        try:
+            candidates.append(_grid_cache_path(item, False))
+        except Exception:
+            pass
+
+        try:
+            for image_id in ids:
+                candidates.append(HERO_CACHE_DIR + "/hero_%s.jpg" % image_id)
+        except Exception:
+            pass
+
+        for path in candidates:
+            try:
+                if path and _grid_cache_file_valid(path):
+                    return path
+            except Exception:
+                pass
+        return ""
+
+    def _show_card_path_v17(self, slot, chapter_index, path, generation):
+        if self._closing:
+            return
+        if self._slot_chapter_index_v17(slot) != chapter_index:
+            return
+        token = "chapter-cards-v18-%s-%s-%s-%s" % (
+            str(getattr(self.player, "item_id", "")), generation, slot, chapter_index
+        )
+        try:
+            ok = embyflow_decode_image_to_widget(
+                self,
+                "card%d_image" % slot,
+                path,
+                276,
+                155,
+                token=token,
+                is_current=lambda: (
+                    not self._closing
+                    and generation == self._carousel_generation
+                    and self._slot_chapter_index_v17(slot) == chapter_index
+                ),
+            )
+            if not ok:
+                self["card%d_image" % slot].hide()
+        except Exception:
+            try:
+                self["card%d_image" % slot].hide()
+            except Exception:
+                pass
+
+    def _v18_show_detail_art(self, preferred=""):
+        path = preferred if self._preview_file_valid(preferred) else self._v18_fallback_art_path()
+        if not path:
+            try:
+                self["detail_art"].hide()
+            except Exception:
+                pass
+            return
+        try:
+            ok = embyflow_decode_image_to_widget(
+                self,
+                "detail_art",
+                path,
+                605,
+                190,
+                token="chapter-detail-v18-%s-%s" % (
+                    str(getattr(self.player, "item_id", "")),
+                    str(self.selected),
+                ),
+                is_current=lambda: not self._closing,
+            )
+            if not ok:
+                self["detail_art"].hide()
+        except Exception:
+            try:
+                self["detail_art"].hide()
+            except Exception:
+                pass
+
+    def _v18_detail_text(self, chapter):
+        for key in ("Overview", "Description", "ShortOverview", "Summary", "Synopsis"):
+            value = str((chapter or {}).get(key) or "").strip()
+            if value:
+                return value[:360]
+        return "Mit OK oder GRÜN direkt zu diesem Kapitel springen. BLAU zeigt – falls verfügbar – den automatisch ermittelten Kapitelinhalt."
+
+    def _refresh_carousel_v17(self):
+        if not self.chapters:
+            return
+        self._v18_adjust_window()
+        self["status_text"].setText("")
+        self._v18_clock()
+
+        selected_chapter = self.chapters[self.selected]
+        selected_title = str(selected_chapter.get("Name") or "Kapitel %d" % (self.selected + 1))
+        selected_ticks = int(selected_chapter.get("StartPositionTicks") or 0)
+        self["selected_title"].setText("%d. %s" % (self.selected + 1, selected_title))
+        self["selected_time"].setText("Start  %s" % self._format_ticks(selected_ticks))
+        self["chapter_count"].setText("Kapitel %d von %d" % (self.selected + 1, len(self.chapters)))
+        self["detail_text"].setText(self._v18_detail_text(selected_chapter))
+
+        self._refresh_selected_timeline_v17()
+        self._carousel_generation += 1
+        generation = self._carousel_generation
+        self._carousel_queue = []
+
+        fallback = self._v18_fallback_art_path()
+        missing = []
+        selected_cached = ""
+
+        for slot in range(self.VISIBLE_CARDS):
+            chapter_index = self._slot_chapter_index_v17(slot)
+            if chapter_index is None:
+                self._clear_card_v17(slot)
+                continue
+
+            chapter = self.chapters[chapter_index]
+            self._set_card_frame_v17(slot, True)
+            title = str(chapter.get("Name") or "Kapitel %d" % (chapter_index + 1))
+            self["card%d_title" % slot].setText("%d. %s" % (chapter_index + 1, title))
+            self["card%d_time" % slot].setText(self._format_ticks(chapter.get("StartPositionTicks") or 0))
+
+            path = self._cache_path(chapter)
+            if self._preview_file_valid(path):
+                self._show_card_path_v17(slot, chapter_index, path, generation)
+                if chapter_index == self.selected:
+                    selected_cached = path
+            else:
+                if fallback:
+                    self._show_card_path_v17(slot, chapter_index, fallback, generation)
+                else:
+                    try:
+                        self["card%d_image" % slot].hide()
+                    except Exception:
+                        pass
+                missing.append((slot, chapter_index, dict(chapter), path))
+
+        self["arrow_left"].setText("‹" if self._v18_window_start > 0 else "")
+        self["arrow_right"].setText(
+            "›" if (self._v18_window_start + self.VISIBLE_CARDS) < len(self.chapters) else ""
+        )
+        self._v18_show_detail_art(selected_cached)
+
+        selected_slot = self._v18_selected_slot()
+        ordered = sorted(
+            missing,
+            key=lambda entry: (
+                0 if int(entry[1]) == int(self.selected) else 1,
+                abs(int(entry[0]) - int(selected_slot)),
+            ),
+        )
+        for slot, chapter_index, chapter, path in ordered:
+            self._carousel_queue.append((generation, slot, chapter_index, chapter, path))
+
+        if self._carousel_queue:
+            self["status_text"].setText("Echte Kapitelbilder werden im Hintergrund vorbereitet …")
+        self._maybe_start_carousel_preview_v17()
+
+    def _maybe_start_carousel_preview_v17(self):
+        if self._carousel_busy or not self._carousel_queue or self._closing:
+            return
+        request = self._carousel_queue.pop(0)
+        self._carousel_busy = True
+        try:
+            import threading
+
+            def worker():
+                generation, slot, chapter_index, chapter, path = request
+                result_path = ""
+                error_text = ""
+                try:
+                    if generation != self._carousel_generation:
+                        self._carousel_result = (generation, slot, chapter_index, "", "")
+                        return
+                    if self._slot_chapter_index_v17(slot) != chapter_index:
+                        self._carousel_result = (generation, slot, chapter_index, "", "")
+                        return
+                    candidate = self._obtain_preview(chapter, path)
+                    # V18 intentionally accepts only the canonical chapter cache
+                    # as a real card. Text placeholders remain a fallback of the
+                    # old engine and must not replace our immediate movie artwork.
+                    if self._preview_file_valid(path):
+                        result_path = path
+                    elif candidate and candidate == path and self._preview_file_valid(candidate):
+                        result_path = candidate
+                    elif chapter_index == self.selected:
+                        error_text = "Echtes Kapitelbild ist für diese Position nicht verfügbar."
+                except Exception as error:
+                    if chapter_index == self.selected:
+                        error_text = "Kapitelbild konnte nicht erzeugt werden: %s" % str(error)
+                self._carousel_result = (generation, slot, chapter_index, result_path, error_text)
+
+            thread = threading.Thread(target=worker, name="EmbyFlowChapterCardsV18")
+            thread.daemon = True
+            thread.start()
+        except Exception as error:
+            self._carousel_busy = False
+            self._carousel_result = (request[0], request[1], request[2], "", str(error))
+
+    def _poll_async_v17(self):
+        if self._closing:
+            return
+        self._v18_clock()
+        self._refresh_position_v17()
+
+        if self._chapter_load_done and not self.chapters:
+            result = self._chapter_load_result or []
+            self._chapter_load_done = False
+            if result:
+                self._apply_chapters_v17(result)
+            else:
+                self["status_text"].setText("Keine Kapitelinformationen für diesen Titel gefunden.")
+
+        result = self._carousel_result
+        if result is not None:
+            self._carousel_result = None
+            self._carousel_busy = False
+            generation, slot, chapter_index, path, error_text = result
+            if generation == self._carousel_generation and self._slot_chapter_index_v17(slot) == chapter_index:
+                if path and self._preview_file_valid(path):
+                    self._show_card_path_v17(slot, chapter_index, path, generation)
+                    if chapter_index == self.selected:
+                        self._v18_show_detail_art(path)
+                elif error_text and chapter_index == self.selected:
+                    self["status_text"].setText(error_text)
+            self._maybe_start_carousel_preview_v17()
+            if not self._carousel_busy and not self._carousel_queue and not error_text:
+                self["status_text"].setText("")
+
+        independent_result = self._chapter_content_v17_3_result
+        if independent_result is not None:
+            self._chapter_content_v17_3_result = None
+            self._chapter_content_v17_3_busy = False
+            if int(independent_result.get("serial") or -1) == int(self._chapter_content_v17_3_serial):
+                self._chapter_content_show_result_v17_3(independent_result)
+
+    def page_left_v17(self):
+        if not self.chapters:
+            return
+        self.selected = max(0, int(self.selected) - self.VISIBLE_CARDS)
+        self._refresh_carousel_v17()
+
+    def page_right_v17(self):
+        if not self.chapters:
+            return
+        self.selected = min(len(self.chapters) - 1, int(self.selected) + self.VISIBLE_CARDS)
+        self._refresh_carousel_v17()
+
+
+def _embyflow_chapter_cards_v18_open(self):
+    try:
+        _embyflow_seek_burst_v17_5_5_cancel(self, "open_chapters")
+    except Exception:
+        pass
+    try:
+        self._embyflow_chapter_menu_open_v17_5_3 = True
+    except Exception:
+        pass
+    try:
+        self.hide_overlay()
+    except Exception:
+        pass
+    try:
+        self.session.open(EmbyFlowChapterNavigatorV18, self)
+    except Exception as error:
+        try:
+            self.session.open(
+                MessageBox,
+                "Kapitelansicht konnte nicht geöffnet werden: %s" % str(error),
+                MessageBox.TYPE_ERROR,
+                timeout=5,
+            )
+        except Exception:
+            pass
+
+
+EmbyFlowMoviePlayer.open_chapter_navigation = _embyflow_chapter_cards_v18_open
+# EMBYFLOW_CHAPTER_CARDS_V18_RELEASE
+# EMBYFLOW_CHAPTER_CARDS_V18_END
