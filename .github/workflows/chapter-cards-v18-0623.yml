@@ -1,0 +1,83 @@
+name: Chapter cards V18 2026090623
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/chapter-cards-v18-0623.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-chapter-cards-v18-2026090623
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply chapter cards V18
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLUGIN="plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py"
+          BEFORE="4f96b0ad3558d1838d65f35bd40b42e2ec44e43d380f27cf9470fc5e8dbd9c11"
+          AFTER="eaabd2266087b4d1ed9cb858cd3e67985049d14de7d25f2b098c2b4c14c9a6fd"
+
+          test "$(sha256sum "$PLUGIN" | awk '{print $1}')" = "$BEFORE"
+          base64 -d 0622_to_0623_chaptercards_v18.patch.xz.b64 | xz -d > /tmp/chapter-v18.diff
+          patch --batch --forward "$PLUGIN" < /tmp/chapter-v18.diff
+          python3 -m py_compile "$PLUGIN"
+          test "$(sha256sum "$PLUGIN" | awk '{print $1}')" = "$AFTER"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          m = Path("update.json")
+          data = json.loads(m.read_text(encoding="utf-8"))
+          data["build"] = 2026090623
+          data["download"] = (
+              "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/"
+              "build-2026090623/"
+              "plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py"
+          )
+          data["sha256"] = "eaabd2266087b4d1ed9cb858cd3e67985049d14de7d25f2b098c2b4c14c9a6fd"
+          changelog = list(data.get("changelog") or [])
+          msg = (
+              "Kapitelansicht V18: sechs Bildkarten wie im EmbyFlowE2-Entwurf; "
+              "lokales Artwork erscheint sofort und echte Kapitelbilder werden seriell im Hintergrund ersetzt"
+          )
+          if msg not in changelog:
+              changelog.append(msg)
+          data["changelog"] = changelog
+          m.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EmbyFlowE2 Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Add chapter cards V18 build 2026090623"
+            git push origin main
+          fi
+
+          if git rev-parse "refs/tags/build-2026090623" >/dev/null 2>&1; then
+            echo "Tag build-2026090623 already exists locally."
+          else
+            git tag -a build-2026090623 -m "EmbyFlow E2 build 2026090623"
+            git push origin build-2026090623
+          fi
