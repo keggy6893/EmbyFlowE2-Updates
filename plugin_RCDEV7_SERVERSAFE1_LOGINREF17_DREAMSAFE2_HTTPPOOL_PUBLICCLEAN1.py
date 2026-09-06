@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090618
+PLUGIN_UPDATE_BUILD = 2026090619
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -80961,10 +80961,21 @@ def _embyflow_update_install_plugin(manifest):
 
 
 def _embyflow_update_display_version(value):
-    value = str(value or "–")
+    value = str(value or "–").strip()
     if value.startswith("2026-"):
         value = value[5:]
-    value = value.replace("-LOGINREF", "-REF")
+    value = value.replace("LOGINREF", "REF")
+
+    parts = [part.strip() for part in value.split("-") if part.strip()]
+    compact = []
+    for part in parts:
+        upper = part.upper()
+        if upper.startswith("RCDEV") or upper.startswith("SERVERSAFE"):
+            continue
+        compact.append(part)
+
+    if compact:
+        return " · ".join(compact[-3:])
     return value
 
 
