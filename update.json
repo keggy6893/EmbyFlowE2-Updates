@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090625,
+  "build": 2026090626,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090625/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "1a60f5cbef76c66a6bc2d9752cb1fc0c077c6e693a8ac6e90c30ec3ea68cfae1",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090626/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "fd3358cc088c4c4c8253e28fc4cc04f77e526b4ecb8e66d22eba622550c4b8e4",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -20,6 +20,7 @@
     "PUBLICCLEAN: öffentliche Builds enthalten keine fest eingebetteten lokalen Test-Zugangsdaten",
     "Kapitelansicht V18: sechs Bildkarten wie im EmbyFlowE2-Entwurf; lokales Artwork erscheint sofort und echte Kapitelbilder werden seriell im Hintergrund ersetzt",
     "Kapitelbilder V18: kein 6er-Vorladen mehr; nur das ausgewählte fehlende Kapitelbild wird erzeugt",
-    "Untertitel Hybrid V1: Textspuren direkt von Emby, Bitmap-/native Spuren wieder über Enigma2; eigenes UT-Menü bleibt unverändert"
+    "Untertitel Hybrid V1: Textspuren direkt von Emby, Bitmap-/native Spuren wieder über Enigma2; eigenes UT-Menü bleibt unverändert",
+    "Bitmap-Untertitel: fehlende native PGS/DVB/DVD-Spuren wechseln bei Static Direct Play nur lokal von 4097 auf ExtEplayer3/5002; URL und PlaySession bleiben unverändert, kein Server-Transcode"
   ]
 }
