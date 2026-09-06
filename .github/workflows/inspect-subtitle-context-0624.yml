@@ -1,0 +1,79 @@
+name: Inspect subtitle context 0624
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/inspect-subtitle-context-0624.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract current subtitle implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py")
+          lines = p.read_text(encoding="utf-8").splitlines()
+
+          hits = []
+          patterns = [
+              re.compile(r"^\s*(?:class|def)\s+[^\n]*(?:subtitle|untertitel)", re.I),
+              re.compile(r"Untertitel aus", re.I),
+              re.compile(r"enableSubtitles|disableSubtitles|getSubtitleList"),
+              re.compile(r"IsForced|IsHearingImpaired"),
+              re.compile(r"subtitle_stream|subtitle.*MediaStreams|MediaStreams.*subtitle", re.I),
+          ]
+          for i, line in enumerate(lines):
+              if any(rx.search(line) for rx in patterns):
+                  hits.append(i)
+
+          ranges = []
+          for i in hits:
+              start = max(0, i - 90)
+              end = min(len(lines), i + 150)
+              if ranges and start <= ranges[-1][1] + 20:
+                  ranges[-1] = (ranges[-1][0], max(ranges[-1][1], end))
+              else:
+                  ranges.append((start, end))
+
+          out = []
+          out.append("CURRENT BUILD SUBTITLE CONTEXT\n")
+          out.append("Definitions containing subtitle/untertitel:\n")
+          for i, line in enumerate(lines):
+              if re.search(r"^\s*(?:class|def)\s+[^\n]*(?:subtitle|untertitel)", line, re.I):
+                  out.append("%d: %s\n" % (i + 1, line))
+          out.append("\n=== CONTEXT WINDOWS ===\n")
+          for start, end in ranges:
+              out.append("\n--- lines %d-%d ---\n" % (start + 1, end))
+              for n in range(start, end):
+                  out.append("%06d | %s\n" % (n + 1, lines[n]))
+
+          Path("subtitle_context_0624.txt").write_text("".join(out), encoding="utf-8")
+          print("hits", len(hits), "ranges", len(ranges), "bytes", Path("subtitle_context_0624.txt").stat().st_size)
+          PY
+
+      - name: Commit context
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EmbyFlowE2 Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add subtitle_context_0624.txt
+          git commit -m "Extract subtitle context for 0625" || exit 0
+          git push origin main
