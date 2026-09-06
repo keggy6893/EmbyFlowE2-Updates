@@ -1,0 +1,664 @@
+===== SOURCE 76300-76760 =====
+076300 |                         self.version_index
+076301 |                         >= self.version_offset
+076302 |                         + self.VERSION_PAGE_SIZE
+076303 |                     ):
+076304 |                         self.version_offset = (
+076305 |                             self.version_index
+076306 |                             - self.VERSION_PAGE_SIZE
+076307 |                             + 1
+076308 |                         )
+076309 |         self.refresh_quality()
+076310 |         self.refresh_engine()
+076311 |         self.refresh_versions()
+076312 | 
+076313 |     def apply(self):
+076314 |         version = self.version_entries[self.version_index]
+076315 |         engine_mode = str(
+076316 |             self.engine_entries[self.engine_index][1]
+076317 |         )
+076318 | 
+076319 |         if (
+076320 |             engine_mode == "ext"
+076321 |             and not _embyflow_engine_v11_4_exteplayer3_available()
+076322 |         ):
+076323 |             self.session.open(
+076324 |                 MessageBox,
+076325 |                 "ExtEplayer3 / 5002 ist auf dieser Box nicht verfügbar.\n\n"
+076326 |                 "EmbyFlow bleibt auf Enigma2 / 4097.",
+076327 |                 MessageBox.TYPE_INFO,
+076328 |                 timeout=5,
+076329 |             )
+076330 |             return
+076331 | 
+076332 |         self.close({
+076333 |             "quality": self.quality_entries[self.quality_index][1],
+076334 |             "source_id": version.get("source_id") or "",
+076335 |             "source_index": version.get("source_index", 0),
+076336 |             "engine": engine_mode,
+076337 |         })
+076338 | 
+076339 |     def cancel(self):
+076340 |         self.close(None)
+076341 | 
+076342 | 
+076343 | def _embyflow_qs_v2_open_compact(self):
+076344 |     try:
+076345 |         self.embyflow_qs_v2_menu_open_ticks = max(
+076346 |             0,
+076347 |             int(self.current_position_ticks() or 0),
+076348 |         )
+076349 |     except Exception:
+076350 |         self.embyflow_qs_v2_menu_open_ticks = 0
+076351 | 
+076352 |     try:
+076353 |         opened_screen = self.session.openWithCallback(
+076354 |             self.embyflow_quality_selection_finished_v1,
+076355 |             EmbyFlowQualityStatsCompactScreenV2,
+076356 |             self,
+076357 |         )
+076358 |         try:
+076359 |             with embyflow_open_log(
+076360 |                 "/tmp/embyflow_menu_key_v11_4_1.log",
+076361 |                 "a",
+076362 |             ) as log:
+076363 |                 log.write(
+076364 |                     "%s OVERLAY_OPENED title=%s screen=%s\n"
+076365 |                     % (
+076366 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+076367 |                         str(getattr(self, "title_text", "") or ""),
+076368 |                         str(
+076369 |                             getattr(
+076370 |                                 opened_screen,
+076371 |                                 "__class__",
+076372 |                                 type(None),
+076373 |                             ).__name__
+076374 |                         ),
+076375 |                     )
+076376 |                 )
+076377 |         except Exception:
+076378 |             pass
+076379 |     except Exception as error:
+076380 |         try:
+076381 |             with open("/tmp/embyflow_quality_stats_v2_error.log", "a") as log:
+076382 |                 log.write("open: %s\n" % str(error))
+076383 |         except Exception:
+076384 |             pass
+076385 |         try:
+076386 |             with embyflow_open_log(
+076387 |                 "/tmp/embyflow_menu_key_v11_4_1.log",
+076388 |                 "a",
+076389 |             ) as log:
+076390 |                 log.write(
+076391 |                     "%s OVERLAY_ERROR error=%s\n"
+076392 |                     % (
+076393 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+076394 |                         str(error),
+076395 |                     )
+076396 |                 )
+076397 |         except Exception:
+076398 |             pass
+076399 | 
+076400 | 
+076401 | def _embyflow_qs_v2_resume_finalize(self, target_ticks):
+076402 |     target_ticks = max(0, int(target_ticks or 0))
+076403 |     self.embyflow_qs_v2_resume_target = None
+076404 |     self.embyflow_qs_v2_resume_attempts = 0
+076405 |     self.embyflow_v10_stream_base_ticks = None
+076406 |     self.embyflow_v10_stream_started_monotonic = None
+076407 |     self.embyflow_v10_stream_confirmed_playing = False
+076408 |     self.embyflow_v10_stream_time_mode = None
+076409 |     self.synthetic_position_ticks = target_ticks
+076410 |     self.pending_seek_started_ticks = None
+076411 |     self.pending_seek_target_ticks = None
+076412 |     self.initial_big_seek_target_ticks = None
+076413 |     self.seek_has_been_used = True
+076414 | 
+076415 |     try:
+076416 |         self.play_started_ts = int(time.time()) - int(target_ticks // 10000000)
+076417 |     except Exception:
+076418 |         pass
+076419 | 
+076420 |     try:
+076421 |         self.send_emby_playback_report("Progress", target_ticks)
+076422 |     except Exception:
+076423 |         pass
+076424 | 
+076425 |     try:
+076426 |         self.update_playback_overlay()
+076427 |     except Exception:
+076428 |         pass
+076429 | 
+076430 | 
+076431 | def _embyflow_qs_v2_resume_tick(self):
+076432 |     target_ticks = getattr(self, "embyflow_qs_v2_resume_target", None)
+076433 |     if target_ticks is None:
+076434 |         return
+076435 | 
+076436 |     target_ticks = max(0, int(target_ticks or 0))
+076437 |     if target_ticks <= 0:
+076438 |         _embyflow_qs_v2_resume_finalize(self, 0)
+076439 |         return
+076440 | 
+076441 |     try:
+076442 |         native_ticks = self.native_position_ticks()
+076443 |     except Exception:
+076444 |         native_ticks = None
+076445 | 
+076446 |     if native_ticks is not None:
+076447 |         try:
+076448 |             if abs(int(native_ticks) - target_ticks) <= 80000000:
+076449 |                 _embyflow_qs_v2_resume_finalize(self, target_ticks)
+076450 |                 try:
+076451 |                     with embyflow_open_log("/tmp/embyflow_quality_resume_v2.log", "a") as log:
+076452 |                         log.write(
+076453 |                             "%s OK native=%s target=%s attempts=%s\n"
+076454 |                             % (
+076455 |                                 time.strftime("%H:%M:%S"),
+076456 |                                 int(native_ticks),
+076457 |                                 target_ticks,
+076458 |                                 int(getattr(self, "embyflow_qs_v2_resume_attempts", 0) or 0),
+076459 |                             )
+076460 |                         )
+076461 |                 except Exception:
+076462 |                     pass
+076463 |                 return
+076464 |         except Exception:
+076465 |             pass
+076466 | 
+076467 |     attempts = int(getattr(self, "embyflow_qs_v2_resume_attempts", 0) or 0)
+076468 |     attempts += 1
+076469 |     self.embyflow_qs_v2_resume_attempts = attempts
+076470 | 
+076471 |     accepted = False
+076472 |     result_text = "not-ready"
+076473 |     try:
+076474 |         service = self.session.nav.getCurrentService()
+076475 |         seekable = service and service.seek()
+076476 |         if seekable:
+076477 |             target_pts = int((target_ticks * 90000) // 10000000)
+076478 |             result = seekable.seekTo(target_pts)
+076479 |             result_text = repr(result)
+076480 |             accepted = result in (None, 0)
+076481 |     except Exception as error:
+076482 |         result_text = "error=%s" % str(error)
+076483 | 
+076484 |     try:
+076485 |         with embyflow_open_log("/tmp/embyflow_quality_resume_v2.log", "a") as log:
+076486 |             log.write(
+076487 |                 "%s TRY attempt=%s native=%s target=%s result=%s accepted=%s\n"
+076488 |                 % (
+076489 |                     time.strftime("%H:%M:%S"),
+076490 |                     attempts,
+076491 |                     str(native_ticks),
+076492 |                     target_ticks,
+076493 |                     result_text,
+076494 |                     int(bool(accepted)),
+076495 |                 )
+076496 |             )
+076497 |     except Exception:
+076498 |         pass
+076499 | 
+076500 |     if attempts >= 10:
+076501 |         # Keep the content clock honest even if this service never exposes
+076502 |         # native seeking; do not pretend that the target was reached.
+076503 |         self.embyflow_qs_v2_resume_target = None
+076504 |         try:
+076505 |             self["state_label"].setText(
+076506 |                 "Qualitätswechsel: Position konnte nicht wiederhergestellt werden"
+076507 |             )
+076508 |         except Exception:
+076509 |             pass
+076510 |         return
+076511 | 
+076512 |     try:
+076513 |         self.embyflow_qs_v2_resume_timer.start(650, True)
+076514 |     except Exception:
+076515 |         pass
+076516 | 
+076517 | 
+076518 | def _embyflow_qs_v2_schedule_resume(self, target_ticks):
+076519 |     target_ticks = max(0, int(target_ticks or 0))
+076520 |     self.embyflow_qs_v2_resume_target = target_ticks
+076521 |     self.embyflow_qs_v2_resume_attempts = 0
+076522 | 
+076523 |     if target_ticks <= 0:
+076524 |         return
+076525 | 
+076526 |     if not hasattr(self, "embyflow_qs_v2_resume_timer"):
+076527 |         self.embyflow_qs_v2_resume_timer = eTimer()
+076528 |         try:
+076529 |             self.embyflow_qs_v2_resume_timer.callback.append(
+076530 |                 lambda: _embyflow_qs_v2_resume_tick(self)
+076531 |             )
+076532 |         except Exception:
+076533 |             try:
+076534 |                 self.embyflow_qs_v2_resume_timer.timeout.connect(
+076535 |                     lambda: _embyflow_qs_v2_resume_tick(self)
+076536 |                 )
+076537 |             except Exception:
+076538 |                 pass
+076539 | 
+076540 |     try:
+076541 |         self.embyflow_qs_v2_resume_timer.stop()
+076542 |     except Exception:
+076543 |         pass
+076544 | 
+076545 |     try:
+076546 |         self.embyflow_qs_v2_resume_timer.start(1200, True)
+076547 |     except Exception:
+076548 |         pass
+076549 | 
+076550 | 
+076551 | def _embyflow_qs_v2_apply_selection(self, result):
+076552 |     if not result:
+076553 |         return
+076554 | 
+076555 |     quality_mode = str(result.get("quality") or "auto")
+076556 |     source_id = str(result.get("source_id") or "")
+076557 |     source_index = result.get("source_index")
+076558 |     engine_mode = _embyflow_engine_v11_4_mode(
+076559 |         self,
+076560 |         result.get("engine"),
+076561 |     )
+076562 | 
+076563 |     if (
+076564 |         engine_mode == "ext"
+076565 |         and not _embyflow_engine_v11_4_exteplayer3_available()
+076566 |     ):
+076567 |         self.session.open(
+076568 |             MessageBox,
+076569 |             "ExtEplayer3 / 5002 ist nicht verfügbar. "
+076570 |             "Die Wiedergabe bleibt auf Enigma2 / 4097.",
+076571 |             MessageBox.TYPE_INFO,
+076572 |             timeout=5,
+076573 |         )
+076574 |         return
+076575 | 
+076576 |     new_service_type = _embyflow_engine_v11_4_service_type(
+076577 |         self,
+076578 |         engine_mode,
+076579 |     )
+076580 | 
+076581 |     menu_open_ticks = int(
+076582 |         getattr(self, "embyflow_qs_v2_menu_open_ticks", 0) or 0
+076583 |     )
+076584 |     try:
+076585 |         live_ticks = max(0, int(self.current_position_ticks() or 0))
+076586 |     except Exception:
+076587 |         live_ticks = 0
+076588 | 
+076589 |     # If the Enigma2 service reports 0 while the overlay is open, retain the
+076590 |     # known-good position captured at MENU press. Otherwise use the later value.
+076591 |     target_ticks = max(menu_open_ticks, live_ticks)
+076592 | 
+076593 |     target_source, source_changed, old_subtitle_signature = (
+076594 |         _embyflow_qs_v1_reorder_source(
+076595 |             self,
+076596 |             source_id,
+076597 |             source_index,
+076598 |         )
+076599 |     )
+076600 | 
+076601 |     if not target_source:
+076602 |         self.session.open(
+076603 |             MessageBox,
+076604 |             "Die ausgewählte Version ist nicht mehr verfügbar.",
+076605 |             MessageBox.TYPE_ERROR,
+076606 |             timeout=5,
+076607 |         )
+076608 |         return
+076609 | 
+076610 |     try:
+076611 |         # OpenATV 7.6 behaves differently for the two replacement paths:
+076612 |         # - HLS/transcode accepts receiver-native seekTo() once playback is ready.
+076613 |         # - Direct stream.mkv reports seekTo() == -1 and is not natively seekable.
+076614 |         # Therefore direct playback receives the absolute movie position via
+076615 |         # StartTimeTicks at stream creation; HLS keeps the proven V2 native-seek
+076616 |         # recovery path. AUTO is rebuilt with StartTimeTicks when it resolves to
+076617 |         # direct playback.
+076618 |         build_target_ticks = (
+076619 |             target_ticks if quality_mode == "direct" else 0
+076620 |         )
+076621 |         new_url, new_session_id, playback_mode = _embyflow_qs_v1_build_stream(
+076622 |             self,
+076623 |             quality_mode,
+076624 |             target_source,
+076625 |             build_target_ticks,
+076626 |         )
+076627 | 
+076628 |         if (
+076629 |             playback_mode == "direct"
+076630 |             and target_ticks > 0
+076631 |             and build_target_ticks != target_ticks
+076632 |         ):
+076633 |             new_url, new_session_id, playback_mode = _embyflow_qs_v1_build_stream(
+076634 |                 self,
+076635 |                 quality_mode,
+076636 |                 target_source,
+076637 |                 target_ticks,
+076638 |             )
+076639 |     except Exception as error:
+076640 |         self.session.open(
+076641 |             MessageBox,
+076642 |             "Wiedergabe konnte nicht umgestellt werden: %s" % str(error),
+076643 |             MessageBox.TYPE_ERROR,
+076644 |             timeout=6,
+076645 |         )
+076646 |         return
+076647 | 
+076648 |     new_ref = eServiceReference(new_service_type, 0, new_url)
+076649 |     try:
+076650 |         with embyflow_open_log("/tmp/embyflow_universal_ref_trace.log", "a") as _urt:
+076651 |             _urt.write("%s site=qs_v2_build_stream url=%s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), embyflow_sanitize_url_for_log(str(new_ref.getPath() if hasattr(new_ref, "getPath") else ""))))
+076652 |     except Exception:
+076653 |         pass
+076654 |     new_ref.setName(self.title_text)
+076655 | 
+076656 |     # EMBYFLOW_ADMIN_SERVER_SAFETY_V1
+076657 |     old_play_session_id = str(
+076658 |         getattr(self, "play_session_id", "") or ""
+076659 |     )
+076660 |     self.embyflow_quality_mode_v1 = quality_mode
+076661 |     self.embyflow_engine_mode_v11_4 = engine_mode
+076662 |     self.embyflow_engine_service_type_v11_4 = new_service_type
+076663 |     self.play_session_id = new_session_id
+076664 |     self.stream_url = new_url
+076665 |     self.ref = new_ref
+076666 |     self.embyflow_playback_mode = playback_mode
+076667 | 
+076668 |     try:
+076669 |         self.playback_info["url"] = new_url
+076670 |         self.playback_info["play_session_id"] = new_session_id
+076671 |         self.playback_info["playback_mode"] = playback_mode
+076672 |         self.playback_info["engine_mode"] = engine_mode
+076673 |         self.playback_info["service_type"] = new_service_type
+076674 |     except Exception:
+076675 |         pass
+076676 | 
+076677 |     direct_server_resume = bool(
+076678 |         playback_mode == "direct" and target_ticks > 0
+076679 |     )
+076680 | 
+076681 |     # Direct streams on OpenATV 7.6 are not natively seekable. When direct is
+076682 |     # selected, Emby starts the replacement stream at StartTimeTicks and the
+076683 |     # V16.1/V16.2 content clock receives the absolute base. HLS/transcode keeps
+076684 |     # V2's normal-zero start followed by the proven native absolute seek.
+076685 |     self.embyflow_v10_stream_base_ticks = (
+076686 |         int(target_ticks) if direct_server_resume else None
+076687 |     )
+076688 |     self.embyflow_v10_stream_started_monotonic = None
+076689 |     self.embyflow_v10_stream_confirmed_playing = False
+076690 |     self.embyflow_v10_stream_time_mode = None
+076691 |     self.embyflow_v10_clock_wait_logged = False
+076692 |     self.pending_seek_started_ticks = None
+076693 |     self.pending_seek_target_ticks = None
+076694 |     self.initial_big_seek_target_ticks = None
+076695 |     if direct_server_resume:
+076696 |         self.seek_has_been_used = True
+076697 |         try:
+076698 |             self.embyflow_v10_stream_restart_issued_monotonic = time.monotonic()
+076699 |         except Exception:
+076700 |             self.embyflow_v10_stream_restart_issued_monotonic = None
+076701 | 
+076702 |     self._embyflow_stream_replacement_in_progress = True
+076703 |     try:
+076704 |         self.cancel_active_encoding(old_play_session_id)
+076705 |         self.session.nav.playService(self.ref)
+076706 |     except Exception as error:
+076707 |         self.session.open(
+076708 |             MessageBox,
+076709 |             "Der neue Stream konnte nicht gestartet werden: %s" % str(error),
+076710 |             MessageBox.TYPE_ERROR,
+076711 |             timeout=6,
+076712 |         )
+076713 |         return
+076714 |     finally:
+076715 |         self._embyflow_stream_replacement_in_progress = False
+076716 | 
+076717 |     # EMBYFLOW_SEEK_PLAYING_REPORT_FIX_V1 (siehe qs_v2-Stelle fuer Details)
+076718 |     try:
+076719 |         self.send_emby_playback_report("Playing", target_ticks)
+076720 |     except Exception:
+076721 |         pass
+076722 | 
+076723 |     self.synthetic_position_ticks = (
+076724 |         int(target_ticks) if direct_server_resume else 0
+076725 |     )
+076726 |     self.paused = False
+076727 |     try:
+076728 |         if direct_server_resume:
+076729 |             self.play_started_ts = int(time.time()) - int(
+076730 |                 target_ticks // 10000000
+076731 |             )
+076732 |         else:
+076733 |             self.play_started_ts = int(time.time())
+076734 |     except Exception:
+076735 |         pass
+076736 | 
+076737 |     try:
+076738 |         self.audio_retry_count = 0
+076739 |         self.audio_timer.start(1200, True)
+076740 |     except Exception:
+076741 |         pass
+076742 | 
+076743 |     # EMBYFLOW_ADMIN_SESSION_PLAYING_V11_1_QUALITY_V2
+076744 |     # Fresh PlaySessionId for direct server-resume or HLS replacement.
+076745 |     try:
+076746 |         self.send_emby_playback_report("Playing", target_ticks)
+076747 |     except Exception:
+076748 |         pass
+076749 | 
+076750 |     _embyflow_engine_v11_4_log(
+076751 |         self,
+076752 |         "QUALITY_APPLY",
+076753 |         engine_mode,
+076754 |         "service_type=%s quality=%s playback_mode=%s"
+076755 |         % (new_service_type, quality_mode, playback_mode),
+076756 |     )
+076757 | 
+076758 |     if source_changed:
+076759 |         _embyflow_qs_v1_restore_subtitle_after_source_change(
+076760 |             self,
+===== SOURCE 82480-82680 =====
+082480 | 
+082481 |         target_pts = int((target_ticks * 90000) // 10000000)
+082482 |         result = seekable.seekTo(target_pts)
+082483 |         accepted = result in (None, 0)
+082484 |         _embyflow_rcdev7_log(
+082485 |             "NATIVE_SEEK item=%s target=%s result=%r accepted=%s"
+082486 |             % (
+082487 |                 str(getattr(player, "item_id", "") or "-"),
+082488 |                 target_ticks,
+082489 |                 result,
+082490 |                 int(bool(accepted)),
+082491 |             )
+082492 |         )
+082493 |         if not accepted:
+082494 |             return False
+082495 | 
+082496 |         player.embyflow_v10_stream_base_ticks = None
+082497 |         player.embyflow_v10_stream_started_monotonic = None
+082498 |         player.embyflow_v10_stream_confirmed_playing = False
+082499 |         player.embyflow_v10_stream_time_mode = None
+082500 |         player.synthetic_position_ticks = int(target_ticks)
+082501 |         player.pending_seek_started_ticks = None
+082502 |         player.pending_seek_target_ticks = None
+082503 |         player.initial_big_seek_target_ticks = None
+082504 |         player.seek_has_been_used = True
+082505 |         player.paused = False
+082506 |         try:
+082507 |             player.play_started_ts = int(time.time()) - int(
+082508 |                 target_ticks // 10000000
+082509 |             )
+082510 |         except Exception:
+082511 |             pass
+082512 |         try:
+082513 |             player.update_playback_overlay()
+082514 |             player.show_overlay()
+082515 |         except Exception:
+082516 |             pass
+082517 |         try:
+082518 |             player.send_emby_playback_report("Progress", target_ticks)
+082519 |         except Exception:
+082520 |             pass
+082521 |         return True
+082522 |     except Exception as error:
+082523 |         _embyflow_rcdev7_log(
+082524 |             "NATIVE_SEEK_ERROR item=%s target=%s type=%s message=%s"
+082525 |             % (
+082526 |                 str(getattr(player, "item_id", "") or "-"),
+082527 |                 str(target_ticks),
+082528 |                 type(error).__name__,
+082529 |                 str(error).replace("\n", " ")[:240],
+082530 |             )
+082531 |         )
+082532 |         return False
+082533 | 
+082534 | 
+082535 | def _embyflow_rcdev7_switch_static_to_ext(player, target_ticks):
+082536 |     """Keep DirectPlay static; change only the local receiver backend."""
+082537 |     try:
+082538 |         target_ticks = max(0, int(target_ticks or 0))
+082539 |         if not _embyflow_engine_v11_4_exteplayer3_available():
+082540 |             _embyflow_rcdev7_log(
+082541 |                 "DIRECT_BLOCK item=%s target=%s reason=exteplayer3_unavailable"
+082542 |                 % (
+082543 |                     str(getattr(player, "item_id", "") or "-"),
+082544 |                     target_ticks,
+082545 |                 )
+082546 |             )
+082547 |             return False
+082548 | 
+082549 |         current_url = str(getattr(player, "stream_url", "") or "")
+082550 |         if not current_url or not embyflow_is_static_stream_url(current_url):
+082551 |             return False
+082552 | 
+082553 |         # No new PlaySessionId and no StartTimeTicks: the server continues to see
+082554 |         # one DirectPlay session. Only the local player backend changes 4097->5002.
+082555 |         old_session_id = str(
+082556 |             getattr(player, "play_session_id", "") or ""
+082557 |         )
+082558 |         new_ref = eServiceReference(5002, 0, current_url)
+082559 |         new_ref.setName(str(getattr(player, "title_text", "") or ""))
+082560 | 
+082561 |         # Supersede any old asynchronous seek-report generation. This direct path
+082562 |         # creates no replacement server session and therefore starts no cleanup
+082563 |         # worker.
+082564 |         try:
+082565 |             player._embyflow_seek_async_generation_v17_5_6 = int(
+082566 |                 getattr(
+082567 |                     player,
+082568 |                     "_embyflow_seek_async_generation_v17_5_6",
+082569 |                     0,
+082570 |                 )
+082571 |                 or 0
+082572 |             ) + 1
+082573 |         except Exception:
+082574 |             pass
+082575 | 
+082576 |         player.embyflow_engine_mode_v11_4 = "ext"
+082577 |         player.embyflow_engine_service_type_v11_4 = 5002
+082578 |         player.ref = new_ref
+082579 |         player.embyflow_v10_stream_base_ticks = None
+082580 |         player.embyflow_v10_stream_started_monotonic = None
+082581 |         player.embyflow_v10_stream_confirmed_playing = False
+082582 |         player.embyflow_v10_stream_time_mode = None
+082583 |         player.embyflow_v10_clock_wait_logged = False
+082584 | 
+082585 |         try:
+082586 |             player.playback_info["engine_mode"] = "ext"
+082587 |             player.playback_info["service_type"] = 5002
+082588 |             # URL/session intentionally unchanged.
+082589 |             player.playback_info["url"] = current_url
+082590 |             player.playback_info["play_session_id"] = old_session_id
+082591 |         except Exception:
+082592 |             pass
+082593 | 
+082594 |         _embyflow_rcdev7_log(
+082595 |             "DIRECT_EXT_SWITCH_BEGIN item=%s target=%s session=%s static=1"
+082596 |             % (
+082597 |                 str(getattr(player, "item_id", "") or "-"),
+082598 |                 target_ticks,
+082599 |                 old_session_id or "-",
+082600 |             )
+082601 |         )
+082602 | 
+082603 |         player._embyflow_stream_replacement_in_progress = True
+082604 |         try:
+082605 |             player.session.nav.playService(new_ref)
+082606 |         finally:
+082607 |             player._embyflow_stream_replacement_in_progress = False
+082608 | 
+082609 |         player.paused = False
+082610 |         try:
+082611 |             player.audio_retry_count = 0
+082612 |             player.audio_timer.start(1200, True)
+082613 |         except Exception:
+082614 |             pass
+082615 | 
+082616 |         # ExtEplayer3 may need a short startup window before seekTo is accepted.
+082617 |         # Reuse the already existing receiver-local retry timer; it performs no
+082618 |         # HTTP stream restart and no ActiveEncodings operation.
+082619 |         _embyflow_qs_v2_schedule_resume(player, target_ticks)
+082620 | 
+082621 |         try:
+082622 |             player["state_label"].setText(
+082623 |                 "Direct Play · lokaler Seek (ExtEplayer3)"
+082624 |             )
+082625 |             player.show_overlay()
+082626 |         except Exception:
+082627 |             pass
+082628 | 
+082629 |         _embyflow_rcdev7_log(
+082630 |             "DIRECT_EXT_SWITCH_RETURN item=%s target=%s session=%s"
+082631 |             % (
+082632 |                 str(getattr(player, "item_id", "") or "-"),
+082633 |                 target_ticks,
+082634 |                 old_session_id or "-",
+082635 |             )
+082636 |         )
+082637 |         return True
+082638 | 
+082639 |     except Exception as error:
+082640 |         _embyflow_rcdev7_log(
+082641 |             "DIRECT_EXT_SWITCH_ERROR item=%s target=%s type=%s message=%s"
+082642 |             % (
+082643 |                 str(getattr(player, "item_id", "") or "-"),
+082644 |                 str(target_ticks),
+082645 |                 type(error).__name__,
+082646 |                 str(error).replace("\n", " ")[:240],
+082647 |             )
+082648 |         )
+082649 |         return False
+082650 | 
+082651 | 
+082652 | def _embyflow_rcdev7_restart_stream(
+082653 |     self,
+082654 |     target_ticks,
+082655 |     subtitle_stream_index=None,
+082656 |     subtitle_label=None,
+082657 | ):
+082658 |     target_ticks = max(0, int(target_ticks or 0))
+082659 | 
+082660 |     if _embyflow_rcdev7_static_direct(self):
+082661 |         # First try the currently active local backend. On 4097 CLEAN2 logs show
+082662 |         # -1/no movement; on 5002 this should normally succeed immediately.
+082663 |         if _embyflow_rcdev7_native_seek_now(self, target_ticks):
+082664 |             return True
+082665 | 
+082666 |         # AUTO may promote a static DirectPlay stream to receiver-local 5002.
+082667 |         # Explicit E2 mode is respected and fails closed rather than invoking a
+082668 |         # Static=false server remux.
+082669 |         requested_mode = _embyflow_engine_v11_4_mode(self)
+082670 |         if requested_mode == "e2":
+082671 |             _embyflow_rcdev7_log(
+082672 |                 "DIRECT_BLOCK item=%s target=%s reason=explicit_e2_mode"
+082673 |                 % (
+082674 |                     str(getattr(self, "item_id", "") or "-"),
+082675 |                     target_ticks,
+082676 |                 )
+082677 |             )
+082678 |             return False
+082679 | 
+082680 |         return _embyflow_rcdev7_switch_static_to_ext(
