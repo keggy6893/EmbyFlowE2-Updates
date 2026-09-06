@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090620
+PLUGIN_UPDATE_BUILD = 2026090621
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -174,7 +174,8 @@ PLUGIN_UPDATE_CHANGELOG = (
     "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten|"
     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten|"
     "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv|"
-    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen"
+    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen|"
+    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt"
 )
 EMBYFLOW_UPDATE_CHANNEL = "rcdev"
 EMBYFLOW_UPDATE_MANIFEST_URL = (
@@ -6579,7 +6580,7 @@ def _metadata_cache_key(kind, *parts):
 class EmbyFlowMetadataCache(object):
     WORKER_COUNT = 4
     REFRESH_AFTER = 1800
-    MAX_STALE = 604800
+    MAX_STALE = 172800
 
     # EMBYFLOW_BETA84_METADATA_CACHE_CLEANER_V1
     # Nur der persistente JSON-Metadaten-Cache wird begrenzt.
@@ -6623,6 +6624,10 @@ class EmbyFlowMetadataCache(object):
             if (not allow_stale) and age > self.REFRESH_AFTER:
                 return None
             if age > self.MAX_STALE:
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
                 return None
             with open(path, "r") as f:
                 data = json.loads(f.read())
@@ -6665,6 +6670,11 @@ class EmbyFlowMetadataCache(object):
             self._log("SAVE key=%s items=%s" % (key, len(items or [])))
 
             try:
+                self._purge_stale_metadata_cache(protected_path=path)
+            except Exception:
+                pass
+
+            try:
                 self.prune_metadata_cache(
                     protected_path=path
                 )
@@ -6676,6 +6686,25 @@ class EmbyFlowMetadataCache(object):
         except Exception as error:
             self._log("save key=%s error=%s" % (key, error), True)
             return False
+
+    def _purge_stale_metadata_cache(self, protected_path=None):
+        try:
+            ensure_dir(METADATA_CACHE_DIR)
+            now = time.time()
+            protected_abs = os.path.abspath(protected_path) if protected_path else None
+            for name in os.listdir(METADATA_CACHE_DIR):
+                if not str(name).endswith(".json"):
+                    continue
+                path = os.path.join(METADATA_CACHE_DIR, name)
+                try:
+                    if protected_abs and os.path.abspath(path) == protected_abs:
+                        continue
+                    if (now - os.path.getmtime(path)) > self.MAX_STALE:
+                        os.remove(path)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     def prune_metadata_cache(self, protected_path=None):
         """

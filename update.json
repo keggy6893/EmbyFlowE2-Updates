@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090620,
+  "build": 2026090621,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090620/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "ba4cda78e422e4ca92685dbebeeb1eee147c3fbf7b5441f6e23032a62b13c41f",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090621/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "163557cd778572c4405a6b3ba4f4c0e7936d883c2f34b13637bfcc619656a419",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -14,6 +14,7 @@
     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten",
     "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv",
     "Update-Seite: kompakte Versionsanzeige bleibt erhalten",
-    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht als gültiger Cache gespeichert; vorhandene leere Cacheeinträge werden verworfen"
+    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht als gültiger Cache gespeichert; vorhandene leere Cacheeinträge werden verworfen",
+    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden automatisch entfernt"
   ]
 }
