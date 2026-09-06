@@ -1,0 +1,39 @@
+name: Inspect ExtEplayer3 switch 0625
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-ext-switch-0625.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract exact ranges
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          ranges=[(76300,76760),(82480,82680)]
+          out=[]
+          for a,b in ranges:
+              out.append(f'===== SOURCE {a}-{b} =====')
+              for n in range(a,min(b,len(lines))+1):
+                  out.append(f'{n:06d} | {lines[n-1]}')
+          Path('ext_switch_context_0625.txt').write_text('\n'.join(out),encoding='utf-8')
+          PY
+      - name: Commit context
+        run: |
+          git config user.name actions
+          git config user.email actions@github.com
+          git add ext_switch_context_0625.txt
+          git commit -m 'Add ExtEplayer3 switch context 0625' || exit 0
+          git push
