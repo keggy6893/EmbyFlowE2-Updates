@@ -1,0 +1,48 @@
+name: Inspect player service 0625
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-player-service-0625.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract player service context
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          needles=('eServiceReference','playService(','4097','service_type','serviceType','SERVICE_TYPE')
+          hits=[]
+          for i,l in enumerate(lines,1):
+              if any(n in l for n in needles):
+                  hits.append(i)
+          out=[]
+          used=set()
+          for h in hits:
+              a=max(1,h-30); b=min(len(lines),h+50)
+              key=(a,b)
+              if key in used: continue
+              used.add(key)
+              out.append(f'\n===== {a}-{b} hit {h} =====')
+              for n in range(a,b+1):
+                  out.append(f'{n:06d} | {lines[n-1]}')
+          Path('player_service_context_0625.txt').write_text('\n'.join(out),encoding='utf-8')
+          PY
+      - name: Commit context
+        run: |
+          git config user.name actions
+          git config user.email actions@github.com
+          git add player_service_context_0625.txt
+          git commit -m 'Add player service context 0625' || exit 0
+          git push
