@@ -59,14 +59,14 @@ jobs:
 
           old = '''            if age > self.MAX_STALE:
                 return None
-'''
+          '''
           new = '''            if age > self.MAX_STALE:
                 try:
                     os.remove(path)
                 except Exception:
                     pass
                 return None
-'''
+          '''
           if text.count(old) != 1:
               raise SystemExit("Stale-load marker mismatch")
           text = text.replace(old, new, 1)
@@ -91,7 +91,7 @@ jobs:
         except Exception:
             pass
 
-'''
+          '''
           marker = '\n    def prune_metadata_cache'
           if marker not in text:
               raise SystemExit("prune_metadata_cache marker missing")
@@ -103,7 +103,7 @@ jobs:
                 self.prune_metadata_cache(
                     protected_path=path
                 )
-'''
+          '''
           new = '''            try:
                 self._purge_stale_metadata_cache(protected_path=path)
             except Exception:
@@ -113,7 +113,7 @@ jobs:
                 self.prune_metadata_cache(
                     protected_path=path
                 )
-'''
+          '''
           if text.count(old) != 1:
               raise SystemExit("metadata cleaner call marker mismatch")
           text = text.replace(old, new, 1)
