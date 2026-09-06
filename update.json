@@ -1,16 +1,17 @@
 {
-    "version":  "2026-RCDEV7-SERVERSAFE1-LOGINREF3",
-    "build":  2026090605,
+    "version":  "2026-RCDEV7-SERVERSAFE1-LOGINREF4",
+    "build":  2026090606,
     "channel":  "rcdev",
-    "download":  "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090605/plugin_RCDEV7_SERVERSAFE1_LOGINREF3.py",
-    "sha256":  "4f0567f60bcaa9999bf1e808d912ca751dc4e386739a738be86c3d7cbabfd3ce",
+    "download":  "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090606/plugin_RCDEV7_SERVERSAFE1_LOGINREF4.py",
+    "sha256":  "e37a381570c943c6e1b29ec8e93bd9a9c77b934dff727cfe406871d0f477aed1",
     "target":  "plugin.py",
     "artifact_type":  "plugin_py",
     "changelog":  [
-                      "Persoenliche Emby-Serverdaten aus dem Plugin entfernt",
-                      "Benutzername und Passwort nicht mehr als Default enthalten",
-                      "Server-Slots enthalten keine privaten Server-Adressen mehr",
-                      "Vorhandene Benutzereinstellungen bleiben bei Updates erhalten",
-                      "RCDEV6 Async-Seek bleibt enthalten"
+                      "SERVERSAFE1: DirectPlay-Seeks bleiben Static=true und verwenden keine neue Server-Session",
+                      "Alte Ersatz-Sessions senden Stopped vor dem ActiveEncodings-Cleanup",
+                      "Kompaktes Login-Layout in der EmbyFlow-Farbwelt",
+                      "Beschriftung auf Emby für Enigma2 verallgemeinert",
+                      "Update-Seite: kompakte Versionsanzeige und aktuelle Release-Notes",
+                      "Updater: Manifest-Abfragen mit Cache-Buster und No-Cache-Headern"
                   ]
 }
