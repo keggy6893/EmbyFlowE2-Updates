@@ -1,0 +1,46 @@
+name: Inspect subtitle exact 0624
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/inspect-subtitle-exact-0624.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extract exact subtitle ranges
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          ranges=[(24680,24820),(31450,33180),(41080,41830),(33650,33820)]
+          out=[]
+          for a,b in ranges:
+              out.append('\n===== SOURCE %d-%d =====\n' % (a,b))
+              for n in range(a-1,min(b,len(lines))):
+                  out.append('%06d | %s\n' % (n+1,lines[n]))
+          Path('subtitle_exact_0624.txt').write_text(''.join(out),encoding='utf-8')
+          PY
+      - name: Commit exact context
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EmbyFlowE2 Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add subtitle_exact_0624.txt
+          git commit -m "Extract exact subtitle implementation for 0625" || exit 0
+          git push origin main
