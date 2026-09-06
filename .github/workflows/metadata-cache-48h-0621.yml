@@ -45,87 +45,89 @@ jobs:
 
           text = raw.decode("utf-8")
 
-          old = 'PLUGIN_UPDATE_BUILD = 2026090620'
-          new = 'PLUGIN_UPDATE_BUILD = 2026090621'
+          old = "PLUGIN_UPDATE_BUILD = 2026090620"
+          new = "PLUGIN_UPDATE_BUILD = 2026090621"
           if text.count(old) != 1:
               raise SystemExit("Build marker mismatch")
           text = text.replace(old, new, 1)
 
-          old = '    MAX_STALE = 604800\n'
-          new = '    MAX_STALE = 172800\n'
+          old = "    MAX_STALE = 604800\n"
+          new = "    MAX_STALE = 172800\n"
           if text.count(old) != 1:
               raise SystemExit("MAX_STALE marker mismatch")
           text = text.replace(old, new, 1)
 
-          old = '''            if age > self.MAX_STALE:
-                return None
-          '''
-          new = '''            if age > self.MAX_STALE:
-                try:
-                    os.remove(path)
-                except Exception:
-                    pass
-                return None
-          '''
+          old = "            if age > self.MAX_STALE:\n                return None\n"
+          new = (
+              "            if age > self.MAX_STALE:\n"
+              "                try:\n"
+              "                    os.remove(path)\n"
+              "                except Exception:\n"
+              "                    pass\n"
+              "                return None\n"
+          )
           if text.count(old) != 1:
               raise SystemExit("Stale-load marker mismatch")
           text = text.replace(old, new, 1)
 
-          helper = '''
-    def _purge_stale_metadata_cache(self, protected_path=None):
-        try:
-            ensure_dir(METADATA_CACHE_DIR)
-            now = time.time()
-            protected_abs = os.path.abspath(protected_path) if protected_path else None
-            for name in os.listdir(METADATA_CACHE_DIR):
-                if not str(name).endswith(".json"):
-                    continue
-                path = os.path.join(METADATA_CACHE_DIR, name)
-                try:
-                    if protected_abs and os.path.abspath(path) == protected_abs:
-                        continue
-                    if (now - os.path.getmtime(path)) > self.MAX_STALE:
-                        os.remove(path)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-          '''
-          marker = '\n    def prune_metadata_cache'
+          helper = (
+              "\n"
+              "    def _purge_stale_metadata_cache(self, protected_path=None):\n"
+              "        try:\n"
+              "            ensure_dir(METADATA_CACHE_DIR)\n"
+              "            now = time.time()\n"
+              "            protected_abs = os.path.abspath(protected_path) if protected_path else None\n"
+              "            for name in os.listdir(METADATA_CACHE_DIR):\n"
+              "                if not str(name).endswith(\".json\"):\n"
+              "                    continue\n"
+              "                path = os.path.join(METADATA_CACHE_DIR, name)\n"
+              "                try:\n"
+              "                    if protected_abs and os.path.abspath(path) == protected_abs:\n"
+              "                        continue\n"
+              "                    if (now - os.path.getmtime(path)) > self.MAX_STALE:\n"
+              "                        os.remove(path)\n"
+              "                except Exception:\n"
+              "                    pass\n"
+              "        except Exception:\n"
+              "            pass\n"
+              "\n"
+          )
+          marker = "\n    def prune_metadata_cache"
           if marker not in text:
               raise SystemExit("prune_metadata_cache marker missing")
-          if '_purge_stale_metadata_cache' in text:
+          if "_purge_stale_metadata_cache" in text:
               raise SystemExit("stale purge helper already exists")
-          text = text.replace(marker, '\n' + helper + '    def prune_metadata_cache', 1)
+          text = text.replace(marker, helper + "    def prune_metadata_cache", 1)
 
-          old = '''            try:
-                self.prune_metadata_cache(
-                    protected_path=path
-                )
-          '''
-          new = '''            try:
-                self._purge_stale_metadata_cache(protected_path=path)
-            except Exception:
-                pass
-
-            try:
-                self.prune_metadata_cache(
-                    protected_path=path
-                )
-          '''
+          old = (
+              "            try:\n"
+              "                self.prune_metadata_cache(\n"
+              "                    protected_path=path\n"
+              "                )\n"
+          )
+          new = (
+              "            try:\n"
+              "                self._purge_stale_metadata_cache(protected_path=path)\n"
+              "            except Exception:\n"
+              "                pass\n"
+              "\n"
+              "            try:\n"
+              "                self.prune_metadata_cache(\n"
+              "                    protected_path=path\n"
+              "                )\n"
+          )
           if text.count(old) != 1:
               raise SystemExit("metadata cleaner call marker mismatch")
           text = text.replace(old, new, 1)
 
           old = (
-              '    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; "\n'
-              '    "vorhandene leere Cacheeinträge werden verworfen"\n'
+              "    \"Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; \"\n"
+              "    \"vorhandene leere Cacheeinträge werden verworfen\"\n"
           )
           new = (
-              '    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; "\n'
-              '    "vorhandene leere Cacheeinträge werden verworfen|"\n'
-              '    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt"\n'
+              "    \"Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; \"\n"
+              "    \"vorhandene leere Cacheeinträge werden verworfen|\"\n"
+              "    \"Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt\"\n"
           )
           if text.count(old) != 1:
               raise SystemExit("Embedded changelog marker mismatch")
