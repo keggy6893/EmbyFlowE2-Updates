@@ -1,0 +1,43 @@
+name: Inspect PGS renderer 0627
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-pgs-renderer-0627.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract contexts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          out=[]
+          out.append('===== TOP 1-260 =====')
+          for i,s in enumerate(lines[:260],1): out.append(f'{i:06d} | {s}')
+          needles=['class EmbyFlowTrackSelectionScreen','class EmbyFlowTextSubtitleOverlay','Pixmap(', 'ePicLoad', 'setPixmapFromFile', 'getDesktop(', 'SubtitleDisplay']
+          for needle in needles:
+            hits=[i for i,s in enumerate(lines) if needle in s][:5]
+            for h in hits:
+              a=max(0,h-30); b=min(len(lines),h+80)
+              out.append(f'===== {needle} @ {h+1} =====')
+              for i in range(a,b): out.append(f'{i+1:06d} | {lines[i]}')
+          Path('pgs_renderer_context_0627.txt').write_text('\n'.join(out)+'\n',encoding='utf-8')
+          PY
+          git config user.name 'EmbyFlowE2 Inspect Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add pgs_renderer_context_0627.txt
+          git commit -m 'Add PGS renderer context 0627'
+          git push origin main
