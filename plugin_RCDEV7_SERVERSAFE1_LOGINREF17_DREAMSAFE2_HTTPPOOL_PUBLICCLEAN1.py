@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090621
+PLUGIN_UPDATE_BUILD = 2026090622
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -175,7 +175,8 @@ PLUGIN_UPDATE_CHANGELOG = (
     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten|"
     "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv|"
     "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen|"
-    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt"
+    "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt|"
+    "Server-Cache-Trennung: Metadaten- und V11-Library-Cache werden pro Emby-Server und Benutzer getrennt"
 )
 EMBYFLOW_UPDATE_CHANNEL = "rcdev"
 EMBYFLOW_UPDATE_MANIFEST_URL = (
@@ -1278,6 +1279,23 @@ def write_json_file(path, data):
             except Exception:
                 pass
 
+
+def embyflow_server_scope():
+    """Stabiler kurzer Schlüssel für Daten des aktiven Emby-Servers und Benutzers."""
+    try:
+        import hashlib
+        raw = "%s|%s" % (
+            str(EMBY_SERVER or "").strip().rstrip("/").lower(),
+            str(EMBY_USERNAME or "").strip().lower(),
+        )
+        if not raw.strip("|"):
+            return "noserver"
+        return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
+    except Exception:
+        try:
+            return str(abs(hash((str(EMBY_SERVER or ""), str(EMBY_USERNAME or "")))))[:12]
+        except Exception:
+            return "noserver"
 
 def get_emby_auth(force=False):
     if not requests or not EMBY_SERVER or not EMBY_USERNAME:
@@ -6136,16 +6154,8 @@ if not hasattr(config.embyflow, "cache_enabled"):
 if not hasattr(config.embyflow, "debug"):
     config.embyflow.debug = ConfigYesNo(default=False)
 
-# EMBYFLOW_LOCALTEST_STREAMBOY_CREDENTIALS
-# NUR LOKALER TESTBUILD - NICHT VEROEFFENTLICHEN.
-# Setzt Server 2 als aktiven Server und fuellt die Test-Zugangsdaten vor.
-try:
-    config.embyflow.server_slot_2.value = "https://29416.iovagy.org:443"
-    config.embyflow.server.value = "https://29416.iovagy.org:443"
-    config.embyflow.username.value = "GoM6893"
-    config.embyflow.password.value = "Fridasmom1."
-except Exception:
-    pass
+# EMBYFLOW_PUBLIC_RELEASE_NO_EMBEDDED_CREDENTIALS_V1
+# Öffentliche Builds lesen Server/Benutzer/Passwort ausschließlich aus der Enigma2-Konfiguration.
 
 # EMBYFLOW_EXTERNAL_BUILD_EMPTY_DEFAULTS_V3
 # External/tester builds contain no preset Emby server or login values.
@@ -6424,6 +6434,7 @@ class EmbyFlowInMemoryLibraryCache(object):
         self.loading = set()
         self.items = {"Movie": [], "Series": []}
         self.loaded_at = {"Movie": 0.0, "Series": 0.0}
+        self.server_scope = embyflow_server_scope()
         try:
             import threading
             self.lock = threading.RLock()
@@ -6431,6 +6442,27 @@ class EmbyFlowInMemoryLibraryCache(object):
             self.lock = None
         self._load_disk("Movie")
         self._load_disk("Series")
+
+    def reset_for_current_server(self):
+        new_scope = embyflow_server_scope()
+        try:
+            with self.lock:
+                self.server_scope = new_scope
+                self.loading = set()
+                self.items = {"Movie": [], "Series": []}
+                self.loaded_at = {"Movie": 0.0, "Series": 0.0}
+        except Exception:
+            self.server_scope = new_scope
+            self.loading = set()
+            self.items = {"Movie": [], "Series": []}
+            self.loaded_at = {"Movie": 0.0, "Series": 0.0}
+        self._load_disk("Movie")
+        self._load_disk("Series")
+
+    def _ensure_server_scope(self):
+        current = embyflow_server_scope()
+        if current != getattr(self, "server_scope", ""):
+            self.reset_for_current_server()
 
     def _log(self, text, error=False):
         try:
@@ -6441,7 +6473,10 @@ class EmbyFlowInMemoryLibraryCache(object):
             pass
 
     def _path(self, include_types):
-        return V11_LIBRARY_CACHE_DIR + "/library_v11_%s.json" % str(include_types)
+        return V11_LIBRARY_CACHE_DIR + "/library_v11_%s_%s.json" % (
+            str(getattr(self, "server_scope", "") or embyflow_server_scope()),
+            str(include_types),
+        )
 
     def _load_disk(self, include_types):
         try:
@@ -6478,6 +6513,7 @@ class EmbyFlowInMemoryLibraryCache(object):
             self._log("disk-save type=%s error=%s" % (include_types, error), True)
 
     def has(self, include_types):
+        self._ensure_server_scope()
         try:
             with self.lock:
                 return bool(self.items.get(include_types))
@@ -6485,6 +6521,7 @@ class EmbyFlowInMemoryLibraryCache(object):
             return False
 
     def get_all(self, include_types, limit=120):
+        self._ensure_server_scope()
         try:
             with self.lock:
                 values = list(self.items.get(include_types) or [])
@@ -6496,6 +6533,7 @@ class EmbyFlowInMemoryLibraryCache(object):
         return None
 
     def get_genres(self, include_types, genres, limit=120):
+        self._ensure_server_scope()
         aliases = set(_v11_norm_genre(x) for x in (genres or []) if x)
         if not aliases:
             return self.get_all(include_types, limit)
@@ -6518,6 +6556,7 @@ class EmbyFlowInMemoryLibraryCache(object):
             return None
 
     def refresh_async(self, include_types, force=False):
+        self._ensure_server_scope()
         include_types = str(include_types)
         try:
             now = time.time()
@@ -6538,8 +6577,12 @@ class EmbyFlowInMemoryLibraryCache(object):
 
     def _refresh_worker(self, include_types):
         started = time.time()
+        worker_scope = str(getattr(self, "server_scope", "") or embyflow_server_scope())
         try:
             values = _v11_fetch_library(include_types, 5000)
+            if worker_scope != embyflow_server_scope():
+                self._log("REFRESH_DISCARD server_changed type=%s" % include_types)
+                return
             if values:
                 with self.lock:
                     self.items[include_types] = values
@@ -6552,12 +6595,14 @@ class EmbyFlowInMemoryLibraryCache(object):
             self._log("refresh type=%s error=%s" % (include_types, error), True)
         finally:
             try:
-                with self.lock:
-                    self.loading.discard(include_types)
+                if worker_scope == str(getattr(self, "server_scope", "")):
+                    with self.lock:
+                        self.loading.discard(include_types)
             except:
                 pass
 
     def warm(self):
+        self._ensure_server_scope()
         self.refresh_async("Movie")
         self.refresh_async("Series")
 
@@ -6571,10 +6616,14 @@ METADATA_CACHE_DIR = CACHE_DIR + "/metadata"
 def _metadata_cache_key(kind, *parts):
     try:
         import hashlib
-        payload = json.dumps([kind] + list(parts), sort_keys=True, ensure_ascii=True)
+        payload = json.dumps(
+            [embyflow_server_scope(), kind] + list(parts),
+            sort_keys=True,
+            ensure_ascii=True,
+        )
         return hashlib.sha1(payload.encode("utf-8")).hexdigest()
     except:
-        return str(abs(hash((kind,) + tuple([str(x) for x in parts]))))
+        return str(abs(hash((embyflow_server_scope(), kind) + tuple([str(x) for x in parts]))))
 
 
 class EmbyFlowMetadataCache(object):
@@ -6841,7 +6890,7 @@ class EmbyFlowMetadataCache(object):
                 if key in self.queued:
                     return
                 self.queued.add(key)
-                job=(key, loader)
+                job=(key, loader, embyflow_server_scope())
                 if priority:
                     self.queue.insert(0, job)
                 else:
@@ -6888,10 +6937,16 @@ class EmbyFlowMetadataCache(object):
                 except:
                     time.sleep(1.0)
                 continue
-            key, loader=job
+            key, loader, job_scope=job
             started=time.time()
             try:
+                if job_scope != embyflow_server_scope():
+                    self._log("REFRESH_DISCARD server_changed key=%s" % key)
+                    continue
                 items=loader() or []
+                if job_scope != embyflow_server_scope():
+                    self._log("REFRESH_DISCARD server_changed_after_load key=%s" % key)
+                    continue
                 self.save(key, items)
                 self._log("REFRESH key=%s items=%s seconds=%.3f" % (key, len(items), time.time()-started))
             except Exception as error:
