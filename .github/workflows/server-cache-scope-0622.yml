@@ -1,0 +1,318 @@
+name: Server cache scope 2026090622
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/server-cache-scope-0622.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-server-cache-scope-2026090622
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply server scoped caches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          p = Path("plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py")
+          m = Path("update.json")
+          raw = p.read_bytes()
+          expected_before = "163557cd778572c4405a6b3ba4f4c0e7936d883c2f34b13637bfcc619656a419"
+          got_before = hashlib.sha256(raw).hexdigest()
+          if got_before != expected_before:
+              raise SystemExit("Unexpected 0621 baseline sha256: %s" % got_before)
+
+          text = raw.decode("utf-8")
+
+          def one(old, new, label):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit("%s marker mismatch: %s" % (label, count))
+              text = text.replace(old, new, 1)
+
+          one(
+              "PLUGIN_UPDATE_BUILD = 2026090621",
+              "PLUGIN_UPDATE_BUILD = 2026090622",
+              "build",
+          )
+
+          one(
+              'Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt"',
+              'Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden entfernt|"\n'
+              '    "Server-Cache-Trennung: Metadaten- und V11-Library-Cache werden pro Emby-Server und Benutzer getrennt"',
+              "changelog",
+          )
+
+          preset_start = "# EMBYFLOW_LOCALTEST_STREAMBOY_CREDENTIALS\n"
+          preset_end = "# EMBYFLOW_EXTERNAL_BUILD_EMPTY_DEFAULTS_V3\n"
+          if text.count(preset_start) != 1 or text.count(preset_end) != 1:
+              raise SystemExit("public credential preset markers mismatch")
+          start = text.index(preset_start)
+          end = text.index(preset_end, start)
+          text = (
+              text[:start]
+              + "# EMBYFLOW_PUBLIC_RELEASE_NO_EMBEDDED_CREDENTIALS_V1\n"
+              + "# Öffentliche Builds lesen Server/Benutzer/Passwort ausschließlich aus der Enigma2-Konfiguration.\n\n"
+              + text[end:]
+          )
+
+          auth_marker = "\ndef get_emby_auth(force=False):\n"
+          if text.count(auth_marker) != 1:
+              raise SystemExit("get_emby_auth marker mismatch")
+          helper = (
+              "\n"
+              "def embyflow_server_scope():\n"
+              "    \"\"\"Stabiler kurzer Schlüssel für Daten des aktiven Emby-Servers und Benutzers.\"\"\"\n"
+              "    try:\n"
+              "        import hashlib\n"
+              "        raw = \"%s|%s\" % (\n"
+              "            str(EMBY_SERVER or \"\").strip().rstrip(\"/\").lower(),\n"
+              "            str(EMBY_USERNAME or \"\").strip().lower(),\n"
+              "        )\n"
+              "        if not raw.strip(\"|\"):\n"
+              "            return \"noserver\"\n"
+              "        return hashlib.sha1(raw.encode(\"utf-8\")).hexdigest()[:12]\n"
+              "    except Exception:\n"
+              "        try:\n"
+              "            return str(abs(hash((str(EMBY_SERVER or \"\"), str(EMBY_USERNAME or \"\")))))[:12]\n"
+              "        except Exception:\n"
+              "            return \"noserver\"\n"
+          )
+          text = text.replace(auth_marker, helper + auth_marker, 1)
+
+          one(
+              '        self.items = {"Movie": [], "Series": []}\n'
+              '        self.loaded_at = {"Movie": 0.0, "Series": 0.0}\n'
+              '        try:\n',
+              '        self.items = {"Movie": [], "Series": []}\n'
+              '        self.loaded_at = {"Movie": 0.0, "Series": 0.0}\n'
+              '        self.server_scope = embyflow_server_scope()\n'
+              '        try:\n',
+              "library init scope",
+          )
+
+          class_pos = text.index("class EmbyFlowInMemoryLibraryCache(object):")
+          log_marker = "    def _log(self, text, error=False):\n"
+          log_pos = text.index(log_marker, class_pos)
+          reset_block = (
+              "    def reset_for_current_server(self):\n"
+              "        new_scope = embyflow_server_scope()\n"
+              "        try:\n"
+              "            with self.lock:\n"
+              "                self.server_scope = new_scope\n"
+              "                self.loading = set()\n"
+              "                self.items = {\"Movie\": [], \"Series\": []}\n"
+              "                self.loaded_at = {\"Movie\": 0.0, \"Series\": 0.0}\n"
+              "        except Exception:\n"
+              "            self.server_scope = new_scope\n"
+              "            self.loading = set()\n"
+              "            self.items = {\"Movie\": [], \"Series\": []}\n"
+              "            self.loaded_at = {\"Movie\": 0.0, \"Series\": 0.0}\n"
+              "        self._load_disk(\"Movie\")\n"
+              "        self._load_disk(\"Series\")\n"
+              "\n"
+              "    def _ensure_server_scope(self):\n"
+              "        current = embyflow_server_scope()\n"
+              "        if current != getattr(self, \"server_scope\", \"\"):\n"
+              "            self.reset_for_current_server()\n"
+              "\n"
+          )
+          text = text[:log_pos] + reset_block + text[log_pos:]
+
+          one(
+              '    def _path(self, include_types):\n'
+              '        return V11_LIBRARY_CACHE_DIR + "/library_v11_%s.json" % str(include_types)\n',
+              '    def _path(self, include_types):\n'
+              '        return V11_LIBRARY_CACHE_DIR + "/library_v11_%s_%s.json" % (\n'
+              '            str(getattr(self, "server_scope", "") or embyflow_server_scope()),\n'
+              '            str(include_types),\n'
+              '        )\n',
+              "library path",
+          )
+
+          for old, new, label in (
+              (
+                  '    def has(self, include_types):\n        try:\n',
+                  '    def has(self, include_types):\n        self._ensure_server_scope()\n        try:\n',
+                  "has scope",
+              ),
+              (
+                  '    def get_all(self, include_types, limit=120):\n        try:\n',
+                  '    def get_all(self, include_types, limit=120):\n        self._ensure_server_scope()\n        try:\n',
+                  "get_all scope",
+              ),
+              (
+                  '    def get_genres(self, include_types, genres, limit=120):\n'
+                  '        aliases = set(_v11_norm_genre(x) for x in (genres or []) if x)\n',
+                  '    def get_genres(self, include_types, genres, limit=120):\n'
+                  '        self._ensure_server_scope()\n'
+                  '        aliases = set(_v11_norm_genre(x) for x in (genres or []) if x)\n',
+                  "genre scope",
+              ),
+              (
+                  '    def refresh_async(self, include_types, force=False):\n'
+                  '        include_types = str(include_types)\n',
+                  '    def refresh_async(self, include_types, force=False):\n'
+                  '        self._ensure_server_scope()\n'
+                  '        include_types = str(include_types)\n',
+                  "refresh scope",
+              ),
+              (
+                  '    def warm(self):\n        self.refresh_async("Movie")\n',
+                  '    def warm(self):\n        self._ensure_server_scope()\n        self.refresh_async("Movie")\n',
+                  "warm scope",
+              ),
+          ):
+              one(old, new, label)
+
+          one(
+              '    def _refresh_worker(self, include_types):\n'
+              '        started = time.time()\n'
+              '        try:\n'
+              '            values = _v11_fetch_library(include_types, 5000)\n'
+              '            if values:\n',
+              '    def _refresh_worker(self, include_types):\n'
+              '        started = time.time()\n'
+              '        worker_scope = str(getattr(self, "server_scope", "") or embyflow_server_scope())\n'
+              '        try:\n'
+              '            values = _v11_fetch_library(include_types, 5000)\n'
+              '            if worker_scope != embyflow_server_scope():\n'
+              '                self._log("REFRESH_DISCARD server_changed type=%s" % include_types)\n'
+              '                return\n'
+              '            if values:\n',
+              "library worker scope",
+          )
+
+          one(
+              '        finally:\n'
+              '            try:\n'
+              '                with self.lock:\n'
+              '                    self.loading.discard(include_types)\n'
+              '            except:\n'
+              '                pass\n\n'
+              '    def warm(self):\n',
+              '        finally:\n'
+              '            try:\n'
+              '                if worker_scope == str(getattr(self, "server_scope", "")):\n'
+              '                    with self.lock:\n'
+              '                        self.loading.discard(include_types)\n'
+              '            except:\n'
+              '                pass\n\n'
+              '    def warm(self):\n',
+              "library worker finally",
+          )
+
+          one(
+              'def _metadata_cache_key(kind, *parts):\n'
+              '    try:\n'
+              '        import hashlib\n'
+              '        payload = json.dumps([kind] + list(parts), sort_keys=True, ensure_ascii=True)\n'
+              '        return hashlib.sha1(payload.encode("utf-8")).hexdigest()\n'
+              '    except:\n'
+              '        return str(abs(hash((kind,) + tuple([str(x) for x in parts]))))\n',
+              'def _metadata_cache_key(kind, *parts):\n'
+              '    try:\n'
+              '        import hashlib\n'
+              '        payload = json.dumps(\n'
+              '            [embyflow_server_scope(), kind] + list(parts),\n'
+              '            sort_keys=True,\n'
+              '            ensure_ascii=True,\n'
+              '        )\n'
+              '        return hashlib.sha1(payload.encode("utf-8")).hexdigest()\n'
+              '    except:\n'
+              '        return str(abs(hash((embyflow_server_scope(), kind) + tuple([str(x) for x in parts]))))\n',
+              "metadata key scope",
+          )
+
+          one(
+              '                self.queued.add(key)\n                job=(key, loader)\n',
+              '                self.queued.add(key)\n                job=(key, loader, embyflow_server_scope())\n',
+              "metadata queue scope",
+          )
+
+          one(
+              '            key, loader=job\n'
+              '            started=time.time()\n'
+              '            try:\n'
+              '                items=loader() or []\n'
+              '                self.save(key, items)\n'
+              '                self._log("REFRESH key=%s items=%s seconds=%.3f" % (key, len(items), time.time()-started))\n',
+              '            key, loader, job_scope=job\n'
+              '            started=time.time()\n'
+              '            try:\n'
+              '                if job_scope != embyflow_server_scope():\n'
+              '                    self._log("REFRESH_DISCARD server_changed key=%s" % key)\n'
+              '                    continue\n'
+              '                items=loader() or []\n'
+              '                if job_scope != embyflow_server_scope():\n'
+              '                    self._log("REFRESH_DISCARD server_changed_after_load key=%s" % key)\n'
+              '                    continue\n'
+              '                self.save(key, items)\n'
+              '                self._log("REFRESH key=%s items=%s seconds=%.3f" % (key, len(items), time.time()-started))\n',
+              "metadata worker scope",
+          )
+
+          p.write_text(text, encoding="utf-8", newline="\n")
+          final_sha = hashlib.sha256(p.read_bytes()).hexdigest()
+          expected_final = "4f96b0ad3558d1838d65f35bd40b42e2ec44e43d380f27cf9470fc5e8dbd9c11"
+          if final_sha != expected_final:
+              raise SystemExit("Unexpected 0622 final sha256: %s" % final_sha)
+          print("Final plugin sha256:", final_sha)
+
+          data = json.loads(m.read_text(encoding="utf-8"))
+          if int(data.get("build") or 0) != 2026090621:
+              raise SystemExit("Unexpected manifest baseline build")
+          data["build"] = 2026090622
+          data["download"] = (
+              "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/"
+              "build-2026090622/"
+              "plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py"
+          )
+          data["sha256"] = final_sha
+          changelog = list(data.get("changelog") or [])
+          for msg in (
+              "Server-Cache-Trennung: Metadaten- und V11-Library-Cache sind pro Emby-Server und Benutzer getrennt",
+              "PUBLICCLEAN: öffentliche Builds enthalten keine fest eingebetteten lokalen Test-Zugangsdaten",
+          ):
+              if msg not in changelog:
+                  changelog.append(msg)
+          data["changelog"] = changelog
+          m.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+          PYCODE
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_LOGINREF17_DREAMSAFE2_HTTPPOOL_NONBLOCK_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'MAX_STALE = 172800' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'def embyflow_server_scope' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EmbyFlowE2 Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m "Scope caches per Emby server build 2026090622"
+          git push origin main
+          git tag -a build-2026090622 -m "EmbyFlow E2 build 2026090622"
+          git push origin build-2026090622
