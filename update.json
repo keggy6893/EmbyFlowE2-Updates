@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV6-CLEAN2",
-  "build": 2026090509,
-  "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/refs/heads/main/plugin_RCDEV6_CLEAN2_OVERINSTALL.py",
-  "sha256": "61BDDC033B352BBCEA1F685FE05009FB719B37A69CB0B56687E9D26F71FF98A5",
-  "target": "plugin.py",
-  "artifact_type": "plugin_py",
-  "changelog": [
-    "Persoenliche Emby-Serverdaten aus dem Plugin entfernt",
-    "Benutzername und Passwort nicht mehr als Default enthalten",
-    "Server-Slots enthalten keine privaten Server-Adressen mehr",
-    "Vorhandene Benutzereinstellungen bleiben bei Updates erhalten",
-    "RCDEV6 Async-Seek bleibt enthalten"
-  ]
+    "version":  "2026-RCDEV7-SERVERSAFE1-LOGINREF2",
+    "build":  2026090604,
+    "channel":  "rcdev",
+    "download":  "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090604/plugin_RCDEV7_SERVERSAFE1_LOGINREF2.py",
+    "sha256":  "b31777474af26aac670d62a7d4eb90a4abf445bc66cfe1ff083fb30a2d536a89",
+    "target":  "plugin.py",
+    "artifact_type":  "plugin_py",
+    "changelog":  [
+                      "Persoenliche Emby-Serverdaten aus dem Plugin entfernt",
+                      "Benutzername und Passwort nicht mehr als Default enthalten",
+                      "Server-Slots enthalten keine privaten Server-Adressen mehr",
+                      "Vorhandene Benutzereinstellungen bleiben bei Updates erhalten",
+                      "RCDEV6 Async-Seek bleibt enthalten"
+                  ]
 }
