@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090619,
+  "build": 2026090620,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090619/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "67eb35dedb351bfa95b21b6be83e9b31a96ceadbee3f5126a51a6f76077594a5",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090620/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "ba4cda78e422e4ca92685dbebeeb1eee147c3fbf7b5441f6e23032a62b13c41f",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -13,6 +13,7 @@
     "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten",
     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten",
     "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv",
-    "Update-Seite: Versionsanzeige auf REF17 · DREAMSAFE2 · PUBLICCLEAN1 gekürzt"
+    "Update-Seite: kompakte Versionsanzeige bleibt erhalten",
+    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht als gültiger Cache gespeichert; vorhandene leere Cacheeinträge werden verworfen"
   ]
 }

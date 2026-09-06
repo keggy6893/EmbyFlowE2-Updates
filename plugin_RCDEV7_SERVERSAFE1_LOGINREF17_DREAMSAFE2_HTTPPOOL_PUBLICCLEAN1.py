@@ -166,14 +166,15 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090619
+PLUGIN_UPDATE_BUILD = 2026090620
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
     "HTTP-Pool: belegte Slots blockieren den nächsten Filmstart nicht mehr; Requests weichen non-blocking aus|"
     "SERVERSAFE1: Stopped + ActiveEncodings-Cleanup bleiben für Transcode-/Ersatz-Sessions erhalten|"
     "Resume/Seek und das eigene Untertitel-Auswahlmenü bleiben unverändert erhalten|"
-    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv"
+    "PUBLICCLEAN1: normale lokale Diagnose-/Testlogs sind standardmäßig deaktiviert; Fehler-/Crashlogs bleiben aktiv|"
+    "Shadow35-Cache-Schutz: leere Metadatenantworten werden nicht gespeichert; vorhandene leere Cacheeinträge werden verworfen"
 )
 EMBYFLOW_UPDATE_CHANNEL = "rcdev"
 EMBYFLOW_UPDATE_MANIFEST_URL = (
@@ -6626,7 +6627,15 @@ class EmbyFlowMetadataCache(object):
             with open(path, "r") as f:
                 data = json.loads(f.read())
             if isinstance(data, dict) and isinstance(data.get("items"), list):
-                return data.get("items")
+                items = data.get("items")
+                if not items:
+                    try:
+                        os.remove(path)
+                    except Exception:
+                        pass
+                    self._log("EMPTY_INVALID key=%s" % key)
+                    return None
+                return items
         except Exception as error:
             self._log("load key=%s error=%s" % (key, error), True)
         return None
@@ -6638,6 +6647,9 @@ class EmbyFlowMetadataCache(object):
             return 999999999
 
     def save(self, key, items):
+        if not items:
+            self._log("EMPTY_NOSAVE key=%s" % key)
+            return False
         try:
             ensure_dir(METADATA_CACHE_DIR)
             path = self._path(key)
