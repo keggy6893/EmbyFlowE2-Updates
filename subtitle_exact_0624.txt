@@ -1,0 +1,2802 @@
+
+===== SOURCE 24680-24820 =====
+024680 |             self.finished = True
+024681 |             self.stop_countdown()
+024682 |             self.close("start")
+024683 |             return
+024684 | 
+024685 |         self.update_countdown_display()
+024686 | 
+024687 |     def start_now(self):
+024688 |         if self.finished:
+024689 |             return
+024690 | 
+024691 |         self.finished = True
+024692 |         self.stop_countdown()
+024693 | 
+024694 |         try:
+024695 |             with embyflow_open_log(
+024696 |                 "/tmp/embyflow_autonext_action.log",
+024697 |                 "a"
+024698 |             ) as log:
+024699 |                 log.write(
+024700 |                     "%s START\n"
+024701 |                     % time.strftime(
+024702 |                         "%Y-%m-%d %H:%M:%S"
+024703 |                     )
+024704 |                 )
+024705 |         except Exception:
+024706 |             pass
+024707 | 
+024708 |         self.close("start")
+024709 | 
+024710 | 
+024711 |     def cancel_autonext(self):
+024712 |         if self.finished:
+024713 |             return
+024714 | 
+024715 |         self.finished = True
+024716 |         self.stop_countdown()
+024717 | 
+024718 |         try:
+024719 |             with embyflow_open_log(
+024720 |                 "/tmp/embyflow_autonext_action.log",
+024721 |                 "a"
+024722 |             ) as log:
+024723 |                 log.write(
+024724 |                     "%s CANCEL\n"
+024725 |                     % time.strftime(
+024726 |                         "%Y-%m-%d %H:%M:%S"
+024727 |                     )
+024728 |                 )
+024729 |         except Exception:
+024730 |             pass
+024731 | 
+024732 |         self.close("cancel")
+024733 | 
+024734 | 
+024735 | EMBYFLOW_AUTONEXT_TIMERS = []
+024736 | 
+024737 | 
+024738 | # Timer werden global gehalten, bis die verzögerte Rückkehr
+024739 | # zum vorherigen TV-/Radiodienst abgeschlossen ist.
+024740 | EMBYFLOW_PLAYER_EXIT_TIMERS = []
+024741 | 
+024742 | 
+024743 | 
+024744 | # EMBYFLOW_TEXT_SUBTITLE_RENDERER_V8
+024745 | class EmbyFlowTextSubtitleOverlay(Screen):
+024746 |     # Lightweight subtitle-only overlay. This does not call the native
+024747 |     # Enigma2 subtitle renderer and does not alter the video service.
+024748 |     skin = scale_skin(
+024749 |         '''
+024750 |         <screen name="EmbyFlowTextSubtitleOverlay"
+024751 |                 position="0,0"
+024752 |                 size="1920,1080"
+024753 |                 flags="wfNoBorder"
+024754 |                 backgroundColor="transparent">
+024755 |             <widget name="subtitle_text"
+024756 |                     position="120,760"
+024757 |                     size="1680,250"
+024758 |                     font="Regular;42"
+024759 |                     foregroundColor="#FFFFFF"
+024760 |                     backgroundColor="transparent"
+024761 |                     transparent="1"
+024762 |                     halign="center"
+024763 |                     valign="bottom"
+024764 |                     shadowColor="#000000"
+024765 |                     shadowOffset="2,2"
+024766 |                     zPosition="20" />
+024767 |         </screen>
+024768 |         '''
+024769 |     )
+024770 | 
+024771 |     def __init__(self, session):
+024772 |         Screen.__init__(self, session)
+024773 |         self["subtitle_text"] = Label("")
+024774 | 
+024775 |     def set_subtitle_text(self, text):
+024776 |         try:
+024777 |             self["subtitle_text"].setText(str(text or ""))
+024778 |         except Exception:
+024779 |             pass
+024780 | 
+024781 | # EMBYFLOW_INFUSE_TRACK_SELECTOR_V1
+024782 | class EmbyFlowTrackSelectionScreen(Screen):
+024783 |     # Eigene skinunabhängige Audio-/Untertitelauswahl im EmbyFlow-Stil.
+024784 | 
+024785 |     VISIBLE_ROWS = 7
+024786 |     ROW_X = 625
+024787 |     ROW_Y = 165
+024788 |     ROW_W = 670
+024789 |     ROW_H = 58
+024790 |     ROW_STEP = 68
+024791 | 
+024792 |     def __init__(
+024793 |         self,
+024794 |         session,
+024795 |         title="Auswählen",
+024796 |         entries=None,
+024797 |         active_index=0,
+024798 |     ):
+024799 |         row_skin = []
+024800 | 
+024801 |         for slot in range(self.VISIBLE_ROWS):
+024802 |             y_pos = self.ROW_Y + (slot * self.ROW_STEP)
+024803 |             row_skin.append(
+024804 |                 '''
+024805 |                 <widget name="row_bg%(slot)s"
+024806 |                         position="%(x)s,%(y)s"
+024807 |                         size="%(w)s,%(h)s"
+024808 |                         backgroundColor="#201C18"
+024809 |                         transparent="0"
+024810 |                         cornerRadius="20"
+024811 |                         zPosition="2" />
+024812 |                 <widget name="row_check%(slot)s"
+024813 |                         position="650,%(check_y)s"
+024814 |                         size="42,34"
+024815 |                         font="Bold;27"
+024816 |                         foregroundColor="layer-a-accent1"
+024817 |                         backgroundColor="#201C18"
+024818 |                         transparent="1"
+024819 |                         halign="center"
+024820 |                         valign="center"
+
+===== SOURCE 31450-33180 =====
+031450 |                     MessageBox,
+031451 |                     "Tonspurwechsel konnte nicht bestätigt werden: %s"
+031452 |                     % str(error),
+031453 |                     MessageBox.TYPE_ERROR,
+031454 |                     timeout=5,
+031455 |                 )
+031456 |             except Exception:
+031457 |                 pass
+031458 | 
+031459 |     def audio_selection_finished(self, result):
+031460 |         payload = self.embyflow_extract_audio_payload(result)
+031461 |         if not payload:
+031462 |             return
+031463 |         try:
+031464 |             requested = int(payload.get("e2_index"))
+031465 |             label = str(payload.get("label") or "Tonspur")
+031466 |             service = self.session.nav.getCurrentService()
+031467 |             tracks = service and service.audioTracks()
+031468 |             if not tracks:
+031469 |                 raise RuntimeError("Keine aktiven Enigma2-Tonspuren")
+031470 |             count = int(tracks.getNumberOfTracks() or 0)
+031471 |             if requested < 0 or requested >= count:
+031472 |                 raise RuntimeError(
+031473 |                     "Ungültiger Enigma2-Tonspurindex %s/%s"
+031474 |                     % (requested, count)
+031475 |                 )
+031476 | 
+031477 |             self.embyflow_manual_audio_selected = True
+031478 |             try:
+031479 |                 self.audio_timer.stop()
+031480 |             except Exception:
+031481 |                 pass
+031482 |             self.embyflow_stop_audio_confirm()
+031483 |             self.embyflow_audio_confirm_requested = requested
+031484 |             self.embyflow_audio_confirm_label = label
+031485 |             self.embyflow_audio_confirm_attempts = 0
+031486 |             self.embyflow_audio_confirm_stable = 0
+031487 | 
+031488 |             tracks.selectTrack(requested)
+031489 |             self["state_label"].setText(
+031490 |                 "Tonspur wird gewechselt: %s" % label
+031491 |             )
+031492 |             self.show_overlay()
+031493 |             self.embyflow_schedule_audio_confirm(170)
+031494 | 
+031495 |         except Exception as error:
+031496 |             self.embyflow_stop_audio_confirm()
+031497 |             try:
+031498 |                 self.session.open(
+031499 |                     MessageBox,
+031500 |                     "Tonspur konnte nicht gewechselt werden: %s"
+031501 |                     % str(error),
+031502 |                     MessageBox.TYPE_ERROR,
+031503 |                     timeout=5,
+031504 |                 )
+031505 |             except Exception:
+031506 |                 pass
+031507 | 
+031508 |     # EMBYFLOW_TEXT_SUBTITLE_RENDERER_V8_HELPERS
+031509 |     def embyflow_text_subtitle_streams(self):
+031510 |         item = getattr(self, "item", None) or {}
+031511 |         sources = item.get("MediaSources") or item.get("media_sources") or []
+031512 |         if not sources:
+031513 |             return []
+031514 | 
+031515 |         wanted = str(getattr(self, "media_source_id", "") or "")
+031516 |         source = None
+031517 |         if wanted:
+031518 |             for candidate in sources:
+031519 |                 candidate_id = str(
+031520 |                     candidate.get("Id") or candidate.get("id") or ""
+031521 |                 )
+031522 |                 if candidate_id == wanted:
+031523 |                     source = candidate
+031524 |                     break
+031525 |         if source is None:
+031526 |             source = sources[0]
+031527 | 
+031528 |         return [
+031529 |             stream
+031530 |             for stream in (source.get("MediaStreams") or [])
+031531 |             if str(stream.get("Type") or "").lower() == "subtitle"
+031532 |         ]
+031533 | 
+031534 |     def embyflow_text_subtitle_is_text(self, stream):
+031535 |         if not isinstance(stream, dict):
+031536 |             return False
+031537 |         if bool(stream.get("IsTextSubtitleStream")):
+031538 |             return True
+031539 |         codec = str(stream.get("Codec") or "").strip().lower()
+031540 |         return codec in (
+031541 |             "srt", "subrip", "ass", "ssa", "vtt", "webvtt",
+031542 |             "mov_text", "tx3g", "ttml", "dfxp", "smi", "sami",
+031543 |         )
+031544 | 
+031545 |     def embyflow_text_subtitle_runtime(self):
+031546 |         if getattr(self, "embyflow_text_subtitle_timer", None) is None:
+031547 |             timer = eTimer()
+031548 |             try:
+031549 |                 timer.callback.append(self.embyflow_text_subtitle_tick)
+031550 |             except Exception:
+031551 |                 try:
+031552 |                     timer.timeout.connect(self.embyflow_text_subtitle_tick)
+031553 |                 except Exception:
+031554 |                     pass
+031555 |             self.embyflow_text_subtitle_timer = timer
+031556 | 
+031557 |         if not getattr(self, "embyflow_text_subtitle_cleanup_registered", False):
+031558 |             try:
+031559 |                 self.onClose.append(self.embyflow_text_subtitle_cleanup)
+031560 |                 self.embyflow_text_subtitle_cleanup_registered = True
+031561 |             except Exception:
+031562 |                 pass
+031563 | 
+031564 |         return self.embyflow_text_subtitle_timer
+031565 | 
+031566 |     def embyflow_text_subtitle_overlay_get(self, create=True):
+031567 |         window = getattr(self, "embyflow_text_subtitle_overlay", None)
+031568 |         if window is not None and getattr(window, "instance", None) is not None:
+031569 |             return window
+031570 |         if not create:
+031571 |             return None
+031572 |         window = self.session.instantiateDialog(EmbyFlowTextSubtitleOverlay)
+031573 |         try:
+031574 |             window.setAnimationMode(0)
+031575 |         except Exception:
+031576 |             pass
+031577 |         try:
+031578 |             window.hide()
+031579 |         except Exception:
+031580 |             pass
+031581 |         self.embyflow_text_subtitle_overlay = window
+031582 |         return window
+031583 | 
+031584 |     def embyflow_text_subtitle_cleanup(self):
+031585 |         try:
+031586 |             timer = getattr(self, "embyflow_text_subtitle_timer", None)
+031587 |             if timer is not None:
+031588 |                 timer.stop()
+031589 |         except Exception:
+031590 |             pass
+031591 | 
+031592 |         self.embyflow_text_subtitle_generation = int(
+031593 |             getattr(self, "embyflow_text_subtitle_generation", 0) or 0
+031594 |         ) + 1
+031595 |         self.embyflow_text_subtitle_enabled = False
+031596 |         self.embyflow_text_subtitle_loading = False
+031597 |         self.embyflow_text_subtitle_cues = []
+031598 |         self.embyflow_text_subtitle_starts = []
+031599 |         self.embyflow_text_subtitle_pending_result = None
+031600 |         self.embyflow_text_subtitle_last_text = ""
+031601 | 
+031602 |         window = self.embyflow_text_subtitle_overlay_get(False)
+031603 |         if window is not None:
+031604 |             try:
+031605 |                 window.set_subtitle_text("")
+031606 |                 window.hide()
+031607 |             except Exception:
+031608 |                 pass
+031609 |             try:
+031610 |                 self.session.deleteDialog(window)
+031611 |             except Exception:
+031612 |                 try:
+031613 |                     window.close()
+031614 |                 except Exception:
+031615 |                     pass
+031616 |         self.embyflow_text_subtitle_overlay = None
+031617 | 
+031618 |     # EMBYFLOW_UT_STATE_DIAG_V14
+031619 |     def embyflow_v14_ut_state_log(self, event, extra=""):
+031620 |         try:
+031621 |             caller = ""
+031622 |             try:
+031623 |                 import traceback
+031624 |                 stack = traceback.extract_stack(limit=5)
+031625 |                 if len(stack) >= 2:
+031626 |                     frame = stack[-2]
+031627 |                     caller = "%s:%s:%s" % (
+031628 |                         str(frame.name),
+031629 |                         str(frame.lineno),
+031630 |                         str(frame.filename).rsplit("/", 1)[-1],
+031631 |                     )
+031632 |             except Exception:
+031633 |                 caller = ""
+031634 | 
+031635 |             with open(
+031636 |                 "/tmp/embyflow_ut_state_v14.log",
+031637 |                 "a",
+031638 |                 encoding="utf-8",
+031639 |             ) as log:
+031640 |                 log.write(
+031641 |                     "%s event=%s enabled=%s loading=%s "
+031642 |                     "stream_index=%r active_index=%r server_index=%r "
+031643 |                     "manual=%s base_ticks=%r caller=%s extra=%s\\n"
+031644 |                     % (
+031645 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+031646 |                         str(event),
+031647 |                         int(bool(getattr(self, "embyflow_text_subtitle_enabled", False))),
+031648 |                         int(bool(getattr(self, "embyflow_text_subtitle_loading", False))),
+031649 |                         getattr(self, "embyflow_text_subtitle_stream_index", None),
+031650 |                         getattr(self, "embyflow_active_subtitle_index", None),
+031651 |                         getattr(self, "embyflow_server_subtitle_stream_index", None),
+031652 |                         int(bool(getattr(self, "embyflow_manual_subtitle_selected", False))),
+031653 |                         getattr(self, "embyflow_text_subtitle_base_ticks", None),
+031654 |                         caller,
+031655 |                         str(extra).replace("\\n", " ")[:300],
+031656 |                     )
+031657 |                 )
+031658 |         except Exception:
+031659 |             pass
+031660 | 
+031661 |     def embyflow_text_subtitle_stop(self, keep_manual=False):
+031662 |         self.embyflow_v14_ut_state_log(
+031663 |             "stop",
+031664 |             "keep_manual=%s" % str(keep_manual),
+031665 |         )
+031666 |         self.embyflow_text_subtitle_runtime()
+031667 |         self.embyflow_text_subtitle_generation = int(
+031668 |             getattr(self, "embyflow_text_subtitle_generation", 0) or 0
+031669 |         ) + 1
+031670 |         self.embyflow_text_subtitle_enabled = False
+031671 |         self.embyflow_text_subtitle_loading = False
+031672 |         self.embyflow_text_subtitle_cues = []
+031673 |         self.embyflow_text_subtitle_starts = []
+031674 |         self.embyflow_text_subtitle_pending_result = None
+031675 |         self.embyflow_text_subtitle_stream_index = None
+031676 |         self.embyflow_text_subtitle_last_text = ""
+031677 |         if not keep_manual:
+031678 |             self.embyflow_manual_subtitle_selected = False
+031679 | 
+031680 |         try:
+031681 |             self.embyflow_text_subtitle_timer.stop()
+031682 |         except Exception:
+031683 |             pass
+031684 | 
+031685 |         window = self.embyflow_text_subtitle_overlay_get(False)
+031686 |         if window is not None:
+031687 |             try:
+031688 |                 window.set_subtitle_text("")
+031689 |                 window.hide()
+031690 |             except Exception:
+031691 |                 pass
+031692 | 
+031693 |     def embyflow_text_subtitle_parse_timestamp(self, value):
+031694 |         value = str(value or "").strip().replace(",", ".")
+031695 |         value = value.split(" ", 1)[0]
+031696 |         parts = value.split(":")
+031697 |         if len(parts) == 3:
+031698 |             hours, minutes, seconds = parts
+031699 |         elif len(parts) == 2:
+031700 |             hours = "0"
+031701 |             minutes, seconds = parts
+031702 |         else:
+031703 |             raise ValueError("Ungültiger Untertitel-Zeitstempel")
+031704 |         if "." in seconds:
+031705 |             sec, milli = seconds.split(".", 1)
+031706 |         else:
+031707 |             sec, milli = seconds, "0"
+031708 |         milli = (milli + "000")[:3]
+031709 |         return (
+031710 |             int(hours) * 3600000
+031711 |             + int(minutes) * 60000
+031712 |             + int(sec) * 1000
+031713 |             + int(milli)
+031714 |         )
+031715 | 
+031716 |     def embyflow_text_subtitle_parse(self, payload):
+031717 |         import html
+031718 | 
+031719 |         text = str(payload or "")
+031720 |         text = text.lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n")
+031721 |         if text.startswith("WEBVTT"):
+031722 |             first_newline = text.find("\n")
+031723 |             text = text[first_newline + 1:] if first_newline >= 0 else ""
+031724 | 
+031725 |         blocks = re.split(r"\n\s*\n", text)
+031726 |         cues = []
+031727 |         for block in blocks:
+031728 |             lines = [line.rstrip() for line in block.split("\n")]
+031729 |             time_index = None
+031730 |             for index, line in enumerate(lines):
+031731 |                 if "-->" in line:
+031732 |                     time_index = index
+031733 |                     break
+031734 |             if time_index is None:
+031735 |                 continue
+031736 | 
+031737 |             timing = lines[time_index].split("-->", 1)
+031738 |             if len(timing) != 2:
+031739 |                 continue
+031740 |             try:
+031741 |                 start_ms = self.embyflow_text_subtitle_parse_timestamp(timing[0])
+031742 |                 end_ms = self.embyflow_text_subtitle_parse_timestamp(timing[1])
+031743 |             except Exception:
+031744 |                 continue
+031745 |             if end_ms <= start_ms:
+031746 |                 end_ms = start_ms + 2000
+031747 | 
+031748 |             cue_text = "\n".join(lines[time_index + 1:]).strip()
+031749 |             cue_text = cue_text.replace("\\N", "\n").replace("\\n", "\n")
+031750 |             cue_text = re.sub(r"(?i)<br\s*/?>", "\n", cue_text)
+031751 |             cue_text = re.sub(r"\{\\[^}]+\}", "", cue_text)
+031752 |             cue_text = re.sub(r"<[^>]+>", "", cue_text)
+031753 |             cue_text = html.unescape(cue_text).strip()
+031754 |             if cue_text:
+031755 |                 cues.append((int(start_ms), int(end_ms), cue_text))
+031756 | 
+031757 |         cues.sort(key=lambda cue: (cue[0], cue[1]))
+031758 |         if not cues:
+031759 |             raise RuntimeError("Untertiteldatei enthält keine lesbaren Cues")
+031760 |         return cues
+031761 | 
+031762 |     def embyflow_text_subtitle_fetch_worker(
+031763 |         self,
+031764 |         generation,
+031765 |         server,
+031766 |         token,
+031767 |         item_id,
+031768 |         media_source_id,
+031769 |         stream_index,
+031770 |     ):
+031771 |         result = {
+031772 |             "generation": generation,
+031773 |             "ok": False,
+031774 |             "cues": [],
+031775 |             "error": "",
+031776 |         }
+031777 |         try:
+031778 |             if not requests:
+031779 |                 raise RuntimeError("Python requests ist nicht verfügbar")
+031780 |             if not server or not token or not item_id or not media_source_id:
+031781 |                 raise RuntimeError("Emby-Untertitelkontext unvollständig")
+031782 | 
+031783 |             urls = [
+031784 |                 "%s/Videos/%s/%s/Subtitles/%s/Stream.srt"
+031785 |                 % (
+031786 |                     server.rstrip("/"),
+031787 |                     item_id,
+031788 |                     media_source_id,
+031789 |                     int(stream_index),
+031790 |                 )
+031791 |             ]
+031792 |             if not server.rstrip("/").lower().endswith("/emby"):
+031793 |                 urls.append(
+031794 |                     "%s/emby/Videos/%s/%s/Subtitles/%s/Stream.srt"
+031795 |                     % (
+031796 |                         server.rstrip("/"),
+031797 |                         item_id,
+031798 |                         media_source_id,
+031799 |                         int(stream_index),
+031800 |                     )
+031801 |                 )
+031802 | 
+031803 |             response = None
+031804 |             last_error = None
+031805 |             headers = {
+031806 |                 "X-Emby-Token": token,
+031807 |                 "X-Emby-Authorization": AUTH_HEADER,
+031808 |             }
+031809 |             for url in urls:
+031810 |                 try:
+031811 |                     candidate = requests.get(
+031812 |                         url,
+031813 |                         headers=headers,
+031814 |                         timeout=15,
+031815 |                         verify=True,
+031816 |                     )
+031817 |                     if candidate.status_code == 200:
+031818 |                         response = candidate
+031819 |                         break
+031820 |                     last_error = RuntimeError(
+031821 |                         "HTTP %s vom Untertitel-Endpunkt"
+031822 |                         % candidate.status_code
+031823 |                     )
+031824 |                 except Exception as error:
+031825 |                     last_error = error
+031826 | 
+031827 |             if response is None:
+031828 |                 raise last_error or RuntimeError("Untertitel-Download fehlgeschlagen")
+031829 | 
+031830 |             raw = response.content or b""
+031831 |             decoded = None
+031832 |             for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin-1"):
+031833 |                 try:
+031834 |                     decoded = raw.decode(encoding)
+031835 |                     break
+031836 |                 except Exception:
+031837 |                     pass
+031838 |             if decoded is None:
+031839 |                 raise RuntimeError("Untertitel-Zeichensatz konnte nicht gelesen werden")
+031840 | 
+031841 |             result["cues"] = self.embyflow_text_subtitle_parse(decoded)
+031842 |             result["ok"] = True
+031843 | 
+031844 |         except Exception as error:
+031845 |             result["error"] = "%s: %s" % (
+031846 |                 type(error).__name__,
+031847 |                 str(error).replace("\n", " ")[:300],
+031848 |             )
+031849 | 
+031850 |         if int(getattr(self, "embyflow_text_subtitle_generation", -1)) == int(generation):
+031851 |             self.embyflow_text_subtitle_pending_result = result
+031852 | 
+031853 |     # EMBYFLOW_UT_SYNC_V16_1_CLEAN_FINAL
+031854 |     # EMBYFLOW_CONTENT_POSITION_V16_2_RESUME_FIX
+031855 |     # EMBYFLOW_CHAPTER_FOCUS_REPAINT_V16_3_RELEASE
+031856 |     # EMBYFLOW_CHAPTER_CINEMATIC_UI_V16_4_RELEASE
+031857 |     # EMBYFLOW_CHAPTER_PREVIEW_FILL_V16_5_RELEASE
+031858 |     # EMBYFLOW_ORIGINAL_CHAPTER_CAROUSEL_V17_RELEASE
+031859 |     # EMBYFLOW_BLUE_CHAPTER_CONTENT_V17_1_RELEASE
+031860 |     # EMBYFLOW_CHAPTER_SUBTITLE_PROBE_V17_2_RELEASE
+031861 |     # EMBYFLOW_INDEPENDENT_GERMAN_CHAPTER_PROBE_V17_3_RELEASE
+031862 |     # EMBYFLOW_CHAPTER_CONTENT_OVERLAY_TEXT_FIX_V17_3_1_RELEASE
+031863 |     # EMBYFLOW_CLEAN_CHAPTER_CONTENT_BETA_V17_4_RELEASE
+031864 |     # EMBYFLOW_SERVER_COUPLED_SUBTITLE_V10
+031865 |     def embyflow_v10_stream_context(self):
+031866 |         playback_info = getattr(self, "playback_info", None) or {}
+031867 |         server = str(
+031868 |             playback_info.get("server")
+031869 |             or EMBY_AUTH_CACHE.get("server")
+031870 |             or EMBY_SERVER
+031871 |             or ""
+031872 |         ).rstrip("/")
+031873 |         token = str(
+031874 |             playback_info.get("token")
+031875 |             or EMBY_AUTH_CACHE.get("token")
+031876 |             or ""
+031877 |         )
+031878 |         if not server or not token:
+031879 |             try:
+031880 |                 auth_server, auth_token, _user_id = get_emby_auth()
+031881 |                 server = str(auth_server or server or "").rstrip("/")
+031882 |                 token = str(auth_token or token or "")
+031883 |             except Exception:
+031884 |                 pass
+031885 | 
+031886 |         item_id = str(getattr(self, "item_id", "") or "")
+031887 |         media_source_id = str(getattr(self, "media_source_id", "") or "")
+031888 |         item = getattr(self, "item", None) or playback_info.get("item") or {}
+031889 |         media_sources = item.get("MediaSources") or item.get("media_sources") or []
+031890 |         selected_source = None
+031891 |         for source in media_sources:
+031892 |             source_id = str(source.get("Id") or source.get("id") or "")
+031893 |             if media_source_id and source_id == media_source_id:
+031894 |                 selected_source = source
+031895 |                 break
+031896 |         if selected_source is None and media_sources:
+031897 |             selected_source = media_sources[0]
+031898 |         if not media_source_id and selected_source is not None:
+031899 |             media_source_id = str(
+031900 |                 selected_source.get("Id") or selected_source.get("id") or ""
+031901 |             )
+031902 | 
+031903 |         audio_index = item.get("embyflow_selected_audio_index")
+031904 |         if audio_index is None and selected_source is not None:
+031905 |             audio_index = selected_source.get("DefaultAudioStreamIndex")
+031906 |         try:
+031907 |             audio_index = int(audio_index) if audio_index is not None else None
+031908 |         except Exception:
+031909 |             audio_index = None
+031910 | 
+031911 |         return (
+031912 |             server,
+031913 |             token,
+031914 |             item_id,
+031915 |             media_source_id,
+031916 |             audio_index,
+031917 |         )
+031918 | 
+031919 |     def embyflow_v10_content_position_ticks(self):
+031920 |         # EMBYFLOW_UT_SYNC_V16_1_CONFIRMED_CLOCK
+031921 |         base = getattr(self, "embyflow_v10_stream_base_ticks", None)
+031922 |         if base is None:
+031923 |             return int(self.embyflow_raw_position_ticks() or 0)
+031924 | 
+031925 |         try:
+031926 |             base = max(0, int(base))
+031927 |         except Exception:
+031928 |             return int(self.embyflow_raw_position_ticks() or 0)
+031929 | 
+031930 |         native_ticks = None
+031931 |         try:
+031932 |             service = self.session.nav.getCurrentService()
+031933 |             seek = service and service.seek()
+031934 |             pos = seek and seek.getPlayPosition()
+031935 |             if (
+031936 |                 isinstance(pos, (tuple, list))
+031937 |                 and len(pos) >= 2
+031938 |                 and int(pos[0]) == 0
+031939 |             ):
+031940 |                 native_ticks = max(
+031941 |                     0,
+031942 |                     int((int(pos[1]) * 10000000) // 90000),
+031943 |                 )
+031944 |         except Exception:
+031945 |             native_ticks = None
+031946 | 
+031947 |         confirmed = bool(
+031948 |             getattr(self, "embyflow_v10_stream_confirmed_playing", False)
+031949 |         )
+031950 |         mode = getattr(self, "embyflow_v10_stream_time_mode", None)
+031951 | 
+031952 |         if not confirmed:
+031953 |             absolute_ok = bool(
+031954 |                 native_ticks is not None
+031955 |                 and abs(int(native_ticks) - int(base)) <= 20000000
+031956 |             )
+031957 |             relative_ok = bool(
+031958 |                 native_ticks is not None
+031959 |                 and 0 <= int(native_ticks) <= 20000000
+031960 |             )
+031961 | 
+031962 |             if absolute_ok or relative_ok:
+031963 |                 mode = "absolute" if absolute_ok else "relative"
+031964 |                 self.embyflow_v10_stream_time_mode = mode
+031965 |                 self.embyflow_v10_stream_confirmed_playing = True
+031966 |                 try:
+031967 |                     self.embyflow_v10_stream_started_monotonic = time.monotonic()
+031968 |                 except Exception:
+031969 |                     self.embyflow_v10_stream_started_monotonic = None
+031970 | 
+031971 |                 try:
+031972 |                     with open(
+031973 |                         "/tmp/embyflow_chapter_clock_v16_1.log",
+031974 |                         "a",
+031975 |                         encoding="utf-8",
+031976 |                     ) as log:
+031977 |                         log.write(
+031978 |                             "%s CONFIRM mode=%s base=%s native=%s delta=%s\n"
+031979 |                             % (
+031980 |                                 time.strftime("%Y-%m-%d %H:%M:%S"),
+031981 |                                 mode,
+031982 |                                 int(base),
+031983 |                                 int(native_ticks),
+031984 |                                 int(native_ticks) - int(base),
+031985 |                             )
+031986 |                         )
+031987 |                 except Exception:
+031988 |                     pass
+031989 |             else:
+031990 |                 if not bool(
+031991 |                     getattr(self, "embyflow_v10_clock_wait_logged", False)
+031992 |                 ):
+031993 |                     self.embyflow_v10_clock_wait_logged = True
+031994 |                     try:
+031995 |                         with open(
+031996 |                             "/tmp/embyflow_chapter_clock_v16_1.log",
+031997 |                             "a",
+031998 |                             encoding="utf-8",
+031999 |                         ) as log:
+032000 |                             log.write(
+032001 |                                 "%s WAIT base=%s native=%s\n"
+032002 |                                 % (
+032003 |                                     time.strftime("%Y-%m-%d %H:%M:%S"),
+032004 |                                     int(base),
+032005 |                                     str(native_ticks),
+032006 |                                 )
+032007 |                             )
+032008 |                     except Exception:
+032009 |                         pass
+032010 |                 return int(base)
+032011 | 
+032012 |         mode = getattr(self, "embyflow_v10_stream_time_mode", mode)
+032013 | 
+032014 |         if native_ticks is not None:
+032015 |             if mode == "relative":
+032016 |                 return int(base + int(native_ticks))
+032017 |             if mode == "absolute":
+032018 |                 return int(native_ticks)
+032019 | 
+032020 |         started = getattr(
+032021 |             self,
+032022 |             "embyflow_v10_stream_started_monotonic",
+032023 |             None,
+032024 |         )
+032025 |         elapsed_ticks = 0
+032026 |         try:
+032027 |             if started is not None and not bool(getattr(self, "paused", False)):
+032028 |                 elapsed_ticks = max(
+032029 |                     0,
+032030 |                     int((time.monotonic() - float(started)) * 10000000),
+032031 |                 )
+032032 |         except Exception:
+032033 |             elapsed_ticks = 0
+032034 | 
+032035 |         return int(base + elapsed_ticks)
+032036 | 
+032037 |     # Compatibility for an already-installed V9. The V8 timer is not used by
+032038 |     # V10, but this keeps the old method harmless if it is called once while
+032039 |     # the service is switching.
+032040 |     def embyflow_text_subtitle_position_ticks(self):
+032041 |         return self.embyflow_v10_content_position_ticks()
+032042 | 
+032043 |     def embyflow_v10_restart_stream(
+032044 |         self,
+032045 |         target_ticks,
+032046 |         subtitle_stream_index=None,
+032047 |         subtitle_label=None,
+032048 |     ):
+032049 |         try:
+032050 |             target_ticks = max(0, int(target_ticks or 0))
+032051 |         except Exception:
+032052 |             target_ticks = 0
+032053 | 
+032054 |         try:
+032055 |             duration = int(getattr(self, "duration_ticks", 0) or 0)
+032056 |             if duration > 10000000:
+032057 |                 target_ticks = min(target_ticks, duration - 10000000)
+032058 |         except Exception:
+032059 |             pass
+032060 | 
+032061 |         try:
+032062 |             (
+032063 |                 server,
+032064 |                 token,
+032065 |                 item_id,
+032066 |                 media_source_id,
+032067 |                 audio_index,
+032068 |             ) = self.embyflow_v10_stream_context()
+032069 | 
+032070 |             if not server or not token or not item_id:
+032071 |                 raise RuntimeError("Emby-Wiedergabekontext unvollständig")
+032072 | 
+032073 |             try:
+032074 |                 from urllib.parse import urlencode
+032075 |             except Exception:
+032076 |                 from urllib import urlencode
+032077 | 
+032078 |             active_subtitle = None
+032079 |             if subtitle_stream_index is not None:
+032080 |                 try:
+032081 |                     active_subtitle = int(subtitle_stream_index)
+032082 |                     if active_subtitle < 0:
+032083 |                         active_subtitle = None
+032084 |                 except Exception:
+032085 |                     active_subtitle = None
+032086 | 
+032087 |             old_play_session_id = str(
+032088 |                 getattr(self, "play_session_id", "") or ""
+032089 |             )
+032090 |             new_session_id = uuid4().hex
+032091 |             params = [
+032092 |                 ("Static", "false"),
+032093 |                 ("StartTimeTicks", str(int(target_ticks))),
+032094 |                 ("PlaySessionId", new_session_id),
+032095 |                 ("DeviceId", "embyflowe2"),
+032096 |             ]
+032097 |             if media_source_id:
+032098 |                 params.append(("MediaSourceId", media_source_id))
+032099 |             if audio_index is not None:
+032100 |                 params.append(("AudioStreamIndex", str(int(audio_index))))
+032101 | 
+032102 |             if active_subtitle is None:
+032103 |                 # Subtitle OFF: preserve quality and seek server-side without
+032104 |                 # returning to the problematic Static=true seek path.
+032105 |                 params.extend([
+032106 |                     ("VideoCodec", "copy"),
+032107 |                     ("AudioCodec", "copy"),
+032108 |                 ])
+032109 |                 endpoint = "stream.mkv"
+032110 |             else:
+032111 |                 # Subtitle ON: force the selected Emby text track to share the
+032112 |                 # same server-side timeline as the video. Rendering happens in
+032113 |                 # Emby, not in Enigma2 and not in the V8 local cue timer.
+032114 |                 # EMBYFLOW_SERVER_COUPLED_SUBTITLE_V11_COPY_TIMESTAMPS
+032115 |                 # Preserve original source timestamps when transcoding from
+032116 |                 # StartTimeTicks so burned subtitle timing stays on the same
+032117 |                 # absolute media timeline as the video.
+032118 |                 params.extend([
+032119 |                     ("VideoCodec", "h264"),
+032120 |                     ("AudioCodec", "aac"),
+032121 |                     ("VideoBitRate", "20000000"),
+032122 |                     ("AudioBitRate", "384000"),
+032123 |                     ("MaxAudioChannels", "6"),
+032124 |                     ("SubtitleStreamIndex", str(active_subtitle)),
+032125 |                     ("SubtitleMethod", "Encode"),
+032126 |                     ("CopyTimestamps", "true"),
+032127 |                 ])
+032128 |                 endpoint = "stream.mkv"
+032129 | 
+032130 |             params.append(("api_key", token))
+032131 |             new_url = "%s/Videos/%s/%s?%s" % (
+032132 |                 server,
+032133 |                 item_id,
+032134 |                 endpoint,
+032135 |                 urlencode(params),
+032136 |             )
+032137 | 
+032138 |             new_ref = eServiceReference(
+032139 |                 _embyflow_engine_v11_4_service_type(self),
+032140 |                 0,
+032141 |                 new_url,
+032142 |             )
+032143 |             new_ref.setName(self.title_text)
+032144 | 
+032145 |             self.play_session_id = new_session_id
+032146 |             self.stream_url = new_url
+032147 |             self.ref = new_ref
+032148 |             self.embyflow_v10_stream_base_ticks = int(target_ticks)
+032149 |             # EMBYFLOW_UT_SYNC_V16_1_RESTART_GATE
+032150 |             self.embyflow_v10_stream_started_monotonic = None
+032151 |             self.embyflow_v10_stream_confirmed_playing = False
+032152 |             self.embyflow_v10_stream_time_mode = None
+032153 |             self.embyflow_v10_clock_wait_logged = False
+032154 |             try:
+032155 |                 self.embyflow_v10_stream_restart_issued_monotonic = (
+032156 |                     time.monotonic()
+032157 |                 )
+032158 |             except Exception:
+032159 |                 self.embyflow_v10_stream_restart_issued_monotonic = None
+032160 |             try:
+032161 |                 with open(
+032162 |                     "/tmp/embyflow_chapter_clock_v16_1.log",
+032163 |                     "a",
+032164 |                     encoding="utf-8",
+032165 |                 ) as log:
+032166 |                     log.write(
+032167 |                         "%s RESTART target=%s\n"
+032168 |                         % (
+032169 |                             time.strftime("%Y-%m-%d %H:%M:%S"),
+032170 |                             int(target_ticks),
+032171 |                         )
+032172 |                     )
+032173 |             except Exception:
+032174 |                 pass
+032175 |             self.embyflow_server_subtitle_stream_index = active_subtitle
+032176 |             if subtitle_label is not None:
+032177 |                 self.embyflow_server_subtitle_label = str(
+032178 |                     subtitle_label or "Untertitel"
+032179 |                 )
+032180 | 
+032181 |             self.pending_seek_started_ticks = None
+032182 |             self.pending_seek_target_ticks = None
+032183 |             self.initial_big_seek_target_ticks = None
+032184 |             self.seek_has_been_used = True
+032185 |             try:
+032186 |                 self.seek_fallback_timer.stop()
+032187 |             except Exception:
+032188 |                 pass
+032189 |             try:
+032190 |                 self.initial_big_seek_timer.stop()
+032191 |             except Exception:
+032192 |                 pass
+032193 | 
+032194 |             self._embyflow_stream_replacement_in_progress = True
+032195 |             try:
+032196 |                 self.cancel_active_encoding(old_play_session_id)
+032197 |                 self.session.nav.playService(self.ref)
+032198 |             finally:
+032199 |                 self._embyflow_stream_replacement_in_progress = False
+032200 | 
+032201 |             # EMBYFLOW_SEEK_PLAYING_REPORT_FIX_V1 (siehe qs_v2-Stelle fuer Details)
+032202 |             try:
+032203 |                 self.send_emby_playback_report("Playing", target_ticks)
+032204 |             except Exception:
+032205 |                 pass
+032206 | 
+032207 |             self.synthetic_position_ticks = int(target_ticks)
+032208 |             self.paused = False
+032209 |             try:
+032210 |                 self.play_started_ts = int(time.time()) - int(
+032211 |                     target_ticks // 10000000
+032212 |                 )
+032213 |             except Exception:
+032214 |                 pass
+032215 | 
+032216 |             try:
+032217 |                 self.audio_retry_count = 0
+032218 |                 self.audio_timer.start(1200, True)
+032219 |             except Exception:
+032220 |                 pass
+032221 | 
+032222 |             # EMBYFLOW_ADMIN_SESSION_PLAYING_V11_1_SEEK
+032223 |             # This replacement owns a NEW PlaySessionId. Register it
+032224 |             # immediately so Emby does not keep a phantom/idle session.
+032225 |             try:
+032226 |                 self.send_emby_playback_report("Playing", target_ticks)
+032227 |             except Exception:
+032228 |                 pass
+032229 | 
+032230 |             self.show_overlay()
+032231 |             self.update_playback_overlay()
+032232 |             try:
+032233 |                 self.send_emby_playback_report("Progress", target_ticks)
+032234 |             except Exception:
+032235 |                 pass
+032236 |             return True
+032237 | 
+032238 |         except Exception as error:
+032239 |             try:
+032240 |                 with embyflow_open_log(
+032241 |                     "/tmp/embyflow_server_subtitle_v10_error.log",
+032242 |                     "a",
+032243 |                 ) as log:
+032244 |                     log.write(
+032245 |                         "%s event=server_subtitle_restart target=%s subtitle=%s "
+032246 |                         "type=%s message=%s\n"
+032247 |                         % (
+032248 |                             time.strftime("%Y-%m-%d %H:%M:%S"),
+032249 |                             int(target_ticks or 0),
+032250 |                             str(subtitle_stream_index),
+032251 |                             type(error).__name__,
+032252 |                             str(error).replace("\n", " ")[:300],
+032253 |                         )
+032254 |                     )
+032255 |             except Exception:
+032256 |                 pass
+032257 |             return False
+032258 | 
+032259 |     # EMBYFLOW_TEXT_SUBTITLE_V12_OFFSET_STREAM
+032260 |     def embyflow_v12_fetch_worker(
+032261 |         self,
+032262 |         generation,
+032263 |         server,
+032264 |         token,
+032265 |         item_id,
+032266 |         media_source_id,
+032267 |         stream_index,
+032268 |         base_ticks,
+032269 |     ):
+032270 |         result = {
+032271 |             "generation": generation,
+032272 |             "ok": False,
+032273 |             "cues": [],
+032274 |             "base_ticks": int(base_ticks or 0),
+032275 |             "timeline": "",
+032276 |             "raw_first_ms": -1,
+032277 |             "error": "",
+032278 |         }
+032279 |         try:
+032280 |             if not requests:
+032281 |                 raise RuntimeError("Python requests ist nicht verfügbar")
+032282 |             if not server or not token or not item_id or not media_source_id:
+032283 |                 raise RuntimeError("Emby-Untertitelkontext unvollständig")
+032284 | 
+032285 |             base_ticks = max(0, int(base_ticks or 0))
+032286 |             base_ms = int(base_ticks // 10000)
+032287 |             urls = [
+032288 |                 "%s/Videos/%s/%s/Subtitles/%s/Stream.srt"
+032289 |                 % (
+032290 |                     server.rstrip("/"),
+032291 |                     item_id,
+032292 |                     media_source_id,
+032293 |                     int(stream_index),
+032294 |                 )
+032295 |             ]
+032296 |             if not server.rstrip("/").lower().endswith("/emby"):
+032297 |                 urls.append(
+032298 |                     "%s/emby/Videos/%s/%s/Subtitles/%s/Stream.srt"
+032299 |                     % (
+032300 |                         server.rstrip("/"),
+032301 |                         item_id,
+032302 |                         media_source_id,
+032303 |                         int(stream_index),
+032304 |                     )
+032305 |                 )
+032306 | 
+032307 |             response = None
+032308 |             last_error = None
+032309 |             headers = {
+032310 |                 "X-Emby-Token": token,
+032311 |                 "X-Emby-Authorization": AUTH_HEADER,
+032312 |             }
+032313 |             query = {
+032314 |                 "StartPositionTicks": str(base_ticks),
+032315 |                 "CopyTimestamps": "false",
+032316 |             }
+032317 |             for url in urls:
+032318 |                 try:
+032319 |                     candidate = requests.get(
+032320 |                         url,
+032321 |                         params=query,
+032322 |                         headers=headers,
+032323 |                         timeout=15,
+032324 |                         verify=True,
+032325 |                     )
+032326 |                     if candidate.status_code == 200:
+032327 |                         response = candidate
+032328 |                         break
+032329 |                     last_error = RuntimeError(
+032330 |                         "HTTP %s vom Untertitel-Endpunkt"
+032331 |                         % candidate.status_code
+032332 |                     )
+032333 |                 except Exception as error:
+032334 |                     last_error = error
+032335 | 
+032336 |             if response is None:
+032337 |                 raise last_error or RuntimeError("Untertitel-Download fehlgeschlagen")
+032338 | 
+032339 |             raw = response.content or b""
+032340 |             decoded = None
+032341 |             for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin-1"):
+032342 |                 try:
+032343 |                     decoded = raw.decode(encoding)
+032344 |                     break
+032345 |                 except Exception:
+032346 |                     pass
+032347 |             if decoded is None:
+032348 |                 raise RuntimeError("Untertitel-Zeichensatz konnte nicht gelesen werden")
+032349 | 
+032350 |             raw_cues = list(self.embyflow_text_subtitle_parse(decoded) or [])
+032351 |             if not raw_cues:
+032352 |                 raise RuntimeError("Untertiteldatei enthält keine Cues")
+032353 | 
+032354 |             raw_first = int(raw_cues[0][0])
+032355 |             result["raw_first_ms"] = raw_first
+032356 | 
+032357 |             # Some Emby versions return the offset subtitle stream rebased to
+032358 |             # zero, others preserve source timestamps. Detect both without a
+032359 |             # fixed magic offset. A source-timestamp response will have its
+032360 |             # first remaining cue near the requested movie position; a rebased
+032361 |             # response starts near zero.
+032362 |             absolute = False
+032363 |             if base_ms >= 5000:
+032364 |                 threshold = max(5000, int(base_ms // 2))
+032365 |                 if raw_first >= threshold:
+032366 |                     absolute = True
+032367 | 
+032368 |             cues = []
+032369 |             if absolute:
+032370 |                 result["timeline"] = "source-absolute"
+032371 |                 for start_ms, end_ms, cue_text in raw_cues:
+032372 |                     rel_start = int(start_ms) - base_ms
+032373 |                     rel_end = int(end_ms) - base_ms
+032374 |                     if rel_end <= 0:
+032375 |                         continue
+032376 |                     cues.append((max(0, rel_start), max(1, rel_end), cue_text))
+032377 |             else:
+032378 |                 result["timeline"] = "offset-relative"
+032379 |                 cues = [
+032380 |                     (int(start_ms), int(end_ms), cue_text)
+032381 |                     for start_ms, end_ms, cue_text in raw_cues
+032382 |                     if int(end_ms) > 0
+032383 |                 ]
+032384 | 
+032385 |             cues.sort(key=lambda cue: (cue[0], cue[1]))
+032386 |             if not cues:
+032387 |                 raise RuntimeError("Nach Offset-Normalisierung keine Cues")
+032388 | 
+032389 |             result["cues"] = cues
+032390 |             result["ok"] = True
+032391 | 
+032392 |         except Exception as error:
+032393 |             result["error"] = "%s: %s" % (
+032394 |                 type(error).__name__,
+032395 |                 str(error).replace("\n", " ")[:300],
+032396 |             )
+032397 | 
+032398 |         if int(getattr(self, "embyflow_text_subtitle_generation", -1)) == int(generation):
+032399 |             self.embyflow_text_subtitle_pending_result = result
+032400 | 
+032401 |     def embyflow_v12_start_by_index(
+032402 |         self,
+032403 |         stream_index,
+032404 |         selected_position,
+032405 |         label,
+032406 |         base_ticks,
+032407 |         manual=True,
+032408 |     ):
+032409 |         self.embyflow_v14_ut_state_log(
+032410 |             "start_by_index",
+032411 |             "stream_index=%r selected_position=%r base_ticks=%r label=%r manual=%r"
+032412 |             % (
+032413 |                 stream_index,
+032414 |                 selected_position,
+032415 |                 base_ticks,
+032416 |                 label,
+032417 |                 manual,
+032418 |             ),
+032419 |         )
+032420 |         self.embyflow_text_subtitle_runtime()
+032421 |         stream_index = int(stream_index)
+032422 |         base_ticks = max(0, int(base_ticks or 0))
+032423 | 
+032424 |         playback_info = getattr(self, "playback_info", None) or {}
+032425 |         server = str(
+032426 |             playback_info.get("server")
+032427 |             or EMBY_AUTH_CACHE.get("server")
+032428 |             or EMBY_SERVER
+032429 |             or ""
+032430 |         ).rstrip("/")
+032431 |         token = str(
+032432 |             playback_info.get("token")
+032433 |             or EMBY_AUTH_CACHE.get("token")
+032434 |             or ""
+032435 |         )
+032436 |         if not server or not token:
+032437 |             try:
+032438 |                 auth_server, auth_token, _user_id = get_emby_auth()
+032439 |                 server = str(auth_server or server or "").rstrip("/")
+032440 |                 token = str(auth_token or token or "")
+032441 |             except Exception:
+032442 |                 pass
+032443 | 
+032444 |         item_id = str(getattr(self, "item_id", "") or "")
+032445 |         media_source_id = str(getattr(self, "media_source_id", "") or "")
+032446 |         if not media_source_id:
+032447 |             item = getattr(self, "item", None) or {}
+032448 |             sources = item.get("MediaSources") or item.get("media_sources") or []
+032449 |             if sources:
+032450 |                 media_source_id = str(
+032451 |                     sources[0].get("Id") or sources[0].get("id") or ""
+032452 |                 )
+032453 |         if not server or not token or not item_id or not media_source_id:
+032454 |             raise RuntimeError("Emby-Untertitelkontext unvollständig")
+032455 | 
+032456 |         try:
+032457 |             if getattr(self, "embyflow_selected_subtitle", None) is not None:
+032458 |                 self.embyflow_set_embedded_subtitle(None)
+032459 |         except Exception:
+032460 |             pass
+032461 | 
+032462 |         generation = int(
+032463 |             getattr(self, "embyflow_text_subtitle_generation", 0) or 0
+032464 |         ) + 1
+032465 |         self.embyflow_text_subtitle_generation = generation
+032466 |         self.embyflow_text_subtitle_enabled = True
+032467 |         self.embyflow_text_subtitle_loading = True
+032468 |         self.embyflow_text_subtitle_cues = []
+032469 |         self.embyflow_text_subtitle_starts = []
+032470 |         self.embyflow_text_subtitle_pending_result = None
+032471 |         self.embyflow_text_subtitle_last_text = ""
+032472 |         self.embyflow_text_subtitle_stream_index = stream_index
+032473 |         self.embyflow_text_subtitle_label = str(label or "Untertitel")
+032474 |         self.embyflow_text_subtitle_base_ticks = int(base_ticks)
+032475 |         self.embyflow_active_subtitle_index = int(selected_position)
+032476 |         self.embyflow_server_subtitle_stream_index = None
+032477 |         if manual:
+032478 |             self.embyflow_manual_subtitle_selected = True
+032479 | 
+032480 |         window = self.embyflow_text_subtitle_overlay_get(True)
+032481 |         try:
+032482 |             window.set_subtitle_text("")
+032483 |             window.hide()
+032484 |         except Exception:
+032485 |             pass
+032486 | 
+032487 |         import threading
+032488 |         worker = threading.Thread(
+032489 |             target=self.embyflow_v12_fetch_worker,
+032490 |             args=(
+032491 |                 generation,
+032492 |                 server,
+032493 |                 token,
+032494 |                 item_id,
+032495 |                 media_source_id,
+032496 |                 stream_index,
+032497 |                 base_ticks,
+032498 |             ),
+032499 |             name="EmbyFlowTextSubtitleV12",
+032500 |         )
+032501 |         worker.daemon = True
+032502 |         worker.start()
+032503 | 
+032504 |         try:
+032505 |             self.embyflow_text_subtitle_timer.start(120, False)
+032506 |         except Exception:
+032507 |             pass
+032508 |         return True
+032509 | 
+032510 |     def embyflow_text_subtitle_start(
+032511 |         self,
+032512 |         stream,
+032513 |         selected_position,
+032514 |         label="Untertitel",
+032515 |         manual=True,
+032516 |     ):
+032517 |         self.embyflow_v14_ut_state_log(
+032518 |             "text_start",
+032519 |             "stream_index=%r selected_position=%r label=%r manual=%r"
+032520 |             % (
+032521 |                 stream.get("Index") if isinstance(stream, dict) else None,
+032522 |                 selected_position,
+032523 |                 label,
+032524 |                 manual,
+032525 |             ),
+032526 |         )
+032527 |         if not self.embyflow_text_subtitle_is_text(stream):
+032528 |             raise RuntimeError("Diese Spur ist kein Text-Untertitel")
+032529 |         try:
+032530 |             stream_index = int(stream.get("Index"))
+032531 |         except Exception:
+032532 |             raise RuntimeError("Emby-Untertitelindex fehlt")
+032533 |         base_ticks = int(self.embyflow_v10_content_position_ticks() or 0)
+032534 |         return self.embyflow_v12_start_by_index(
+032535 |             stream_index,
+032536 |             selected_position,
+032537 |             label,
+032538 |             base_ticks,
+032539 |             manual=manual,
+032540 |         )
+032541 | 
+032542 |     def embyflow_v12_subtitle_off(self):
+032543 |         self.embyflow_manual_subtitle_selected = True
+032544 |         try:
+032545 |             self.embyflow_text_subtitle_stop(keep_manual=True)
+032546 |         except Exception:
+032547 |             pass
+032548 |         try:
+032549 |             self.embyflow_set_embedded_subtitle(None)
+032550 |         except Exception:
+032551 |             pass
+032552 |         self.embyflow_server_subtitle_stream_index = None
+032553 |         self.embyflow_active_subtitle_index = None
+032554 |         self.embyflow_text_subtitle_base_ticks = 0
+032555 |         try:
+032556 |             self["state_label"].setText("Untertitel: Aus")
+032557 |             self.show_overlay()
+032558 |         except Exception:
+032559 |             pass
+032560 |         return True
+032561 | 
+032562 |     def embyflow_v10_subtitle_off(self):
+032563 |         target_ticks = self.embyflow_v10_content_position_ticks()
+032564 |         self.embyflow_manual_subtitle_selected = True
+032565 |         try:
+032566 |             self.embyflow_text_subtitle_stop(keep_manual=True)
+032567 |         except Exception:
+032568 |             pass
+032569 |         try:
+032570 |             self.embyflow_set_embedded_subtitle(None)
+032571 |         except Exception:
+032572 |             pass
+032573 |         self.embyflow_server_subtitle_stream_index = None
+032574 |         self.embyflow_active_subtitle_index = None
+032575 | 
+032576 |         if not self.embyflow_v10_restart_stream(
+032577 |             target_ticks,
+032578 |             None,
+032579 |             "Aus",
+032580 |         ):
+032581 |             raise RuntimeError("Untertitel-Aus-Stream konnte nicht gestartet werden")
+032582 | 
+032583 |         try:
+032584 |             self["state_label"].setText("Untertitel: Aus")
+032585 |             self.show_overlay()
+032586 |         except Exception:
+032587 |             pass
+032588 |         return True
+032589 | 
+032590 |     # EMBYFLOW_UT_SYNC_DIAG_V13
+032591 |     def embyflow_v13_ut_diag(self, event="tick", extra=""):
+032592 |         try:
+032593 |             now_mono = float(time.monotonic())
+032594 |         except Exception:
+032595 |             now_mono = 0.0
+032596 | 
+032597 |         if event == "tick":
+032598 |             last = float(
+032599 |                 getattr(self, "_embyflow_v13_diag_last_mono", 0.0) or 0.0
+032600 |             )
+032601 |             if now_mono and last and (now_mono - last) < 0.50:
+032602 |                 return
+032603 |             self._embyflow_v13_diag_last_mono = now_mono
+032604 | 
+032605 |         native_ticks = None
+032606 |         native_raw = None
+032607 |         try:
+032608 |             service = self.session.nav.getCurrentService()
+032609 |             seek = service and service.seek()
+032610 |             pos = seek and seek.getPlayPosition()
+032611 |             native_raw = repr(pos)
+032612 |             if (
+032613 |                 isinstance(pos, (tuple, list))
+032614 |                 and len(pos) >= 2
+032615 |                 and int(pos[0]) == 0
+032616 |             ):
+032617 |                 native_ticks = max(
+032618 |                     0,
+032619 |                     int((int(pos[1]) * 10000000) // 90000),
+032620 |                 )
+032621 |         except Exception as error:
+032622 |             native_raw = "ERR:%s" % str(error)[:80]
+032623 | 
+032624 |         try:
+032625 |             legacy_ticks = int(self.current_position_ticks() or 0)
+032626 |         except Exception:
+032627 |             legacy_ticks = -1
+032628 | 
+032629 |         try:
+032630 |             content_ticks = int(
+032631 |                 self.embyflow_v10_content_position_ticks() or 0
+032632 |             )
+032633 |         except Exception:
+032634 |             content_ticks = -1
+032635 | 
+032636 |         try:
+032637 |             text_base = int(
+032638 |                 getattr(self, "embyflow_text_subtitle_base_ticks", 0) or 0
+032639 |             )
+032640 |         except Exception:
+032641 |             text_base = 0
+032642 | 
+032643 |         try:
+032644 |             stream_base = int(
+032645 |                 getattr(self, "embyflow_v10_stream_base_ticks", 0) or 0
+032646 |             )
+032647 |         except Exception:
+032648 |             stream_base = 0
+032649 | 
+032650 |         relative_ms = -1
+032651 |         if content_ticks >= 0:
+032652 |             relative_ms = max(
+032653 |                 0,
+032654 |                 int((content_ticks - text_base) // 10000),
+032655 |             )
+032656 | 
+032657 |         cues = list(
+032658 |             getattr(self, "embyflow_text_subtitle_cues", []) or []
+032659 |         )
+032660 |         starts = list(
+032661 |             getattr(self, "embyflow_text_subtitle_starts", []) or []
+032662 |         )
+032663 | 
+032664 |         cue_index = -1
+032665 |         cue_start = -1
+032666 |         cue_end = -1
+032667 |         next_start = -1
+032668 |         cue_text = ""
+032669 |         try:
+032670 |             import bisect
+032671 |             if starts and relative_ms >= 0:
+032672 |                 cue_index = bisect.bisect_right(starts, relative_ms) - 1
+032673 |                 if 0 <= cue_index < len(cues):
+032674 |                     cue = cues[cue_index]
+032675 |                     cue_start = int(cue[0])
+032676 |                     cue_end = int(cue[1])
+032677 |                     cue_text = str(cue[2] or "")
+032678 |                 ni = cue_index + 1
+032679 |                 if 0 <= ni < len(cues):
+032680 |                     next_start = int(cues[ni][0])
+032681 |         except Exception:
+032682 |             pass
+032683 | 
+032684 |         cue_text = cue_text.replace("\n", " ")[:90]
+032685 |         last_text = str(
+032686 |             getattr(self, "embyflow_text_subtitle_last_text", "") or ""
+032687 |         ).replace("\n", " ")[:90]
+032688 | 
+032689 |         native_ms = int(native_ticks // 10000) if native_ticks is not None else -1
+032690 |         legacy_ms = int(legacy_ticks // 10000) if legacy_ticks >= 0 else -1
+032691 |         content_ms = int(content_ticks // 10000) if content_ticks >= 0 else -1
+032692 |         text_base_ms = int(text_base // 10000)
+032693 |         stream_base_ms = int(stream_base // 10000)
+032694 | 
+032695 |         delta_current_to_cue = (
+032696 |             relative_ms - cue_start
+032697 |             if cue_start >= 0 and relative_ms >= 0
+032698 |             else -999999
+032699 |         )
+032700 |         delta_to_next = (
+032701 |             next_start - relative_ms
+032702 |             if next_start >= 0 and relative_ms >= 0
+032703 |             else -999999
+032704 |         )
+032705 | 
+032706 |         try:
+032707 |             with open(
+032708 |                 "/tmp/embyflow_ut_sync_v13.log",
+032709 |                 "a",
+032710 |                 encoding="utf-8",
+032711 |             ) as log:
+032712 |                 log.write(
+032713 |                     "%s event=%s mono=%.3f "
+032714 |                     "native_ms=%s legacy_ms=%s content_ms=%s "
+032715 |                     "stream_base_ms=%s text_base_ms=%s rel_ms=%s "
+032716 |                     "cue_i=%s cue_start=%s cue_end=%s "
+032717 |                     "delta_in_cue=%s next_start=%s delta_next=%s "
+032718 |                     "loading=%s enabled=%s "
+032719 |                     "cue=%r shown=%r native_raw=%s extra=%s\\n"
+032720 |                     % (
+032721 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+032722 |                         str(event),
+032723 |                         now_mono,
+032724 |                         native_ms,
+032725 |                         legacy_ms,
+032726 |                         content_ms,
+032727 |                         stream_base_ms,
+032728 |                         text_base_ms,
+032729 |                         relative_ms,
+032730 |                         cue_index,
+032731 |                         cue_start,
+032732 |                         cue_end,
+032733 |                         delta_current_to_cue,
+032734 |                         next_start,
+032735 |                         delta_to_next,
+032736 |                         int(bool(getattr(self, "embyflow_text_subtitle_loading", False))),
+032737 |                         int(bool(getattr(self, "embyflow_text_subtitle_enabled", False))),
+032738 |                         cue_text,
+032739 |                         last_text,
+032740 |                         str(native_raw).replace("\n", " ")[:120],
+032741 |                         str(extra).replace("\n", " ")[:240],
+032742 |                     )
+032743 |                 )
+032744 |         except Exception:
+032745 |             pass
+032746 | 
+032747 |     def embyflow_text_subtitle_tick(self):
+032748 |         self.embyflow_v13_ut_diag("tick")
+032749 |         if not bool(getattr(self, "embyflow_text_subtitle_enabled", False)):
+032750 |             try:
+032751 |                 self.embyflow_text_subtitle_timer.stop()
+032752 |             except Exception:
+032753 |                 pass
+032754 |             return
+032755 | 
+032756 |         pending = getattr(self, "embyflow_text_subtitle_pending_result", None)
+032757 |         if pending is not None:
+032758 |             self.embyflow_text_subtitle_pending_result = None
+032759 |             if int(pending.get("generation", -1)) == int(
+032760 |                 getattr(self, "embyflow_text_subtitle_generation", -2)
+032761 |             ):
+032762 |                 if pending.get("ok"):
+032763 |                     cues = list(pending.get("cues") or [])
+032764 |                     self.embyflow_text_subtitle_cues = cues
+032765 |                     self.embyflow_text_subtitle_starts = [cue[0] for cue in cues]
+032766 |                     self.embyflow_text_subtitle_base_ticks = int(
+032767 |                         pending.get("base_ticks", 0) or 0
+032768 |                     )
+032769 |                     self.embyflow_text_subtitle_loading = False
+032770 |                     try:
+032771 |                         with open(
+032772 |                             "/tmp/embyflow_text_subtitle_v12_timeline.log",
+032773 |                             "a",
+032774 |                             encoding="utf-8",
+032775 |                         ) as log:
+032776 |                             log.write(
+032777 |                                 "%s base_ticks=%s raw_first_ms=%s mode=%s cues=%s\n"
+032778 |                                 % (
+032779 |                                     time.strftime("%Y-%m-%d %H:%M:%S"),
+032780 |                                     str(pending.get("base_ticks")),
+032781 |                                     str(pending.get("raw_first_ms")),
+032782 |                                     str(pending.get("timeline")),
+032783 |                                     len(cues),
+032784 |                                 )
+032785 |                             )
+032786 |                     except Exception:
+032787 |                         pass
+032788 |                     try:
+032789 |                         self["state_label"].setText(
+032790 |                             "Untertitel: %s"
+032791 |                             % str(getattr(self, "embyflow_text_subtitle_label", "Untertitel"))
+032792 |                         )
+032793 |                     except Exception:
+032794 |                         pass
+032795 |                 else:
+032796 |                     self.embyflow_text_subtitle_loading = False
+032797 |                     self.embyflow_text_subtitle_enabled = False
+032798 |                     self.embyflow_text_subtitle_cues = []
+032799 |                     self.embyflow_text_subtitle_starts = []
+032800 |                     window = self.embyflow_text_subtitle_overlay_get(False)
+032801 |                     if window is not None:
+032802 |                         try:
+032803 |                             window.set_subtitle_text("")
+032804 |                             window.hide()
+032805 |                         except Exception:
+032806 |                             pass
+032807 |                     try:
+032808 |                         with open(
+032809 |                             "/tmp/embyflow_text_subtitle_v12_error.log",
+032810 |                             "a",
+032811 |                             encoding="utf-8",
+032812 |                         ) as log:
+032813 |                             log.write(
+032814 |                                 "%s %s\n"
+032815 |                                 % (
+032816 |                                     time.strftime("%Y-%m-%d %H:%M:%S"),
+032817 |                                     str(pending.get("error") or "unbekannt")[:300],
+032818 |                                 )
+032819 |                             )
+032820 |                     except Exception:
+032821 |                         pass
+032822 |                     try:
+032823 |                         self.embyflow_text_subtitle_timer.stop()
+032824 |                     except Exception:
+032825 |                         pass
+032826 |                     return
+032827 | 
+032828 |         cues = getattr(self, "embyflow_text_subtitle_cues", None) or []
+032829 |         starts = getattr(self, "embyflow_text_subtitle_starts", None) or []
+032830 |         if not cues or not starts:
+032831 |             return
+032832 | 
+032833 |         try:
+032834 |             import bisect
+032835 |             base_ticks = int(
+032836 |                 getattr(self, "embyflow_text_subtitle_base_ticks", 0) or 0
+032837 |             )
+032838 |             content_ticks = int(self.embyflow_v10_content_position_ticks() or 0)
+032839 |             relative_ticks = max(0, int(content_ticks) - int(base_ticks))
+032840 |             now_ms = int(relative_ticks // 10000)
+032841 |             index = bisect.bisect_right(starts, now_ms) - 1
+032842 |             active = []
+032843 |             left = max(0, index - 4)
+032844 |             right = min(len(cues), index + 4)
+032845 |             for candidate in range(left, right):
+032846 |                 start_ms, end_ms, cue_text = cues[candidate]
+032847 |                 if int(start_ms) <= now_ms < int(end_ms):
+032848 |                     if cue_text not in active:
+032849 |                         active.append(cue_text)
+032850 |             text = "\n".join(active[:3])
+032851 |         except Exception:
+032852 |             text = ""
+032853 | 
+032854 |         if text == str(getattr(self, "embyflow_text_subtitle_last_text", "") or ""):
+032855 |             return
+032856 |         self.embyflow_text_subtitle_last_text = text
+032857 | 
+032858 |         window = self.embyflow_text_subtitle_overlay_get(True)
+032859 |         try:
+032860 |             window.set_subtitle_text(text)
+032861 |             if text:
+032862 |                 window.show()
+032863 |             else:
+032864 |                 window.hide()
+032865 |         except Exception:
+032866 |             pass
+032867 | 
+032868 |     def embyflow_subtitle_selection_entries(self, subtitle_list):
+032869 |         # V8 keeps the exact existing menu UI, but uses Emby's MediaStreams as
+032870 |         # the source of truth so duplicate/misaligned native lists cannot map
+032871 |         # the wrong language or forced track.
+032872 |         media_streams = self.embyflow_text_subtitle_streams()
+032873 |         native_list = list(subtitle_list or [])
+032874 |         entries = [{
+032875 |             "primary": "Untertitel aus",
+032876 |             "secondary": "",
+032877 |             "tertiary": "",
+032878 |             "active": self.embyflow_active_subtitle_index is None,
+032879 |             "payload": ("subtitle_off", None, "Aus", None),
+032880 |         }]
+032881 | 
+032882 |         for position, stream in enumerate(media_streams):
+032883 |             fallback = "Untertitel %d" % (position + 1)
+032884 |             language_value = (
+032885 |                 stream.get("Language")
+032886 |                 or stream.get("DisplayLanguage")
+032887 |                 or fallback
+032888 |             )
+032889 |             language = self.embyflow_track_language_name(
+032890 |                 language_value,
+032891 |                 fallback,
+032892 |             )
+032893 |             codec = self.embyflow_track_codec_name(stream.get("Codec"))
+032894 | 
+032895 |             flags = []
+032896 |             if stream.get("IsForced"):
+032897 |                 flags.append("Erzw.")
+032898 |             if stream.get("IsHearingImpaired"):
+032899 |                 flags.append("SDH")
+032900 |             title_text = " ".join(
+032901 |                 str(value or "")
+032902 |                 for value in (stream.get("Title"), stream.get("DisplayTitle"))
+032903 |             ).lower()
+032904 |             if ("forced" in title_text or "erzw" in title_text) and "Erzw." not in flags:
+032905 |                 flags.append("Erzw.")
+032906 |             if ("sdh" in title_text or "hearing" in title_text) and "SDH" not in flags:
+032907 |                 flags.append("SDH")
+032908 | 
+032909 |             if self.embyflow_text_subtitle_is_text(stream):
+032910 |                 action = "subtitle_text_v8"
+032911 |                 payload_value = stream
+032912 |             elif position < len(native_list):
+032913 |                 action = "subtitle_native_v8"
+032914 |                 payload_value = native_list[position]
+032915 |             else:
+032916 |                 action = "subtitle_unsupported_v8"
+032917 |                 payload_value = stream
+032918 | 
+032919 |             entries.append({
+032920 |                 "primary": language,
+032921 |                 "secondary": codec,
+032922 |                 "tertiary": "/".join(flags),
+032923 |                 "active": self.embyflow_active_subtitle_index == position,
+032924 |                 "payload": (action, payload_value, language, position),
+032925 |             })
+032926 | 
+032927 |         return entries
+032928 | 
+032929 |     def open_subtitle_selection(self):
+032930 |         try:
+032931 |             native_list = []
+032932 |             try:
+032933 |                 service = self.session.nav.getCurrentService()
+032934 |                 subtitle = service and service.subtitle()
+032935 |                 if subtitle:
+032936 |                     native_list = list(subtitle.getSubtitleList() or [])
+032937 |             except Exception:
+032938 |                 native_list = []
+032939 | 
+032940 |             entries = self.embyflow_subtitle_selection_entries(native_list)
+032941 |             if len(entries) <= 1:
+032942 |                 raise RuntimeError("Keine Untertitelspuren gefunden")
+032943 | 
+032944 |             active_index = (
+032945 |                 0
+032946 |                 if self.embyflow_active_subtitle_index is None
+032947 |                 else self.embyflow_active_subtitle_index + 1
+032948 |             )
+032949 |             self.session.openWithCallback(
+032950 |                 self.subtitle_selection_finished,
+032951 |                 EmbyFlowTrackSelectionScreen,
+032952 |                 title="Untertitel auswählen",
+032953 |                 entries=entries,
+032954 |                 active_index=active_index,
+032955 |             )
+032956 | 
+032957 |         except Exception as error:
+032958 |             self.session.open(
+032959 |                 MessageBox,
+032960 |                 "Untertitelauswahl nicht verfügbar: %s" % str(error),
+032961 |                 MessageBox.TYPE_INFO,
+032962 |                 timeout=4,
+032963 |             )
+032964 | 
+032965 |     # EMBYFLOW_SUBTITLE_WINDOW_V2
+032966 |     def embyflow_get_subtitle_window(self):
+032967 |         window = getattr(self, "embyflow_subtitle_window", None)
+032968 | 
+032969 |         if window is not None and getattr(window, "instance", None) is not None:
+032970 |             return window
+032971 | 
+032972 |         if SubtitleDisplay is None:
+032973 |             raise RuntimeError("Screens.SubtitleDisplay ist nicht verfügbar")
+032974 | 
+032975 |         window = self.session.instantiateDialog(SubtitleDisplay)
+032976 | 
+032977 |         try:
+032978 |             window.setAnimationMode(0)
+032979 |         except Exception:
+032980 |             pass
+032981 | 
+032982 |         window.hide()
+032983 |         self.embyflow_subtitle_window = window
+032984 |         return window
+032985 | 
+032986 |     def embyflow_set_embedded_subtitle(self, selected_subtitle):
+032987 |         service = self.session.nav.getCurrentService()
+032988 |         subtitle = service and service.subtitle()
+032989 | 
+032990 |         if not subtitle:
+032991 |             raise RuntimeError("service.subtitle() ist nicht verfügbar")
+032992 | 
+032993 |         window = self.embyflow_get_subtitle_window()
+032994 |         widget = getattr(window, "instance", None)
+032995 | 
+032996 |         if widget is None:
+032997 |             raise RuntimeError("SubtitleDisplay besitzt keine eWidget-Instanz")
+032998 | 
+032999 |         if selected_subtitle is None:
+033000 |             try:
+033001 |                 subtitle.disableSubtitles(widget)
+033002 |             except Exception:
+033003 |                 # Ausschalten darf auch dann als erfolgreich gelten, wenn der
+033004 |                 # Dienst aktuell keine aktive Untertitelspur mehr führt.
+033005 |                 pass
+033006 | 
+033007 |             window.hide()
+033008 |             self.embyflow_selected_subtitle = None
+033009 |             return
+033010 | 
+033011 |         subtitle.enableSubtitles(widget, selected_subtitle)
+033012 |         self.embyflow_selected_subtitle = selected_subtitle
+033013 |         window.show()
+033014 | 
+033015 |     def embyflow_close_subtitle_window(self):
+033016 |         window = getattr(self, "embyflow_subtitle_window", None)
+033017 | 
+033018 |         if window is None:
+033019 |             return
+033020 | 
+033021 |         try:
+033022 |             service = self.session.nav.getCurrentService()
+033023 |             subtitle = service and service.subtitle()
+033024 |             widget = getattr(window, "instance", None)
+033025 | 
+033026 |             if subtitle is not None and widget is not None:
+033027 |                 try:
+033028 |                     subtitle.disableSubtitles(widget)
+033029 |                 except Exception:
+033030 |                     pass
+033031 |         except Exception:
+033032 |             pass
+033033 | 
+033034 |         try:
+033035 |             window.hide()
+033036 |         except Exception:
+033037 |             pass
+033038 | 
+033039 |         try:
+033040 |             self.session.deleteDialog(window)
+033041 |         except Exception:
+033042 |             try:
+033043 |                 window.close()
+033044 |             except Exception:
+033045 |                 pass
+033046 | 
+033047 |         self.embyflow_subtitle_window = None
+033048 |         self.embyflow_selected_subtitle = None
+033049 | 
+033050 |     def subtitle_selection_finished(self, result):
+033051 |         if not result:
+033052 |             self.embyflow_v14_ut_state_log("selection_cancel")
+033053 |             return
+033054 |         try:
+033055 |             action, value, label, selected_index = result
+033056 |             self.embyflow_v14_ut_state_log(
+033057 |                 "selection",
+033058 |                 "action=%r label=%r selected_index=%r"
+033059 |                 % (action, label, selected_index),
+033060 |             )
+033061 | 
+033062 |             if action == "subtitle_off":
+033063 |                 self.embyflow_v12_subtitle_off()
+033064 |                 return
+033065 | 
+033066 |             if action == "subtitle_text_v8":
+033067 |                 self.embyflow_text_subtitle_start(
+033068 |                     value,
+033069 |                     selected_index,
+033070 |                     label=label,
+033071 |                     manual=True,
+033072 |                 )
+033073 |                 return
+033074 | 
+033075 |             if action == "subtitle_native_v8":
+033076 |                 self.embyflow_manual_subtitle_selected = True
+033077 |                 self.embyflow_text_subtitle_stop(keep_manual=True)
+033078 |                 self.embyflow_server_subtitle_stream_index = None
+033079 |                 self.embyflow_set_embedded_subtitle(value)
+033080 |                 self.embyflow_active_subtitle_index = selected_index
+033081 |                 self["state_label"].setText("Untertitel: %s" % str(label))
+033082 |                 self.show_overlay()
+033083 |                 return
+033084 | 
+033085 |             if action == "subtitle_unsupported_v8":
+033086 |                 self.session.open(
+033087 |                     MessageBox,
+033088 |                     "Diese Untertitelspur ist auf diesem Receiver kein "
+033089 |                     "Text-Untertitel und steht nicht als native Spur zur Verfügung.",
+033090 |                     MessageBox.TYPE_INFO,
+033091 |                     timeout=5,
+033092 |                 )
+033093 |                 return
+033094 |         except Exception as error:
+033095 |             try:
+033096 |                 self.session.open(
+033097 |                     MessageBox,
+033098 |                     "Untertitel konnten nicht gewechselt werden: %s" % str(error),
+033099 |                     MessageBox.TYPE_ERROR,
+033100 |                     timeout=4,
+033101 |                 )
+033102 |             except Exception:
+033103 |                 pass
+033104 | 
+033105 |     def player_poster_source_id(self):
+033106 |         item_type = str(self.item.get("Type") or "")
+033107 | 
+033108 |         if item_type == "Episode":
+033109 |             return str(
+033110 |                 self.item.get("SeriesId")
+033111 |                 or self.item.get("series_id")
+033112 |                 or self.item_id
+033113 |                 or ""
+033114 |             ).strip()
+033115 | 
+033116 |         return str(self.item_id or "").strip()
+033117 | 
+033118 |     def load_player_poster_async(self):
+033119 |         if self.player_poster_closed or not requests or ePicLoad is None:
+033120 |             return
+033121 | 
+033122 |         source_id = self.player_poster_source_id()
+033123 | 
+033124 |         if not source_id:
+033125 |             return
+033126 | 
+033127 |         cache_dir = CACHE_DIR + "/player"
+033128 |         cache_path = cache_dir + "/%s_primary_v1.jpg" % source_id
+033129 |         self.player_poster_poll_count = 0
+033130 |         self.player_poster_failed = False
+033131 | 
+033132 |         if _grid_cache_file_valid(cache_path):
+033133 |             self.player_poster_ready_path = cache_path
+033134 |             self.decode_player_poster(cache_path)
+033135 |             return
+033136 | 
+033137 |         try:
+033138 |             import threading
+033139 | 
+033140 |             def worker():
+033141 |                 temporary = cache_path + ".download"
+033142 | 
+033143 |                 try:
+033144 |                     server, token, user_id = get_emby_auth()
+033145 |                     server = str(server or "").rstrip("/")
+033146 |                     token = str(token or "")
+033147 | 
+033148 |                     if not server or not token:
+033149 |                         raise RuntimeError("Keine Emby-Authentifizierung")
+033150 | 
+033151 |                     ensure_dir(cache_dir)
+033152 | 
+033153 |                     url = (
+033154 |                         "%s/Items/%s/Images/Primary"
+033155 |                         "?maxWidth=340&maxHeight=510&quality=90&api_key=%s"
+033156 |                     ) % (server, source_id, token)
+033157 | 
+033158 |                     response = embyflow_http_get(
+033159 |                         url,
+033160 |                         timeout=7,
+033161 |                         verify=True,
+033162 |                     )
+033163 | 
+033164 |                     content_type = str(
+033165 |                         response.headers.get("Content-Type", "")
+033166 |                         if hasattr(response, "headers")
+033167 |                         else ""
+033168 |                     )
+033169 | 
+033170 |                     if (
+033171 |                         response.status_code != 200
+033172 |                         or not response.content
+033173 |                         or len(response.content) <= 500
+033174 |                         or (
+033175 |                             content_type
+033176 |                             and not content_type.startswith("image/")
+033177 |                         )
+033178 |                     ):
+033179 |                         raise RuntimeError(
+033180 |                             "Poster HTTP %s" % response.status_code
+
+===== SOURCE 41080-41830 =====
+041080 |     try:
+041081 |         position = int(position)
+041082 |     except Exception:
+041083 |         position = -1
+041084 | 
+041085 |     if 0 <= position < len(streams):
+041086 |         return streams[position]
+041087 | 
+041088 |     return None
+041089 | 
+041090 | 
+041091 | def _embyflow_srt_v2_language(self, stream, position):
+041092 |     fallback = "Untertitel %d" % (int(position) + 1)
+041093 | 
+041094 |     try:
+041095 |         value = (
+041096 |             stream.get("Language")
+041097 |             or stream.get("DisplayLanguage")
+041098 |             or fallback
+041099 |         )
+041100 |         return self.embyflow_track_language_name(value, fallback)
+041101 |     except Exception:
+041102 |         return fallback
+041103 | 
+041104 | 
+041105 | def _embyflow_srt_v2_open_selection(self):
+041106 |     try:
+041107 |         streams = _embyflow_srt_v2_streams(self)
+041108 | 
+041109 |         entries = [{
+041110 |             "primary": "Untertitel aus",
+041111 |             "secondary": "",
+041112 |             "tertiary": "",
+041113 |             "active": self.embyflow_active_subtitle_index is None,
+041114 |             "payload": ("subtitle_off", None, "Aus", None),
+041115 |         }]
+041116 | 
+041117 |         for position, stream in enumerate(streams):
+041118 |             if not _embyflow_srt_v2_is_text_stream(stream):
+041119 |                 continue
+041120 | 
+041121 |             language = _embyflow_srt_v2_language(
+041122 |                 self,
+041123 |                 stream,
+041124 |                 position,
+041125 |             )
+041126 | 
+041127 |             try:
+041128 |                 codec = self.embyflow_track_codec_name(
+041129 |                     stream.get("Codec")
+041130 |                 )
+041131 |             except Exception:
+041132 |                 codec = str(stream.get("Codec") or "SRT").upper()
+041133 | 
+041134 |             flags = []
+041135 |             title_text = " ".join((
+041136 |                 str(stream.get("Title") or ""),
+041137 |                 str(stream.get("DisplayTitle") or ""),
+041138 |             )).lower()
+041139 | 
+041140 |             if stream.get("IsForced") or "forced" in title_text or "erzw" in title_text:
+041141 |                 flags.append("Erzw.")
+041142 | 
+041143 |             if stream.get("IsHearingImpaired") or "sdh" in title_text or "hearing" in title_text:
+041144 |                 flags.append("SDH")
+041145 | 
+041146 |             entries.append({
+041147 |                 "primary": language,
+041148 |                 "secondary": codec or "SRT",
+041149 |                 "tertiary": "/".join(flags),
+041150 |                 "active": self.embyflow_active_subtitle_index == position,
+041151 |                 "payload": ("subtitle", None, language, position),
+041152 |             })
+041153 | 
+041154 |         if len(entries) == 1:
+041155 |             raise RuntimeError(
+041156 |                 "Keine unterstützten Textuntertitel gefunden"
+041157 |             )
+041158 | 
+041159 |         active_index = 0
+041160 |         for index, entry in enumerate(entries):
+041161 |             if entry.get("active"):
+041162 |                 active_index = index
+041163 |                 break
+041164 | 
+041165 |         self.session.openWithCallback(
+041166 |             self.subtitle_selection_finished,
+041167 |             EmbyFlowTrackSelectionScreen,
+041168 |             title="Untertitel auswählen",
+041169 |             entries=entries,
+041170 |             active_index=active_index,
+041171 |         )
+041172 | 
+041173 |     except Exception as error:
+041174 |         self.session.open(
+041175 |             MessageBox,
+041176 |             "Untertitelauswahl nicht verfügbar: %s" % str(error),
+041177 |             MessageBox.TYPE_INFO,
+041178 |             timeout=4,
+041179 |         )
+041180 | 
+041181 | 
+041182 | def _embyflow_srt_v2_timestamp_ms(value):
+041183 |     match = re.match(
+041184 |         r"^\s*(?:(\d+):)?(\d{1,2}):(\d{2})[,.](\d{1,3})\s*$",
+041185 |         str(value or ""),
+041186 |     )
+041187 | 
+041188 |     if not match:
+041189 |         raise ValueError("Ungültiger SRT-Zeitstempel: %s" % value)
+041190 | 
+041191 |     hours = int(match.group(1) or 0)
+041192 |     minutes = int(match.group(2) or 0)
+041193 |     seconds = int(match.group(3) or 0)
+041194 |     milliseconds_text = str(match.group(4) or "0")[:3].ljust(3, "0")
+041195 |     milliseconds = int(milliseconds_text)
+041196 | 
+041197 |     return (
+041198 |         ((hours * 60 + minutes) * 60 + seconds) * 1000
+041199 |         + milliseconds
+041200 |     )
+041201 | 
+041202 | 
+041203 | def _embyflow_srt_v2_clean_text(value):
+041204 |     text = str(value or "").replace("\x00", "")
+041205 |     text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+041206 |     text = re.sub(r"\{\\[^}]+\}", "", text)
+041207 |     text = re.sub(r"<[^>]+>", "", text)
+041208 | 
+041209 |     try:
+041210 |         import html
+041211 |         text = html.unescape(text)
+041212 |     except Exception:
+041213 |         pass
+041214 | 
+041215 |     lines = []
+041216 |     for line in text.split("\n"):
+041217 |         cleaned = re.sub(r"[ \t]+", " ", line).strip()
+041218 |         if cleaned:
+041219 |             lines.append(cleaned)
+041220 | 
+041221 |     return "\n".join(lines)
+041222 | 
+041223 | 
+041224 | def _embyflow_srt_v2_parse(text):
+041225 |     normalized = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+041226 |     normalized = normalized.lstrip("\ufeff")
+041227 |     cues = []
+041228 | 
+041229 |     for block in re.split(r"\n\s*\n", normalized.strip()):
+041230 |         lines = block.split("\n")
+041231 |         timing_index = None
+041232 | 
+041233 |         for index, line in enumerate(lines):
+041234 |             if "-->" in line:
+041235 |                 timing_index = index
+041236 |                 break
+041237 | 
+041238 |         if timing_index is None:
+041239 |             continue
+041240 | 
+041241 |         timing = lines[timing_index].split("-->", 1)
+041242 |         if len(timing) != 2:
+041243 |             continue
+041244 | 
+041245 |         right = timing[1].strip().split()[0]
+041246 | 
+041247 |         try:
+041248 |             start_ms = _embyflow_srt_v2_timestamp_ms(timing[0])
+041249 |             end_ms = _embyflow_srt_v2_timestamp_ms(right)
+041250 |         except Exception:
+041251 |             continue
+041252 | 
+041253 |         if end_ms <= start_ms:
+041254 |             continue
+041255 | 
+041256 |         cue_text = _embyflow_srt_v2_clean_text(
+041257 |             "\n".join(lines[timing_index + 1:])
+041258 |         )
+041259 | 
+041260 |         if cue_text:
+041261 |             cues.append((start_ms, end_ms, cue_text))
+041262 | 
+041263 |     cues.sort(key=lambda cue: (cue[0], cue[1]))
+041264 | 
+041265 |     if not cues:
+041266 |         raise RuntimeError("SRT-Datei enthält keine lesbaren Einträge")
+041267 | 
+041268 |     return cues
+041269 | 
+041270 | 
+041271 | def _embyflow_srt_v2_urls(self, stream):
+041272 |     server = str(
+041273 |         (self.playback_info or {}).get("server")
+041274 |         or EMBY_AUTH_CACHE.get("server")
+041275 |         or EMBY_SERVER
+041276 |         or ""
+041277 |     ).rstrip("/")
+041278 | 
+041279 |     token = str(
+041280 |         (self.playback_info or {}).get("token")
+041281 |         or EMBY_AUTH_CACHE.get("token")
+041282 |         or ""
+041283 |     )
+041284 | 
+041285 |     item_id = str(self.item_id or "")
+041286 |     source_id = str(self.media_source_id or "")
+041287 |     stream_index = int(stream.get("Index"))
+041288 | 
+041289 |     if not server or not token or not item_id or not source_id:
+041290 |         raise RuntimeError(
+041291 |             "Emby-Zugangsdaten oder Medien-ID fehlen"
+041292 |         )
+041293 | 
+041294 |     roots = [server]
+041295 |     if not server.lower().endswith("/emby"):
+041296 |         roots.insert(0, server + "/emby")
+041297 | 
+041298 |     urls = []
+041299 |     for root in roots:
+041300 |         url = "%s/Items/%s/%s/Subtitles/%s/stream.srt" % (
+041301 |             root,
+041302 |             item_id,
+041303 |             source_id,
+041304 |             stream_index,
+041305 |         )
+041306 |         if url not in urls:
+041307 |             urls.append(url)
+041308 | 
+041309 |     return urls, token, stream_index
+041310 | 
+041311 | 
+041312 | def _embyflow_srt_v2_start(self, stream, label, position, announce=True):
+041313 |     if not requests:
+041314 |         raise RuntimeError("Python-Modul requests fehlt")
+041315 | 
+041316 |     if not stream or not _embyflow_srt_v2_is_text_stream(stream):
+041317 |         raise RuntimeError("Diese Untertitelspur ist kein Textuntertitel")
+041318 | 
+041319 |     urls, token, stream_index = _embyflow_srt_v2_urls(self, stream)
+041320 | 
+041321 |     self.embyflow_srt_v2_generation += 1
+041322 |     generation = self.embyflow_srt_v2_generation
+041323 | 
+041324 |     _embyflow_srt_v2_stop(self, False)
+041325 | 
+041326 |     self.embyflow_srt_v2_download_poll_count = 0
+041327 |     self.embyflow_srt_v2_loading = True
+041328 |     self["state_label"].setText(
+041329 |         "Untertitel werden geladen: %s" % str(label)
+041330 |     )
+041331 | 
+041332 |     import threading
+041333 | 
+041334 |     def worker():
+041335 |         result = {
+041336 |             "generation": generation,
+041337 |             "ok": False,
+041338 |             "error": "Untertitel konnten nicht geladen werden",
+041339 |             "cues": [],
+041340 |             "label": str(label),
+041341 |             "position": int(position),
+041342 |             "stream_index": int(stream_index),
+041343 |         }
+041344 |         errors = []
+041345 | 
+041346 |         for url in urls:
+041347 |             try:
+041348 |                 response = embyflow_http_get(
+041349 |                     url,
+041350 |                     headers={
+041351 |                         "X-Emby-Token": token,
+041352 |                         "X-Emby-Authorization": AUTH_HEADER,
+041353 |                         "Accept-Encoding": "identity",
+041354 |                     },
+041355 |                     params={"api_key": token},
+041356 |                     timeout=(5, 120),
+041357 |                     verify=True,
+041358 |                 )
+041359 | 
+041360 |                 if int(getattr(response, "status_code", 0) or 0) != 200:
+041361 |                     errors.append("HTTP %s" % getattr(response, "status_code", "?"))
+041362 |                     continue
+041363 | 
+041364 |                 raw = response.content or b""
+041365 |                 if not raw:
+041366 |                     errors.append("Leere Untertiteldatei")
+041367 |                     continue
+041368 |                 if len(raw) > 8 * 1024 * 1024:
+041369 |                     errors.append("Untertiteldatei ist größer als 8 MiB")
+041370 |                     continue
+041371 | 
+041372 |                 decoded = None
+041373 |                 for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin-1"):
+041374 |                     try:
+041375 |                         decoded = raw.decode(encoding)
+041376 |                         break
+041377 |                     except Exception:
+041378 |                         pass
+041379 | 
+041380 |                 cues = _embyflow_srt_v2_parse(decoded or "")
+041381 |                 result["ok"] = True
+041382 |                 result["error"] = ""
+041383 |                 result["cues"] = cues
+041384 |                 break
+041385 | 
+041386 |             except Exception as error:
+041387 |                 errors.append(str(error))
+041388 | 
+041389 |         if not result["ok"] and errors:
+041390 |             result["error"] = "; ".join(errors[-2:])
+041391 | 
+041392 |         if generation == getattr(self, "embyflow_srt_v2_generation", -1):
+041393 |             self.embyflow_srt_v2_download_result = result
+041394 | 
+041395 |     thread = threading.Thread(
+041396 |         target=worker,
+041397 |         name="EmbyFlowSrtV2Download",
+041398 |     )
+041399 |     thread.daemon = True
+041400 |     thread.start()
+041401 | 
+041402 |     self.embyflow_srt_v2_download_timer.start(100, False)
+041403 | 
+041404 |     if announce:
+041405 |         self.show_overlay()
+041406 | 
+041407 | 
+041408 | def _embyflow_srt_v2_poll_download(self):
+041409 |     try:
+041410 |         self.embyflow_srt_v2_download_poll_count += 1
+041411 |         result = self.embyflow_srt_v2_download_result
+041412 | 
+041413 |         if result is None:
+041414 |             if self.embyflow_srt_v2_download_poll_count < 1500:
+041415 |                 return
+041416 | 
+041417 |             self.embyflow_srt_v2_download_timer.stop()
+041418 |             self.embyflow_srt_v2_loading = False
+041419 |             self.embyflow_srt_v2_generation += 1
+041420 |             self.embyflow_srt_v2_download_result = None
+041421 | 
+041422 |             # EMBYFLOW_SUBTITLE_DOWNLOAD_TIMEOUT_V5_DIAG
+041423 |             try:
+041424 |                 with open(
+041425 |                     "/tmp/embyflow_external_subtitle_error.log",
+041426 |                     "a",
+041427 |                     encoding="utf-8",
+041428 |                 ) as log:
+041429 |                     log.write(
+041430 |                         "%s item=%s download_timeout poll=%s generation=%s\\n"
+041431 |                         % (
+041432 |                             time.strftime("%Y-%m-%d %H:%M:%S"),
+041433 |                             self.item_id,
+041434 |                             self.embyflow_srt_v2_download_poll_count,
+041435 |                             self.embyflow_srt_v2_generation,
+041436 |                         )
+041437 |                     )
+041438 |             except Exception:
+041439 |                 pass
+041440 | 
+041441 |             self.session.open(
+041442 |                 MessageBox,
+041443 |                 "Untertitel konnten nicht rechtzeitig geladen werden.",
+041444 |                 MessageBox.TYPE_ERROR,
+041445 |                 timeout=5,
+041446 |             )
+041447 |             return
+041448 | 
+041449 |         self.embyflow_srt_v2_download_timer.stop()
+041450 |         self.embyflow_srt_v2_download_result = None
+041451 |         self.embyflow_srt_v2_loading = False
+041452 | 
+041453 |         if not result.get("ok"):
+041454 |             error_text = str(result.get("error") or "Unbekannter Fehler")
+041455 | 
+041456 |             try:
+041457 |                 with embyflow_open_log(
+041458 |                     "/tmp/embyflow_external_subtitle_error.log",
+041459 |                     "a",
+041460 |                 ) as log:
+041461 |                     log.write(
+041462 |                         "%s item=%s stream=%s error=%s\n" % (
+041463 |                             time.strftime("%Y-%m-%d %H:%M:%S"),
+041464 |                             self.item_id,
+041465 |                             result.get("stream_index"),
+041466 |                             error_text,
+041467 |                         )
+041468 |                     )
+041469 |             except Exception:
+041470 |                 pass
+041471 | 
+041472 |             self.session.open(
+041473 |                 MessageBox,
+041474 |                 "Untertitel konnten nicht geladen werden: %s" % error_text,
+041475 |                 MessageBox.TYPE_ERROR,
+041476 |                 timeout=6,
+041477 |             )
+041478 |             return
+041479 | 
+041480 |         self.embyflow_srt_v2_cues = list(result.get("cues") or [])
+041481 |         self.embyflow_srt_v2_starts = [cue[0] for cue in self.embyflow_srt_v2_cues]
+041482 |         self.embyflow_srt_v2_visible_index = None
+041483 |         self.embyflow_active_subtitle_index = int(result.get("position"))
+041484 |         self.embyflow_active_subtitle_stream_index = int(result.get("stream_index"))
+041485 | 
+041486 |         sources = self.item.get("MediaSources") or self.item.get("media_sources") or []
+041487 |         if sources:
+041488 |             sources[0]["DefaultSubtitleStreamIndex"] = int(result.get("stream_index"))
+041489 | 
+041490 |         _embyflow_srt_v2_overlay(self, True)
+041491 |         self.embyflow_srt_v2_render_timer.start(100, False)
+041492 |         _embyflow_srt_v2_render_tick(self)
+041493 | 
+041494 |         self["state_label"].setText(
+041495 |             "Untertitel: %s" % str(result.get("label") or "")
+041496 |         )
+041497 |         self.show_overlay()
+041498 | 
+041499 |     except Exception as error:
+041500 |         _embyflow_srt_v2_stop(self, False)
+041501 |         self.session.open(
+041502 |             MessageBox,
+041503 |             "Untertitel konnten nicht aktiviert werden: %s" % str(error),
+041504 |             MessageBox.TYPE_ERROR,
+041505 |             timeout=6,
+041506 |         )
+041507 | 
+041508 | 
+041509 | def _embyflow_srt_v2_render_tick(self):
+041510 |     try:
+041511 |         cues = self.embyflow_srt_v2_cues
+041512 |         starts = self.embyflow_srt_v2_starts
+041513 | 
+041514 |         if not cues or not starts:
+041515 |             _embyflow_srt_v2_hide_overlay(self)
+041516 |             return
+041517 | 
+041518 |         # EMBYFLOW_UT_SYNC_V16_1_SRT_CONTENT_CLOCK
+041519 |         position_ms = int(
+041520 |             self.embyflow_v10_content_position_ticks() or 0
+041521 |         ) // 10000
+041522 | 
+041523 |         import bisect
+041524 |         index = bisect.bisect_right(starts, position_ms) - 1
+041525 |         visible_index = None
+041526 |         text = ""
+041527 | 
+041528 |         if 0 <= index < len(cues):
+041529 |             start_ms, end_ms, cue_text = cues[index]
+041530 |             if start_ms <= position_ms < end_ms:
+041531 |                 visible_index = index
+041532 |                 text = cue_text
+041533 | 
+041534 |         if visible_index == self.embyflow_srt_v2_visible_index:
+041535 |             return
+041536 | 
+041537 |         self.embyflow_srt_v2_visible_index = visible_index
+041538 |         window = _embyflow_srt_v2_overlay(self, True)
+041539 | 
+041540 |         if visible_index is None:
+041541 |             window["subtitle_text"].setText("")
+041542 |             window.hide()
+041543 |         else:
+041544 |             window["subtitle_text"].setText(text)
+041545 |             window.show()
+041546 | 
+041547 |     except Exception as error:
+041548 |         try:
+041549 |             with embyflow_open_log(
+041550 |                 "/tmp/embyflow_external_subtitle_error.log",
+041551 |                 "a",
+041552 |             ) as log:
+041553 |                 log.write(
+041554 |                     "%s item=%s render_error=%s\n" % (
+041555 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+041556 |                         self.item_id,
+041557 |                         str(error),
+041558 |                     )
+041559 |                 )
+041560 |         except Exception:
+041561 |             pass
+041562 | 
+041563 | 
+041564 | def _embyflow_srt_v2_selection_finished(self, result):
+041565 |     if not result:
+041566 |         return
+041567 | 
+041568 |     try:
+041569 |         action, _native_entry, label, position = result
+041570 | 
+041571 |         if action == "subtitle_off":
+041572 |             _embyflow_srt_v2_stop(self, True)
+041573 |             self.embyflow_active_subtitle_index = None
+041574 |             self.embyflow_active_subtitle_stream_index = None
+041575 | 
+041576 |             sources = self.item.get("MediaSources") or self.item.get("media_sources") or []
+041577 |             if sources:
+041578 |                 sources[0]["DefaultSubtitleStreamIndex"] = -1
+041579 | 
+041580 |             self["state_label"].setText("Untertitel: Aus")
+041581 |             self.show_overlay()
+041582 |             return
+041583 | 
+041584 |         if action != "subtitle":
+041585 |             return
+041586 | 
+041587 |         stream = _embyflow_srt_v2_stream_at(self, position)
+041588 |         if stream is None:
+041589 |             raise RuntimeError("Ausgewählte Emby-Untertitelspur fehlt")
+041590 | 
+041591 |         _embyflow_srt_v2_start(
+041592 |             self,
+041593 |             stream,
+041594 |             label,
+041595 |             position,
+041596 |             True,
+041597 |         )
+041598 | 
+041599 |     except Exception as error:
+041600 |         self.session.open(
+041601 |             MessageBox,
+041602 |             "Untertitel konnten nicht gewechselt werden: %s" % str(error),
+041603 |             MessageBox.TYPE_ERROR,
+041604 |             timeout=5,
+041605 |         )
+041606 | 
+041607 | 
+041608 | def _embyflow_srt_v2_auto_select(self):
+041609 |     try:
+041610 |         if self.embyflow_srt_v2_loading or self.embyflow_active_subtitle_index is not None:
+041611 |             return
+041612 | 
+041613 |         sources = self.item.get("MediaSources") or self.item.get("media_sources") or []
+041614 |         if not sources:
+041615 |             return
+041616 | 
+041617 |         desired = int(
+041618 |             sources[0].get("DefaultSubtitleStreamIndex")
+041619 |             if sources[0].get("DefaultSubtitleStreamIndex") is not None
+041620 |             else -1
+041621 |         )
+041622 | 
+041623 |         if desired < 0:
+041624 |             return
+041625 | 
+041626 |         for position, stream in enumerate(_embyflow_srt_v2_streams(self)):
+041627 |             try:
+041628 |                 stream_index = int(stream.get("Index"))
+041629 |             except Exception:
+041630 |                 continue
+041631 | 
+041632 |             if stream_index != desired or not _embyflow_srt_v2_is_text_stream(stream):
+041633 |                 continue
+041634 | 
+041635 |             _embyflow_srt_v2_start(
+041636 |                 self,
+041637 |                 stream,
+041638 |                 _embyflow_srt_v2_language(self, stream, position),
+041639 |                 position,
+041640 |                 False,
+041641 |             )
+041642 |             return
+041643 | 
+041644 |     except Exception as error:
+041645 |         try:
+041646 |             with embyflow_open_log(
+041647 |                 "/tmp/embyflow_external_subtitle_error.log",
+041648 |                 "a",
+041649 |             ) as log:
+041650 |                 log.write(
+041651 |                     "%s item=%s auto_error=%s\n" % (
+041652 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+041653 |                         self.item_id,
+041654 |                         str(error),
+041655 |                     )
+041656 |                 )
+041657 |         except Exception:
+041658 |             pass
+041659 | 
+041660 | 
+041661 | def _embyflow_srt_v2_block_native(self, selected_subtitle):
+041662 |     if selected_subtitle is None:
+041663 |         _embyflow_srt_v2_stop(self, True)
+041664 |         return
+041665 | 
+041666 |     raise RuntimeError(
+041667 |         "Native Enigma2-Untertitel sind für diesen Player deaktiviert"
+041668 |     )
+041669 | 
+041670 | 
+041671 | def _embyflow_srt_v2_close(self):
+041672 |     _embyflow_srt_v2_stop(self, True)
+041673 |     window = _embyflow_srt_v2_overlay(self, False)
+041674 | 
+041675 |     if window is not None:
+041676 |         try:
+041677 |             self.session.deleteDialog(window)
+041678 |         except Exception:
+041679 |             try:
+041680 |                 window.close()
+041681 |             except Exception:
+041682 |                 pass
+041683 | 
+041684 |     self.embyflow_srt_v2_overlay = None
+041685 | 
+041686 |     # Ein eventuell von älteren Playerpfaden erzeugtes natives Fenster
+041687 |     # nur gefahrlos schließen; enableSubtitles() wird nie aufgerufen.
+041688 |     old_window = getattr(self, "embyflow_subtitle_window", None)
+041689 |     if old_window is not None:
+041690 |         try:
+041691 |             old_window.hide()
+041692 |         except Exception:
+041693 |             pass
+041694 |         try:
+041695 |             self.session.deleteDialog(old_window)
+041696 |         except Exception:
+041697 |             try:
+041698 |                 old_window.close()
+041699 |             except Exception:
+041700 |                 pass
+041701 |         self.embyflow_subtitle_window = None
+041702 | 
+041703 |     self.embyflow_selected_subtitle = None
+041704 | 
+041705 | 
+041706 | EmbyFlowMoviePlayer.open_subtitle_selection = _embyflow_srt_v2_open_selection
+041707 | EmbyFlowMoviePlayer.subtitle_selection_finished = _embyflow_srt_v2_selection_finished
+041708 | EmbyFlowMoviePlayer.set_preferred_subtitle_track = _embyflow_srt_v2_auto_select
+041709 | EmbyFlowMoviePlayer.embyflow_close_subtitle_window = _embyflow_srt_v2_close
+041710 | EmbyFlowMoviePlayer.embyflow_set_embedded_subtitle = _embyflow_srt_v2_block_native
+041711 | EmbyFlowMoviePlayer.__init__ = _embyflow_srt_v2_init
+041712 | # EMBYFLOW_EXTERNAL_SRT_NATIVELESS_V2_END
+041713 | 
+041714 | # EMBYFLOW_SUBTITLE_DIALOG_SINGLE_OPEN_V3_START
+041715 | _EMBYFLOW_SUBTITLE_DIALOG_V3_OPEN = (
+041716 |     EmbyFlowMoviePlayer.open_subtitle_selection
+041717 | )
+041718 | 
+041719 | 
+041720 | def _embyflow_subtitle_dialog_v3_open(self):
+041721 |     now = time.time()
+041722 |     last_open = float(
+041723 |         getattr(
+041724 |             self,
+041725 |             "embyflow_subtitle_dialog_v3_last_open",
+041726 |             0.0,
+041727 |         )
+041728 |         or 0.0
+041729 |     )
+041730 | 
+041731 |     # Manche OpenATV-Keymaps melden Gelb gleichzeitig als
+041732 |     # "yellow" und "subtitleSelection". Der zweite Aufruf erzeugt
+041733 |     # sonst ein unsichtbares zweites Auswahlfenster im Dialogstapel.
+041734 |     if now - last_open < 1.5:
+041735 |         return
+041736 | 
+041737 |     self.embyflow_subtitle_dialog_v3_last_open = now
+041738 |     return _EMBYFLOW_SUBTITLE_DIALOG_V3_OPEN(self)
+041739 | 
+041740 | 
+041741 | EmbyFlowMoviePlayer.open_subtitle_selection = (
+041742 |     _embyflow_subtitle_dialog_v3_open
+041743 | )
+041744 | # EMBYFLOW_SUBTITLE_DIALOG_SINGLE_OPEN_V3_END
+041745 | 
+041746 | # EMBYFLOW_SUBTITLE_IN_PLAYER_V4_START
+041747 | # V2 nutzte für den SRT-Text einen separaten Screen-Dialog. Auf diesem
+041748 | # OpenATV-Stand kehrt dadurch beim zeitgesteuerten Ein-/Ausblenden die
+041749 | # zuvor geschlossene Untertitelauswahl aus dem Dialogstapel zurück.
+041750 | # V4 zeichnet den Text direkt im bereits geöffneten Player-Screen.
+041751 | 
+041752 | 
+041753 | def _embyflow_srt_v4_overlay(self, create=True):
+041754 |     try:
+041755 |         return self["external_subtitle_text"]
+041756 |     except Exception:
+041757 |         return None
+041758 | 
+041759 | 
+041760 | def _embyflow_srt_v4_hide_overlay(self):
+041761 |     widget = _embyflow_srt_v4_overlay(self, False)
+041762 | 
+041763 |     if widget is None:
+041764 |         return
+041765 | 
+041766 |     try:
+041767 |         widget.setText("")
+041768 |     except Exception:
+041769 |         pass
+041770 | 
+041771 |     try:
+041772 |         widget.hide()
+041773 |     except Exception:
+041774 |         pass
+041775 | 
+041776 | 
+041777 | def _embyflow_srt_v4_render_tick(self):
+041778 |     try:
+041779 |         cues = self.embyflow_srt_v2_cues
+041780 |         starts = self.embyflow_srt_v2_starts
+041781 |         widget = _embyflow_srt_v4_overlay(self, True)
+041782 | 
+041783 |         if widget is None:
+041784 |             raise RuntimeError("Player-Untertitelwidget fehlt")
+041785 | 
+041786 |         if not cues or not starts:
+041787 |             _embyflow_srt_v4_hide_overlay(self)
+041788 |             return
+041789 | 
+041790 |         # EMBYFLOW_UT_SYNC_V16_1_SRT_CONTENT_CLOCK
+041791 |         position_ms = int(
+041792 |             self.embyflow_v10_content_position_ticks() or 0
+041793 |         ) // 10000
+041794 | 
+041795 |         import bisect
+041796 |         index = bisect.bisect_right(starts, position_ms) - 1
+041797 |         visible_index = None
+041798 |         subtitle_text = ""
+041799 | 
+041800 |         if 0 <= index < len(cues):
+041801 |             start_ms, end_ms, cue_text = cues[index]
+041802 | 
+041803 |             if start_ms <= position_ms < end_ms:
+041804 |                 visible_index = index
+041805 |                 subtitle_text = cue_text
+041806 | 
+041807 |         if visible_index == self.embyflow_srt_v2_visible_index:
+041808 |             return
+041809 | 
+041810 |         self.embyflow_srt_v2_visible_index = visible_index
+041811 | 
+041812 |         if visible_index is None:
+041813 |             widget.setText("")
+041814 |             widget.hide()
+041815 |         else:
+041816 |             widget.setText(subtitle_text)
+041817 |             widget.show()
+041818 | 
+041819 |     except Exception as error:
+041820 |         try:
+041821 |             with embyflow_open_log(
+041822 |                 "/tmp/embyflow_external_subtitle_error.log",
+041823 |                 "a",
+041824 |             ) as log:
+041825 |                 log.write(
+041826 |                     "%s item=%s render_v4_error=%s\n" % (
+041827 |                         time.strftime("%Y-%m-%d %H:%M:%S"),
+041828 |                         self.item_id,
+041829 |                         str(error),
+041830 |                     )
+
+===== SOURCE 33650-33820 =====
+033650 |             desired = item.get("embyflow_selected_audio_index")
+033651 | 
+033652 |             if desired is None:
+033653 |                 media_sources = item.get("MediaSources") or []
+033654 |                 if media_sources:
+033655 |                     desired = media_sources[0].get("DefaultAudioStreamIndex")
+033656 | 
+033657 |             if desired is None:
+033658 |                 return
+033659 | 
+033660 |             media_sources = item.get("MediaSources") or []
+033661 |             media_streams = []
+033662 |             if media_sources:
+033663 |                 media_streams = media_sources[0].get("MediaStreams") or []
+033664 | 
+033665 |             emby_audio_tracks = [x for x in media_streams if x.get("Type") == "Audio"]
+033666 |             e2_track_index = 0
+033667 |             for i, track in enumerate(emby_audio_tracks):
+033668 |                 if track.get("Index") == desired:
+033669 |                     e2_track_index = i
+033670 |                     break
+033671 | 
+033672 |             service = self.session.nav.getCurrentService()
+033673 |             audio_tracks = service and service.audioTracks()
+033674 | 
+033675 |             if audio_tracks and audio_tracks.getNumberOfTracks() > e2_track_index:
+033676 |                 audio_tracks.selectTrack(e2_track_index)
+033677 |                 try:
+033678 |                     f = embyflow_open_log("/tmp/embyflow_audio_select.log", "a")
+033679 |                     f.write("OK desired_emby=%s e2_track=%s tracks=%s title=%s\n" % (
+033680 |                         desired, e2_track_index, audio_tracks.getNumberOfTracks(), self.title_text
+033681 |                     ))
+033682 |                     f.close()
+033683 |                 except:
+033684 |                     pass
+033685 |                 return
+033686 | 
+033687 |             self.audio_retry_count += 1
+033688 |             if self.audio_retry_count < 8:
+033689 |                 try:
+033690 |                     self.audio_timer.start(1000, True)
+033691 |                 except:
+033692 |                     pass
+033693 |             else:
+033694 |                 try:
+033695 |                     f = embyflow_open_log("/tmp/embyflow_audio_select.log", "a")
+033696 |                     f.write("FAILED desired_emby=%s e2_track=%s title=%s\n" % (
+033697 |                         desired, e2_track_index, self.title_text
+033698 |                     ))
+033699 |                     f.close()
+033700 |                 except:
+033701 |                     pass
+033702 |         except Exception as e:
+033703 |             try:
+033704 |                 f = embyflow_open_log("/tmp/embyflow_audio_select.log", "a")
+033705 |                 f.write("ERROR %s\n" % str(e))
+033706 |                 f.close()
+033707 |             except:
+033708 |                 pass
+033709 | 
+033710 |     def set_preferred_subtitle_track(self):
+033711 |         # EMBYFLOW_TEXT_SUBTITLE_RENDERER_V8_AUTO
+033712 |         if getattr(self, "embyflow_manual_subtitle_selected", False):
+033713 |             return
+033714 |         try:
+033715 |             item = (self.playback_info or {}).get("item") or {}
+033716 |             sources = item.get("MediaSources") or []
+033717 |             source = None
+033718 |             wanted = str(getattr(self, "media_source_id", "") or "")
+033719 |             for candidate in sources:
+033720 |                 candidate_id = str(candidate.get("Id") or candidate.get("id") or "")
+033721 |                 if wanted and candidate_id == wanted:
+033722 |                     source = candidate
+033723 |                     break
+033724 |             if source is None and sources:
+033725 |                 source = sources[0]
+033726 | 
+033727 |             desired = -1
+033728 |             if source is not None:
+033729 |                 try:
+033730 |                     desired = int(
+033731 |                         source.get("DefaultSubtitleStreamIndex")
+033732 |                         if source.get("DefaultSubtitleStreamIndex") is not None
+033733 |                         else -1
+033734 |                     )
+033735 |                 except Exception:
+033736 |                     desired = -1
+033737 | 
+033738 |             if desired >= 0:
+033739 |                 subtitle_streams = self.embyflow_text_subtitle_streams()
+033740 |                 for position, stream in enumerate(subtitle_streams):
+033741 |                     try:
+033742 |                         stream_index = int(stream.get("Index"))
+033743 |                     except Exception:
+033744 |                         continue
+033745 |                     if stream_index != desired:
+033746 |                         continue
+033747 |                     if not self.embyflow_text_subtitle_is_text(stream):
+033748 |                         break
+033749 | 
+033750 |                     already_same = (
+033751 |                         bool(getattr(self, "embyflow_text_subtitle_enabled", False))
+033752 |                         and int(getattr(self, "embyflow_text_subtitle_stream_index", -999))
+033753 |                         == stream_index
+033754 |                     )
+033755 |                     if already_same:
+033756 |                         return
+033757 | 
+033758 |                     language_value = (
+033759 |                         stream.get("Language")
+033760 |                         or stream.get("DisplayLanguage")
+033761 |                         or "Untertitel"
+033762 |                     )
+033763 |                     label = self.embyflow_track_language_name(
+033764 |                         language_value,
+033765 |                         "Untertitel",
+033766 |                     )
+033767 |                     self.embyflow_text_subtitle_start(
+033768 |                         stream,
+033769 |                         position,
+033770 |                         label=label,
+033771 |                         manual=False,
+033772 |                     )
+033773 |                     return
+033774 |         except Exception:
+033775 |             pass
+033776 | 
+033777 |         try:
+033778 |             item = (self.playback_info or {}).get("item") or {}
+033779 |             media_sources = item.get("MediaSources") or []
+033780 | 
+033781 |             desired = -1
+033782 |             media_streams = []
+033783 | 
+033784 |             if media_sources:
+033785 |                 source = media_sources[0]
+033786 |                 media_streams = source.get("MediaStreams") or []
+033787 |                 try:
+033788 |                     desired = int(
+033789 |                         source.get("DefaultSubtitleStreamIndex")
+033790 |                         if source.get("DefaultSubtitleStreamIndex") is not None
+033791 |                         else -1
+033792 |                     )
+033793 |                 except:
+033794 |                     desired = -1
+033795 | 
+033796 |             if desired < 0:
+033797 |                 return
+033798 | 
+033799 |             desired_language = ""
+033800 |             desired_title = ""
+033801 | 
+033802 |             for stream in media_streams:
+033803 |                 if (
+033804 |                     stream.get("Type") == "Subtitle"
+033805 |                     and stream.get("Index") == desired
+033806 |                 ):
+033807 |                     desired_language = str(
+033808 |                         stream.get("Language")
+033809 |                         or stream.get("DisplayLanguage")
+033810 |                         or ""
+033811 |                     ).lower()
+033812 | 
+033813 |                     desired_title = " ".join([
+033814 |                         str(stream.get("Title") or ""),
+033815 |                         str(stream.get("DisplayTitle") or ""),
+033816 |                     ]).lower()
+033817 |                     break
+033818 | 
+033819 |             service = self.session.nav.getCurrentService()
+033820 |             subtitle = service and service.subtitle()
