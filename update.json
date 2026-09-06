@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090623,
+  "build": 2026090624,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090623/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "eaabd2266087b4d1ed9cb858cd3e67985049d14de7d25f2b098c2b4c14c9a6fd",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090624/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "196e1949b48904291ce08cce99331067032d9f7ab33d7876f33b9a5ab9eb623c",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -18,6 +18,7 @@
     "Metadaten-Cache: maximale Lebensdauer 48 Stunden; ältere JSON-Cachedateien werden automatisch entfernt",
     "Server-Cache-Trennung: Metadaten- und V11-Library-Cache sind pro Emby-Server und Benutzer getrennt",
     "PUBLICCLEAN: öffentliche Builds enthalten keine fest eingebetteten lokalen Test-Zugangsdaten",
-    "Kapitelansicht V18: sechs Bildkarten wie im EmbyFlowE2-Entwurf; lokales Artwork erscheint sofort und echte Kapitelbilder werden seriell im Hintergrund ersetzt"
+    "Kapitelansicht V18: sechs Bildkarten wie im EmbyFlowE2-Entwurf; lokales Artwork erscheint sofort und echte Kapitelbilder werden seriell im Hintergrund ersetzt",
+    "Kapitelbilder V18: kein 6er-Vorladen mehr; nur das ausgewählte fehlende Kapitelbild wird erzeugt"
   ]
 }
