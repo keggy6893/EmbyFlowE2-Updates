@@ -167,7 +167,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090635
+PLUGIN_UPDATE_BUILD = 2026090636
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -84710,3 +84710,401 @@ def _embyflow_server_manager_v3_result(self, result=None):
 
 EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v3_open
 EmbyFlowConnectionWizard._embyflow_server_manager_v3_result = _embyflow_server_manager_v3_result
+
+
+# EMBYFLOW_SERVER_MANAGER_UI_V4_OVERVIEW_0636_RELEASE
+# Full-width EmbyFlow server administration matching the approved mock-up.
+class EmbyFlowServerManageScreenV4Overview(Screen):
+    skin = scale_skin("""
+    <screen name="EmbyFlowServerManageScreenV4Overview" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#030811">
+        <eLabel position="0,0" size="1920,1080" zPosition="0" backgroundColor="#030811" />
+        <eLabel text="EMBY" position="90,42" size="220,60" zPosition="30" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
+        <eLabel text="FLOW" position="300,42" size="220,60" zPosition="30" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
+        <eLabel text="SERVERVERWALTUNG" position="94,108" size="500,34" zPosition="30" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
+        <eLabel text="0636" position="1642,48" size="180,32" zPosition="30" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
+        <eLabel text="Deine Medien. Dein Weg." position="1450,88" size="372,34" zPosition="30" font="Regular;20" foregroundColor="#B7C4D2" backgroundColor="#030811" transparent="1" halign="right" />
+        <eLabel position="88,166" size="1744,3" zPosition="30" backgroundColor="#23E6E8" />
+
+        <eLabel position="84,198" size="850,680" zPosition="1" backgroundColor="#17324A" />
+        <eLabel position="87,201" size="844,674" zPosition="2" backgroundColor="#050C16" />
+        <eLabel position="962,198" size="870,680" zPosition="1" backgroundColor="#17324A" />
+        <eLabel position="965,201" size="864,674" zPosition="2" backgroundColor="#050C16" />
+
+        <eLabel position="116,238" size="780,132" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="120,242" size="772,124" zPosition="4" backgroundColor="#07111E" />
+        <eLabel position="116,386" size="780,132" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="120,390" size="772,124" zPosition="4" backgroundColor="#07111E" />
+        <eLabel position="116,534" size="780,132" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="120,538" size="772,124" zPosition="4" backgroundColor="#07111E" />
+        <eLabel position="116,682" size="780,132" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="120,686" size="772,124" zPosition="4" backgroundColor="#07111E" />
+
+        <widget name="srv_sel_0" position="116,238" size="780,132" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="srv_fill_0" position="120,242" size="772,124" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+        <widget name="srv_sel_1" position="116,386" size="780,132" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="srv_fill_1" position="120,390" size="772,124" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+        <widget name="srv_sel_2" position="116,534" size="780,132" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="srv_fill_2" position="120,538" size="772,124" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+        <widget name="srv_sel_3" position="116,682" size="780,132" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="srv_fill_3" position="120,686" size="772,124" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+
+        <eLabel text="▣" position="154,269" size="60,50" zPosition="20" font="Regular;38" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <eLabel text="▣" position="154,417" size="60,50" zPosition="20" font="Regular;38" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <eLabel text="▣" position="154,565" size="60,50" zPosition="20" font="Regular;38" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <eLabel text="▣" position="154,713" size="60,50" zPosition="20" font="Regular;38" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+
+        <widget name="srv_num_0" position="224,258" size="62,40" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_name_0" position="292,250" size="360,42" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_url_0" position="292,302" size="440,36" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_state_0" position="696,270" size="170,38" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" halign="right" />
+
+        <widget name="srv_num_1" position="224,406" size="62,40" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_name_1" position="292,398" size="360,42" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_url_1" position="292,450" size="440,36" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_state_1" position="696,418" size="170,38" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" halign="right" />
+
+        <widget name="srv_num_2" position="224,554" size="62,40" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_name_2" position="292,546" size="360,42" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_url_2" position="292,598" size="440,36" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_state_2" position="696,566" size="170,38" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" halign="right" />
+
+        <widget name="srv_num_3" position="224,702" size="62,40" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_name_3" position="292,694" size="360,42" zPosition="20" font="Bold;29" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_url_3" position="292,746" size="440,36" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <widget name="srv_state_3" position="696,714" size="170,38" zPosition="20" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" halign="right" />
+
+        <widget name="detail_title" position="1010,240" size="470,54" zPosition="20" font="Bold;36" foregroundColor="#FFFFFF" backgroundColor="#050C16" transparent="1" />
+        <widget name="detail_state" position="1484,250" size="300,42" zPosition="20" font="Bold;25" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" halign="right" />
+
+        <eLabel position="1008,314" size="770,116" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="1012,318" size="762,108" zPosition="4" backgroundColor="#07111E" />
+        <eLabel text="◎" position="1040,340" size="70,50" zPosition="20" font="Regular;38" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <eLabel text="Name:" position="1122,334" size="120,34" zPosition="20" font="Regular;21" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <eLabel text="Adresse:" position="1122,376" size="120,34" zPosition="20" font="Regular;21" foregroundColor="#A9BED3" backgroundColor="#07111E" transparent="1" />
+        <widget name="detail_name" position="1250,332" size="500,36" zPosition="20" font="Regular;23" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="detail_url" position="1250,374" size="500,36" zPosition="20" font="Regular;22" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+
+        <eLabel position="1008,470" size="770,82" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="1012,474" size="762,74" zPosition="4" backgroundColor="#07111E" />
+        <eLabel position="1008,570" size="770,82" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="1012,574" size="762,74" zPosition="4" backgroundColor="#07111E" />
+        <eLabel position="1008,670" size="770,82" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="1012,674" size="762,74" zPosition="4" backgroundColor="#07111E" />
+        <eLabel position="1008,770" size="770,82" zPosition="3" backgroundColor="#17324A" />
+        <eLabel position="1012,774" size="762,74" zPosition="4" backgroundColor="#07111E" />
+
+        <widget name="act_sel_0" position="1008,470" size="770,82" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="act_fill_0" position="1012,474" size="762,74" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+        <widget name="act_sel_1" position="1008,570" size="770,82" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="act_fill_1" position="1012,574" size="762,74" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+        <widget name="act_sel_2" position="1008,670" size="770,82" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="act_fill_2" position="1012,674" size="762,74" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+        <widget name="act_sel_3" position="1008,770" size="770,82" zPosition="8" backgroundColor="#23E6E8" transparent="0" />
+        <widget name="act_fill_3" position="1012,774" size="762,74" zPosition="9" backgroundColor="#0A2433" transparent="0" />
+
+        <widget name="action_0" position="1052,488" size="690,44" zPosition="20" font="Bold;27" foregroundColor="#FFFFFF" backgroundColor="#07111E" transparent="1" />
+        <widget name="action_1" position="1052,588" size="690,44" zPosition="20" font="Regular;27" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="action_2" position="1052,688" size="690,44" zPosition="20" font="Regular;27" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+        <widget name="action_3" position="1052,788" size="690,44" zPosition="20" font="Regular;27" foregroundColor="#EAF1F8" backgroundColor="#07111E" transparent="1" />
+
+        <eLabel position="88,920" size="1744,3" zPosition="30" backgroundColor="#FF42B5" />
+        <eLabel text="ROT  Zurück" position="90,952" size="330,38" zPosition="30" font="Regular;22" foregroundColor="#FF6B79" backgroundColor="#030811" transparent="1" />
+        <eLabel text="GRÜN / OK  Auswählen" position="470,952" size="430,38" zPosition="30" font="Regular;22" foregroundColor="#42E66B" backgroundColor="#030811" transparent="1" />
+        <widget name="nav_help" position="1160,952" size="670,38" zPosition="30" font="Regular;22" foregroundColor="#A9BED3" backgroundColor="#030811" transparent="1" halign="right" />
+    </screen>
+    """)
+
+    def __init__(self, session, server_slots, selected_index=0, active_url="", runtime_states=None):
+        Screen.__init__(self, session)
+        slots = list(server_slots or [])[:4]
+        while len(slots) < 4:
+            slots.append("")
+        self.server_slots = [str(value or "").strip().rstrip("/") for value in slots]
+        self.selected_index = max(0, min(3, int(selected_index or 0)))
+        self.active_url = str(active_url or "").strip().rstrip("/")
+        self.runtime_states = dict(runtime_states or {})
+        self.focus_area = "servers"
+        self.action_index = 0
+        self.confirming = False
+
+        for index in range(4):
+            self["srv_sel_%d" % index] = Label(" ")
+            self["srv_fill_%d" % index] = Label(" ")
+            self["srv_num_%d" % index] = Label(str(index + 1))
+            self["srv_name_%d" % index] = Label("")
+            self["srv_url_%d" % index] = Label("")
+            self["srv_state_%d" % index] = Label("")
+
+        self["detail_title"] = Label("")
+        self["detail_state"] = Label("")
+        self["detail_name"] = Label("")
+        self["detail_url"] = Label("")
+        self["nav_help"] = Label("")
+
+        for index in range(4):
+            self["act_sel_%d" % index] = Label(" ")
+            self["act_fill_%d" % index] = Label(" ")
+            self["action_%d" % index] = Label("")
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            {
+                "cancel": self.go_back,
+                "red": self.go_back,
+                "ok": self.activate,
+                "green": self.activate,
+                "up": self.move_up,
+                "down": self.move_down,
+                "left": self.move_left,
+                "right": self.move_right,
+            },
+            -1,
+        )
+
+        self.onLayoutFinish.append(self._refresh_all)
+        self._refresh_all()
+
+    def _safe_url(self, value):
+        url = str(value or "").strip()
+        try:
+            url = re.sub(
+                r"(?i)(https?://)[^/@\\s]+:[^/@\\s]+@",
+                r"\\1•••:•••@",
+                url,
+            )
+            url = re.sub(
+                r"(?i)(api_key|x-emby-token|access_token|token)=([^&\\s]+)",
+                r"\\1=•••",
+                url,
+            )
+        except Exception:
+            pass
+        if len(url) > 46:
+            url = url[:43] + "..."
+        return url
+
+    def _slot_name(self, index):
+        return "Server %d" % (int(index) + 1)
+
+    def _slot_state(self, index):
+        value = str(self.server_slots[index] or "").strip().rstrip("/")
+        if not value:
+            return ("", "#8D96A1")
+        if self.active_url and value.casefold() == self.active_url.casefold():
+            return ("● Aktiv", "#42E66B")
+        runtime = str(self.runtime_states.get(index) or "").strip().lower()
+        if runtime == "online":
+            return ("● Online", "#42E66B")
+        if runtime == "error":
+            return ("● Offline", "#FF6B79")
+        return ("● Inaktiv", "#A9BED3")
+
+    def _set_color(self, name, color):
+        try:
+            component = self[name]
+            if getattr(component, "instance", None) is not None:
+                component.instance.setForegroundColor(parseColor(color))
+        except Exception:
+            pass
+
+    def _show(self, name, visible):
+        try:
+            if visible:
+                self[name].show()
+            else:
+                self[name].hide()
+        except Exception:
+            pass
+
+    def _actions_for_selected(self):
+        configured = bool(str(self.server_slots[self.selected_index] or "").strip())
+        if self.confirming:
+            return [
+                ("keep", "Nein — Server behalten"),
+                ("delete_confirm", "Ja — Server endgültig löschen"),
+            ]
+        if configured:
+            return [
+                ("use", "▶  Server verwenden"),
+                ("edit", "✎  Server bearbeiten"),
+                ("delete", "▣  Server löschen"),
+                ("cancel", "✕  Abbrechen"),
+            ]
+        return [
+            ("edit", "＋  Server einrichten"),
+            ("cancel", "✕  Abbrechen"),
+        ]
+
+    def _refresh_server_cards(self):
+        for index in range(4):
+            configured = bool(str(self.server_slots[index] or "").strip())
+            name = self._slot_name(index)
+            if configured:
+                url_text = self._safe_url(self.server_slots[index])
+            else:
+                name += "  (nicht eingerichtet)"
+                url_text = "Kein Server hinterlegt"
+
+            state_text, state_color = self._slot_state(index)
+            self["srv_name_%d" % index].setText(name)
+            self["srv_url_%d" % index].setText(url_text)
+            self["srv_state_%d" % index].setText(state_text)
+            self._set_color("srv_state_%d" % index, state_color)
+
+            selected = index == self.selected_index
+            self._show("srv_sel_%d" % index, selected)
+            self._show("srv_fill_%d" % index, selected)
+
+    def _refresh_details(self):
+        index = self.selected_index
+        configured = bool(str(self.server_slots[index] or "").strip())
+        name = self._slot_name(index)
+        state_text, state_color = self._slot_state(index)
+
+        if self.confirming:
+            self["detail_title"].setText("%s löschen?" % name)
+            self["detail_state"].setText("Sicherheitsabfrage")
+            self._set_color("detail_state", "#FF6B79")
+        else:
+            self["detail_title"].setText(name)
+            self["detail_state"].setText(state_text or "Nicht eingerichtet")
+            self._set_color("detail_state", state_color)
+
+        self["detail_name"].setText(name)
+        self["detail_url"].setText(
+            self._safe_url(self.server_slots[index])
+            if configured else "Kein Server hinterlegt"
+        )
+
+    def _refresh_actions(self):
+        actions = self._actions_for_selected()
+        if self.action_index >= len(actions):
+            self.action_index = max(0, len(actions) - 1)
+
+        for index in range(4):
+            value = actions[index][1] if index < len(actions) else ""
+            self["action_%d" % index].setText(value)
+            selected = index < len(actions) and index == self.action_index
+            self._show("act_sel_%d" % index, selected)
+            self._show("act_fill_%d" % index, selected)
+
+        if self.focus_area == "servers":
+            self["nav_help"].setText("▲ / ▼  Server wählen     ▶  Aktionen")
+        else:
+            self["nav_help"].setText("◀  Server     ▲ / ▼  Aktion wählen")
+
+    def _refresh_all(self):
+        self._refresh_server_cards()
+        self._refresh_details()
+        self._refresh_actions()
+
+    def move_up(self):
+        if self.focus_area == "servers":
+            self.selected_index = (self.selected_index - 1) % 4
+            self.confirming = False
+            self.action_index = 0
+        else:
+            actions = self._actions_for_selected()
+            if actions:
+                self.action_index = (self.action_index - 1) % len(actions)
+        self._refresh_all()
+
+    def move_down(self):
+        if self.focus_area == "servers":
+            self.selected_index = (self.selected_index + 1) % 4
+            self.confirming = False
+            self.action_index = 0
+        else:
+            actions = self._actions_for_selected()
+            if actions:
+                self.action_index = (self.action_index + 1) % len(actions)
+        self._refresh_all()
+
+    def move_left(self):
+        if self.confirming:
+            self.confirming = False
+            self.action_index = 0
+        self.focus_area = "servers"
+        self._refresh_all()
+
+    def move_right(self):
+        self.focus_area = "actions"
+        self._refresh_all()
+
+    def go_back(self):
+        if self.confirming:
+            self.confirming = False
+            self.action_index = 0
+            self.focus_area = "actions"
+            self._refresh_all()
+            return
+        self.close(None)
+
+    def activate(self):
+        if self.focus_area == "servers":
+            self.focus_area = "actions"
+            self.action_index = 0
+            self._refresh_all()
+            return
+
+        actions = self._actions_for_selected()
+        if not actions:
+            return
+        action = actions[max(0, min(len(actions) - 1, int(self.action_index)))][0]
+
+        if action == "cancel":
+            self.close(None)
+        elif action == "keep":
+            self.confirming = False
+            self.action_index = 0
+            self._refresh_all()
+        elif action == "delete":
+            self.confirming = True
+            self.action_index = 0
+            self._refresh_all()
+        elif action == "delete_confirm":
+            self.close(("delete", self.selected_index))
+        elif action == "use":
+            self.close(("use", self.selected_index))
+        elif action == "edit":
+            self.close(("edit", self.selected_index))
+
+
+def _embyflow_server_manager_v4_open(self):
+    index = _embyflow_server_manager_v1_selected_index(self)
+    active = ""
+    try:
+        active = self._cfg(config.embyflow.server).strip().rstrip("/")
+    except Exception:
+        pass
+
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v4_result,
+        EmbyFlowServerManageScreenV4Overview,
+        list(self.server_slots),
+        index,
+        active,
+        dict(getattr(self, "server_runtime_states", {}) or {}),
+    )
+
+
+def _embyflow_server_manager_v4_result(self, result=None):
+    if not result:
+        return
+    try:
+        action, index = result
+        index = max(0, min(3, int(index)))
+    except Exception:
+        return
+
+    if action == "use":
+        self._select_server(index)
+    elif action == "edit":
+        self.edit_server_slot(index)
+    elif action == "delete":
+        self._embyflow_server_manager_v1_pending_delete = index
+        self._embyflow_server_manager_v1_delete_done(True)
+
+
+EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v4_open
+EmbyFlowConnectionWizard._embyflow_server_manager_v4_result = _embyflow_server_manager_v4_result

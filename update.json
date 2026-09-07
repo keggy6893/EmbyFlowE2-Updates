@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090635,
+  "build": 2026090636,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090635/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "2d19689264458984c7cbb2b6486148f3a870b833c4d0e7f499e10d2f42e08209",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090636/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "21546fbd9cb9d2748b95144e01e4b6ee0b7bd9efce922eec1b59682a888ea8ec",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -41,6 +41,11 @@
     "EmbyFlow-Design bleibt erhalten; keine native blaue ChoiceBox und keine Änderung an Playback-/Serverlogik",
     "Serververwaltung 0635: OpenATV-Z-Reihenfolge explizit gesetzt; MenuList liegt sicher über den Panel-Flächen",
     "0635 Layering: Hintergrund 0, Panel 1/2, MenuList 20, Header und Fußzeile 30",
-    "0635 Prüfregel: Veröffentlichung nur wenn die Server-MenuList weiterhin exakt fünf Haupteinträge besitzt"
+    "0635 Prüfregel: Veröffentlichung nur wenn die Server-MenuList weiterhin exakt fünf Haupteinträge besitzt",
+    "Serververwaltung 0636: Vollbild-Zweispaltenansicht wie im freigegebenen EmbyFlow-Mock-up",
+    "0636 links: alle vier Server-Slots gleichzeitig mit Adresse und Aktiv/Online/Offline-Status",
+    "0636 rechts: ausgewählter Server mit Verwenden, Bearbeiten, Löschen und Abbrechen",
+    "0636 Löschen: Sicherheitsabfrage direkt im EmbyFlow-Panel; keine native blaue ChoiceBox",
+    "0636 OpenATV-Layering: dynamische Karten, Details und Aktionen liegen explizit über den Panel-Flächen"
   ]
 }
