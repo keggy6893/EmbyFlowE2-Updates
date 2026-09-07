@@ -1,0 +1,92 @@
+name: Login MENU footer align build 2026090638
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0638-login-menu-footer-align.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-login-menu-footer-2026090638
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Align MENU footer hint and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          old_build = 'PLUGIN_UPDATE_BUILD = 2026090637'
+          new_build = 'PLUGIN_UPDATE_BUILD = 2026090638'
+          if text.count(old_build) != 1:
+              raise SystemExit('0637 baseline build marker mismatch')
+          if text.count('# EMBYFLOW_LOGIN_MENU_HINT_0637_RELEASE') != 1:
+              raise SystemExit('0637 login MENU hint marker missing or duplicated')
+          if '# EMBYFLOW_LOGIN_MENU_HINT_ALIGN_0638_RELEASE' in text:
+              raise SystemExit('0638 footer alignment already present')
+
+          old_hint = '''        '<eLabel position="980,1027" size="86,30" backgroundColor="#26313D" />',\n        '<eLabel text="MENU" position="988,1023" size="70,38" font="Bold;17" foregroundColor="%s" backgroundColor="#26313D" transparent="1" halign="center" />' % white,\n        '<eLabel text="Server bearbeiten" position="1082,1023" size="270,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),\n'''
+          new_hint = '''        '<eLabel position="980,1033" size="58,20" backgroundColor="#26313D" />',\n        '<eLabel text="MENU" position="980,1028" size="58,30" font="Bold;14" foregroundColor="%s" backgroundColor="#26313D" transparent="1" halign="center" />' % white,\n        '<eLabel text="Server bearbeiten" position="1052,1023" size="250,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),\n'''
+          if text.count(old_hint) != 1:
+              raise SystemExit('0637 MENU footer block mismatch')
+
+          text = text.replace(old_build, new_build, 1)
+          text = text.replace(old_hint, new_hint, 1)
+          text += '\n# EMBYFLOW_LOGIN_MENU_HINT_ALIGN_0638_RELEASE\n'
+
+          compile(text, str(plugin), 'exec')
+          checks = [
+              'position="980,1033" size="58,20"',
+              'text="MENU" position="980,1028" size="58,30" font="Bold;14"',
+              'text="Server bearbeiten" position="1052,1023" size="250,38"',
+          ]
+          for needle in checks:
+              if text.count(needle) != 1:
+                  raise SystemExit('0638 footer verification failed: ' + needle)
+
+          plugin.write_text(text, encoding='utf-8')
+          sha256 = hashlib.sha256(plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build', 0)) != 2026090637:
+              raise SystemExit('update.json baseline build mismatch')
+          data['build'] = 2026090638
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090638/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = sha256
+          changelog = list(data.get('changelog') or [])
+          changelog.append('Login-Fußzeile 0638: MENU-Hinweis auf kompakte 20px-Tastenhöhe reduziert und sauber an die Farbtasten-Zeile ausgerichtet')
+          data['changelog'] = changelog
+          manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          git diff --check
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Align MENU footer hint build 2026090638'
+          git push origin main
+          git tag -a build-2026090638 -m 'EmbyFlow E2 build 2026090638'
+          git push origin build-2026090638
