@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090628,
+  "build": 2026090629,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090628/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "04c17178438319cc5f0b9c315b58c31582bf0ad842d74fdbdfae6e2e21de4f9c",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090629/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "3e997fa856180844cc272488a68e266f78b8c9d171219d333d651ce0eb129128",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -23,6 +23,7 @@
     "Untertitel Hybrid V1: Textspuren direkt von Emby, Bitmap-/native Spuren wieder über Enigma2; eigenes UT-Menü bleibt unverändert",
     "Bitmap-Untertitel: fehlende native PGS/DVB/DVD-Spuren wechseln bei Static Direct Play nur lokal von 4097 auf ExtEplayer3/5002; URL und PlaySession bleiben unverändert, kein Server-Transcode",
     "PGS/DVB/XSUB 0627: lokaler ExtEplayer3-Grafikpfad mit -G/-W/-H und eigenem EmbyFlow-PNG-Overlay; gleiche Static=true URL und PlaySession, kein Server-Video-Transcode",
-    "Untertitel-Rollback 0628: bewährte EmbyFlow-Unter­titel­logik aus Build 0624 vollständig wiederhergestellt; Hybrid-/ExtEplayer-/PGS-Experimente 0625-0627 entfernt"
+    "Untertitel-Rollback 0628: bewährte EmbyFlow-Unter­titel­logik aus Build 0624 vollständig wiederhergestellt; Hybrid-/ExtEplayer-/PGS-Experimente 0625-0627 entfernt",
+    "Untertitel 0629: altes EmbyFlow-UT-Menü zeigt alle Subtitle-MediaStreams der aktiven MediaSource; SRT bleibt auf dem bewährten 0628-Renderer, Bitmap-Spuren lösen keinen Server-Transcode aus"
   ]
 }
