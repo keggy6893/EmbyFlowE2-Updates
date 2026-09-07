@@ -1,0 +1,162 @@
+name: Server manager z-order fix build 2026090635
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0635-server-manager-zorder.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-server-manager-zorder-2026090635
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply verified z-order fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import ast
+          import hashlib
+          import json
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090634') != 1:
+              raise SystemExit('0634 baseline build marker mismatch')
+          if text.count('# EMBYFLOW_SERVER_MANAGER_UI_V3_MENULIST_0634_RELEASE') != 1:
+              raise SystemExit('0634 MenuList manager marker missing or duplicated')
+          if '# EMBYFLOW_SERVER_MANAGER_UI_V3_ZORDER_0635_RELEASE' in text:
+              raise SystemExit('0635 z-order patch already present')
+
+          # Patch ONLY the 0634 server-manager skin. The management logic,
+          # server selection, edit/delete handlers and playback code remain untouched.
+          class_anchor = 'class EmbyFlowServerManageScreenV3List(Screen):'
+          start = text.index(class_anchor)
+          end_anchor = '\n\ndef _embyflow_server_manager_v3_open(self):'
+          end = text.index(end_anchor, start)
+          before = text[:start]
+          block = text[start:end]
+          after = text[end:]
+
+          replacements = {
+              '<eLabel position="0,0" size="1920,1080" backgroundColor="#030811" />':
+                  '<eLabel position="0,0" size="1920,1080" zPosition="0" backgroundColor="#030811" />',
+              '<eLabel text="EMBY" position="92,58" size="210,58" font="Bold;46"':
+                  '<eLabel text="EMBY" position="92,58" size="210,58" zPosition="30" font="Bold;46"',
+              '<eLabel text="FLOW" position="302,58" size="210,58" font="Bold;46"':
+                  '<eLabel text="FLOW" position="302,58" size="210,58" zPosition="30" font="Bold;46"',
+              '<eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" font="Regular;20"':
+                  '<eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" zPosition="30" font="Regular;20"',
+              '<eLabel text="0634" position="1640,66" size="190,34" font="Regular;20"':
+                  '<eLabel text="0635" position="1640,66" size="190,34" zPosition="30" font="Regular;20"',
+              '<eLabel position="90,184" size="1740,2" backgroundColor="#1689FF" />':
+                  '<eLabel position="90,184" size="1740,2" zPosition="30" backgroundColor="#1689FF" />',
+              '<eLabel position="190,235" size="1540,690" backgroundColor="#07111E" />':
+                  '<eLabel position="190,235" size="1540,690" zPosition="1" backgroundColor="#07111E" />',
+              '<eLabel position="194,239" size="1532,682" backgroundColor="#050C16" />':
+                  '<eLabel position="194,239" size="1532,682" zPosition="2" backgroundColor="#050C16" />',
+              '<widget name="menu" position="260,286" size="1380,500" font="Regular;30"':
+                  '<widget name="menu" position="260,286" size="1380,500" zPosition="20" font="Regular;30"',
+              '<eLabel text="ROT  Zurück" position="260,864" size="320,34" font="Regular;21"':
+                  '<eLabel text="ROT  Zurück" position="260,864" size="320,34" zPosition="30" font="Regular;21"',
+              '<eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" font="Regular;21"':
+                  '<eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" zPosition="30" font="Regular;21"',
+              '<eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" font="Regular;21"':
+                  '<eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" zPosition="30" font="Regular;21"',
+          }
+
+          for old, new in replacements.items():
+              count = block.count(old)
+              if count != 1:
+                  raise SystemExit('0635 exact skin anchor mismatch (%d): %s' % (count, old[:80]))
+              block = block.replace(old, new, 1)
+
+          block += '''\n\n# EMBYFLOW_SERVER_MANAGER_UI_V3_ZORDER_0635_RELEASE\n# OpenATV: panel backgrounds live below the dynamic MenuList; header/footer\n# stay above both. This fixes the invisible-but-populated 0634 menu.\n'''
+          text = before + block + after
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090634',
+              'PLUGIN_UPDATE_BUILD = 2026090635',
+              1,
+          )
+
+          # Static structural verification before publishing.
+          if 'name="menu" position="260,286" size="1380,500" zPosition="20"' not in block:
+              raise SystemExit('MenuList zPosition=20 missing')
+          if block.count('zPosition="30"') < 7:
+              raise SystemExit('Header/footer foreground z-order incomplete')
+          if 'size="1532,682" zPosition="2"' not in block:
+              raise SystemExit('inner panel zPosition=2 missing')
+
+          tree = ast.parse(text)
+          entry_count = None
+          for node in tree.body:
+              if isinstance(node, ast.ClassDef) and node.name == 'EmbyFlowServerManageScreenV3List':
+                  for child in node.body:
+                      if isinstance(child, ast.FunctionDef) and child.name == '_main_entries':
+                          for statement in child.body:
+                              if isinstance(statement, ast.Return) and isinstance(statement.value, ast.List):
+                                  entry_count = len(statement.value.elts)
+          if entry_count != 5:
+              raise SystemExit('MenuList main entry count is not 5: %r' % (entry_count,))
+
+          plugin.write_text(text, encoding='utf-8', newline='\n')
+          final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090634:
+              raise SystemExit('manifest baseline mismatch: %r' % data.get('build'))
+          data['build'] = 2026090635
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090635/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = final_sha
+          changelog = list(data.get('changelog') or [])
+          messages = [
+              'Serververwaltung 0635: OpenATV-Z-Reihenfolge explizit gesetzt; MenuList liegt sicher über den Panel-Flächen',
+              '0635 Layering: Hintergrund 0, Panel 1/2, MenuList 20, Header und Fußzeile 30',
+              '0635 Prüfregel: Veröffentlichung nur wenn die Server-MenuList weiterhin exakt fünf Haupteinträge besitzt',
+          ]
+          for msg in messages:
+              if msg not in changelog:
+                  changelog.append(msg)
+          data['changelog'] = changelog
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
+          print('Final plugin sha256:', final_sha)
+          print('Verified MenuList entries:', entry_count)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090635' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_SERVER_MANAGER_UI_V3_ZORDER_0635_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'name="menu" position="260,286" size="1380,500" zPosition="20"' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Fix server manager z-order build 2026090635'
+          git push origin main
+          git tag -a build-2026090635 -m 'EmbyFlow E2 build 2026090635'
+          git push origin build-2026090635
