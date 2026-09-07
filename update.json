@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090634,
+  "build": 2026090635,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090634/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "2eecdd955e289b2dc639d690256d7de975b8d2a46df45eda80ffa3f454564a2e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090635/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "2d19689264458984c7cbb2b6486148f3a870b833c4d0e7f499e10d2f42e08209",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -38,6 +38,9 @@
     "Paint-Fix 0633: zusätzlicher Refresh beim Anzeigen verhindert leere Serververwaltungsfenster",
     "Serververwaltung 0634: dynamische Label-Menüs durch robusten Enigma2-MenuList-Unterbau ersetzt",
     "MenuList 0634: Serverstatus, URL und alle Aktionen werden in einer einzigen sicher gerenderten Liste dargestellt",
-    "EmbyFlow-Design bleibt erhalten; keine native blaue ChoiceBox und keine Änderung an Playback-/Serverlogik"
+    "EmbyFlow-Design bleibt erhalten; keine native blaue ChoiceBox und keine Änderung an Playback-/Serverlogik",
+    "Serververwaltung 0635: OpenATV-Z-Reihenfolge explizit gesetzt; MenuList liegt sicher über den Panel-Flächen",
+    "0635 Layering: Hintergrund 0, Panel 1/2, MenuList 20, Header und Fußzeile 30",
+    "0635 Prüfregel: Veröffentlichung nur wenn die Server-MenuList weiterhin exakt fünf Haupteinträge besitzt"
   ]
 }

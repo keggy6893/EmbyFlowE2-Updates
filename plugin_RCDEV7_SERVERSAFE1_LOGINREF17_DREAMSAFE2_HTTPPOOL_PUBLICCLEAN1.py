@@ -167,7 +167,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090634
+PLUGIN_UPDATE_BUILD = 2026090635
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -84516,22 +84516,22 @@ EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_m
 class EmbyFlowServerManageScreenV3List(Screen):
     skin = scale_skin("""
     <screen name="EmbyFlowServerManageScreenV3List" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#030811">
-        <eLabel position="0,0" size="1920,1080" backgroundColor="#030811" />
+        <eLabel position="0,0" size="1920,1080" zPosition="0" backgroundColor="#030811" />
 
-        <eLabel text="EMBY" position="92,58" size="210,58" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
-        <eLabel text="FLOW" position="302,58" size="210,58" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
-        <eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
-        <eLabel text="0634" position="1640,66" size="190,34" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
-        <eLabel position="90,184" size="1740,2" backgroundColor="#1689FF" />
+        <eLabel text="EMBY" position="92,58" size="210,58" zPosition="30" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
+        <eLabel text="FLOW" position="302,58" size="210,58" zPosition="30" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
+        <eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" zPosition="30" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
+        <eLabel text="0635" position="1640,66" size="190,34" zPosition="30" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
+        <eLabel position="90,184" size="1740,2" zPosition="30" backgroundColor="#1689FF" />
 
-        <eLabel position="190,235" size="1540,690" backgroundColor="#07111E" />
-        <eLabel position="194,239" size="1532,682" backgroundColor="#050C16" />
+        <eLabel position="190,235" size="1540,690" zPosition="1" backgroundColor="#07111E" />
+        <eLabel position="194,239" size="1532,682" zPosition="2" backgroundColor="#050C16" />
 
-        <widget name="menu" position="260,286" size="1380,500" font="Regular;30" itemHeight="92" foregroundColor="#EAF1F8" foregroundColorSelected="#FFFFFF" backgroundColor="#050C16" backgroundColorSelected="#1689FF" transparent="0" scrollbarMode="showNever" />
+        <widget name="menu" position="260,286" size="1380,500" zPosition="20" font="Regular;30" itemHeight="92" foregroundColor="#EAF1F8" foregroundColorSelected="#FFFFFF" backgroundColor="#050C16" backgroundColorSelected="#1689FF" transparent="0" scrollbarMode="showNever" />
 
-        <eLabel text="ROT  Zurück" position="260,864" size="320,34" font="Regular;21" foregroundColor="#FF6B79" backgroundColor="#050C16" transparent="1" />
-        <eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" font="Regular;21" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" />
-        <eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" font="Regular;21" foregroundColor="#8D96A1" backgroundColor="#050C16" transparent="1" halign="right" />
+        <eLabel text="ROT  Zurück" position="260,864" size="320,34" zPosition="30" font="Regular;21" foregroundColor="#FF6B79" backgroundColor="#050C16" transparent="1" />
+        <eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" zPosition="30" font="Regular;21" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" />
+        <eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" zPosition="30" font="Regular;21" foregroundColor="#8D96A1" backgroundColor="#050C16" transparent="1" halign="right" />
     </screen>
     """)
 
@@ -84655,6 +84655,11 @@ class EmbyFlowServerManageScreenV3List(Screen):
             self._set_entries(self._confirm_entries(), 1)
             return
         self.close(None)
+
+
+# EMBYFLOW_SERVER_MANAGER_UI_V3_ZORDER_0635_RELEASE
+# OpenATV: panel backgrounds live below the dynamic MenuList; header/footer
+# stay above both. This fixes the invisible-but-populated 0634 menu.
 
 
 def _embyflow_server_manager_v3_open(self):
