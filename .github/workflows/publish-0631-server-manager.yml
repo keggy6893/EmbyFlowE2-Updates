@@ -30,8 +30,10 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import base64
           import hashlib
           import json
+          import zlib
 
           plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
           manifest = Path('update.json')
@@ -71,170 +73,9 @@ jobs:
           )
           text = text[:cls_start] + block + text[cls_end:]
 
-          patch = r'''
-
-# EMBYFLOW_SERVER_MANAGER_V1_0631_RELEASE
-# Vier Server-Slots bleiben kompatibel. MENU auf einer Serverkarte öffnet
-# Verwenden / Bearbeiten / Löschen. Löschen ist bestätigt und löscht nur den
-# gewählten Slot. Der aktive Runtime-Server wird nur dann zurückgesetzt, wenn
-# genau dieser konfigurierte Server gelöscht wurde.
-def _embyflow_server_manager_v1_selected_index(self):
-    try:
-        if int(getattr(self, "focus", -1)) in (0, 1, 2, 3):
-            return int(self.focus)
-    except Exception:
-        pass
-    try:
-        return max(0, min(3, int(self.selected_server_index)))
-    except Exception:
-        return 0
-
-
-def _embyflow_server_manager_v1_open(self):
-    index = _embyflow_server_manager_v1_selected_index(self)
-    current = str(self.server_slots[index] or "").strip()
-
-    if not current:
-        self.edit_server_slot(index)
-        return
-
-    choices = [
-        ("Server verwenden", ("use", index)),
-        ("Server bearbeiten", ("edit", index)),
-        ("Server löschen", ("delete", index)),
-        ("Abbrechen", ("cancel", index)),
-    ]
-    self.session.openWithCallback(
-        self._embyflow_server_manager_v1_choice_done,
-        ChoiceBox,
-        title="Server %d verwalten" % (index + 1),
-        list=choices,
-    )
-
-
-def _embyflow_server_manager_v1_choice_done(self, result=None):
-    if result is None:
-        return
-
-    value = result
-    if isinstance(result, (tuple, list)):
-        value = result[1] if len(result) > 1 else result[0]
-
-    try:
-        action, index = value
-        index = max(0, min(3, int(index)))
-    except Exception:
-        return
-
-    if action == "cancel":
-        return
-    if action == "use":
-        self._select_server(index)
-        return
-    if action == "edit":
-        self.edit_server_slot(index)
-        return
-    if action != "delete":
-        return
-
-    current = str(self.server_slots[index] or "").strip()
-    if not current:
-        return
-
-    self._embyflow_server_manager_v1_pending_delete = index
-    self.session.openWithCallback(
-        self._embyflow_server_manager_v1_delete_done,
-        MessageBox,
-        "Server %d wirklich löschen?\n\n%s" % (index + 1, current),
-        MessageBox.TYPE_YESNO,
-        default=False,
-    )
-
-
-def _embyflow_server_manager_v1_delete_done(self, answer=False):
-    try:
-        index = max(
-            0,
-            min(
-                3,
-                int(getattr(self, "_embyflow_server_manager_v1_pending_delete", 0)),
-            ),
-        )
-    except Exception:
-        index = 0
-
-    self._embyflow_server_manager_v1_pending_delete = None
-    if not answer:
-        return
-
-    removed = str(self.server_slots[index] or "").strip().rstrip("/")
-    active = ""
-    try:
-        active = self._cfg(config.embyflow.server).strip().rstrip("/")
-    except Exception:
-        active = ""
-
-    self._save_slot(index, "")
-    self.server_runtime_states.pop(index, None)
-
-    remaining = [
-        slot_index
-        for slot_index, value in enumerate(self.server_slots)
-        if str(value or "").strip()
-    ]
-    self.selected_server_index = remaining[0] if remaining else 0
-    self.focus = self.selected_server_index
-    self._apply_selected_slot(clear_password=True)
-
-    removed_was_active = bool(
-        removed
-        and active
-        and removed.casefold() == active.casefold()
-    )
-    if removed_was_active:
-        try:
-            self._set_cfg(config.embyflow.server, "")
-            config.embyflow.server.save()
-            configfile.save()
-        except Exception:
-            pass
-        try:
-            apply_emby_runtime_config()
-        except Exception:
-            pass
-        try:
-            clear_emby_auth_cache()
-        except Exception:
-            pass
-        try:
-            EMBY_AUTH_CACHE["server"] = ""
-            EMBY_AUTH_CACHE["token"] = ""
-            EMBY_AUTH_CACHE["user_id"] = ""
-            EMBY_AUTH_CACHE["ts"] = 0
-        except Exception:
-            pass
-
-    if remaining:
-        suffix = " Aktiver Login wurde zurückgesetzt; bitte neu anmelden." if removed_was_active else ""
-        self["server_status"].setText(
-            "Server %d gelöscht. Server %d ist ausgewählt.%s"
-            % (index + 1, self.selected_server_index + 1, suffix)
-        )
-    else:
-        suffix = " Aktiver Login wurde zurückgesetzt." if removed_was_active else ""
-        self["server_status"].setText(
-            "Server %d gelöscht. Kein Server eingerichtet.%s"
-            % (index + 1, suffix)
-        )
-
-    self["login_status"].setText("")
-    self.refresh_all()
-
-
-EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v1_open
-EmbyFlowConnectionWizard._embyflow_server_manager_v1_choice_done = _embyflow_server_manager_v1_choice_done
-EmbyFlowConnectionWizard._embyflow_server_manager_v1_delete_done = _embyflow_server_manager_v1_delete_done
-'''
+          patch = zlib.decompress(base64.b64decode(
+              'eNq9V9tu20YQfddXbBkEIFGGsRqgDynUQnGVBqjtFLaTIHAMYkUOpYWopbC7lOx8T74hT33zj3X2wptEWbYRlC+ilrNnLjtnZnbwjExO33x+e/L+U3wxOf84OY9Px2fjv/D34zA++vXVMD6fnEzGF5PBM/KRgSAXINYgXlzkhZJkmgObAieLYrmiCl/ziJxOzj4QWmYEGK/lF1QoIHffs4yD0lAgNsBT3PqSvAEqpsCU+XNy910mc+BR/UaYVGQKUt19U2ymSMlTkptvivBSEARBwBls7r7Ncw2iTYvIn6ibLhRbAzkvuWJLeGFNIRsmUruTck6+luLu32QxAwnqqwoJmmXxOC1JynBZoHs8Y7NSoP/ohYOZQWXFphQpRIMUMhLDcnqb5cUmlkYqXlJOZ/i7HuJKDomCNGbo+I2Pf7Pg9YDgo8StfdEPywjjyp+BokoJIxYSLyuSUnoheTEMAvxO/KOQDEPyS0heBc1e/QhQpeAGQ++NzM7AiMBNAitFJuaHFbzZuKJS7prioJb0RqtbMu6/Chvg2h/nqnErCA6pcqBHg8HBiBUr4O04GQ1k9Ogom81JKQRwhdulC2vkdkudy1dG/poUgnheEKEMW/nBYOCOhBeqQmhcMSCQMhW3kHwbhy1/LVAyL1gCEm24qr/7nkuodcUJPGbfKyV4IXExDXelpzVrjLi24l753NHJSKcYJLUHfzydCqglE8oTyLclrwe1+xKkxPON9Fl9Ymp+TPN8SpOF343SfUdmoxKnBYfGkGOz+Ka4aZYUUzmMKoeepyZiVHPeI8+JjTv5mQxb7uRYPEYu6nY1eEDetQxy/BMgy1yNznClysXMLWJ9Inr9de+Jr2leAp63la12Msm4VDq0vv2AoVblKofQWBy0KN0FuBpe6/058sIuBOR3MiSQS6gkjq4Hu0ymiSZhWDPIoDYlx63uEv1RnK7JYrWR0YhU+bMjuiupE36LWo7M7oT2EGsXyXDhaSztgv2EYI4q/b4+rabcV1La6AeJg5RLGZ/F1ka0wuj7ody00FvcPEVcFOiQs0VLbLCLnCXzuub88YV/4c9ll6Vh5XzQBxxdfv5nEn+eXJy9bz4jb6mm4VuK+f5wOrd8cHSmXG5AWJy+HuwCixHdasMPPw0smaZatPt6BbtTMbYy8H5OOpTHsfLxuaQtbKeqjVk/uoBlsYb0cTyIhH3xXnrWE826tVbtef0VzHy0niTZzE/MWBZVTjmV+/H3R6qtuRUuSdfQqhahtr7NLuOhsNNljPVcgYxWxaqStudfBYgyblOqaf0aOm44q58MY9Qsh67848AHvFyCQBW74e3kmD4Au6mn6nT6ds/0ZvqMsxQbiW1yleWmyRw1CGawrA6kF64VSrpa5bfNcGaCmuQ4w8R69NwUIh1dirIVLp1P8YbKuD6baVHkfiv9jEhzhHgtsKKdJScWJVRCVuSpH+gWYQVbi66W1I19W32TKp2kbHcqdU9ONplTPf1ykc44v08yYzlsf92fz52Rvtdqex5afZ3AVtEPwrdna/BpqeZxQrER/CBsfWONxx8u38XH4+N3kyvPBs+7bkrHXlFVLHBcfIgkziOYxunDUKURO3qMe61kswRrTSxlljFNRo+MzRVWkJNihkXA3DS3rqy/kSlTWLE5lJjxS8jxBhF5/WlsOdzyRidvFT9TwfCSeY3JqC7hRvkdo1sNvr76RqRZ1Nd0WsrqIh5hv+/s7/b+e2qQ/W5C0OSLq+Bo/hPD9P+F5G9AE9wXfMX+irOQgoMR2fF40JiTa792ren0IwEZXgHmMQ55+uI6mCD53mJtOS44BzPQfmJfqUgj2/Xb0/CBO7WeH/fDPfAmdUBHS/JpqlpT3gFVLcnBf9/L6UE='
+          )).decode('utf-8')
 
           text = text.replace(
               'PLUGIN_UPDATE_BUILD = 2026090630',
@@ -274,7 +115,7 @@ EmbyFlowConnectionWizard._embyflow_server_manager_v1_delete_done = _embyflow_ser
           grep -q 'EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
           grep -q 'EMBYFLOW_SERVER_MANAGER_V1_0631_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
           grep -q '"menu": self.manage_server_slot' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
-          grep -q 'Server wirklich löschen' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py || grep -q 'wirklich löschen' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'wirklich löschen' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
 
       - name: Commit and tag
         shell: bash
