@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090631
+PLUGIN_UPDATE_BUILD = 2026090632
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -84267,3 +84267,224 @@ def _embyflow_server_manager_v1_delete_done(self, answer=False):
 EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v1_open
 EmbyFlowConnectionWizard._embyflow_server_manager_v1_choice_done = _embyflow_server_manager_v1_choice_done
 EmbyFlowConnectionWizard._embyflow_server_manager_v1_delete_done = _embyflow_server_manager_v1_delete_done
+
+# EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE
+# Eigenes EmbyFlow-Menü statt Enigma2-ChoiceBox. Keine Playback-/Serverlogik
+# geändert; nur Darstellung und Bedienung der vorhandenen vier Server-Slots.
+class EmbyFlowServerManageScreenV2(Screen):
+    skin = scale_skin("""
+    <screen name="EmbyFlowServerManageScreenV2" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#030811">
+        <eLabel position="0,0" size="1920,1080" backgroundColor="#030811" />
+
+        <eLabel text="EMBY" position="92,58" size="210,58" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
+        <eLabel text="FLOW" position="302,58" size="210,58" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
+        <eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
+        <eLabel text="0632" position="1640,66" size="190,34" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
+
+        <eLabel position="90,184" size="1740,2" backgroundColor="#1689FF" />
+
+        <eLabel position="190,235" size="1540,690" backgroundColor="#07111E" />
+        <eLabel position="194,239" size="1532,682" backgroundColor="#050C16" />
+
+        <widget name="title" position="260,278" size="900,52" font="Bold;38" foregroundColor="#F4F7FB" backgroundColor="#050C16" transparent="1" />
+        <widget name="badge" position="1350,284" size="290,42" font="Bold;20" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" halign="right" />
+        <widget name="server_url" position="260,342" size="1380,42" font="Regular;24" foregroundColor="#AAB7C8" backgroundColor="#050C16" transparent="1" />
+        <widget name="hint" position="260,395" size="1380,54" font="Regular;20" foregroundColor="#748297" backgroundColor="#050C16" transparent="1" />
+
+        <widget name="row0" position="260,478" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
+        <widget name="row1" position="260,570" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
+        <widget name="row2" position="260,662" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
+        <widget name="row3" position="260,754" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
+
+        <eLabel text="ROT  Zurück" position="260,864" size="320,34" font="Regular;21" foregroundColor="#FF6B79" backgroundColor="#050C16" transparent="1" />
+        <eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" font="Regular;21" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" />
+        <eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" font="Regular;21" foregroundColor="#8D96A1" backgroundColor="#050C16" transparent="1" halign="right" />
+    </screen>
+    """)
+
+    def __init__(self, session, slot_index, server_url, active=False):
+        Screen.__init__(self, session)
+        self.slot_index = max(0, min(3, int(slot_index)))
+        self.server_url = str(server_url or "").strip()
+        self.active = bool(active)
+        self.confirming = False
+        self.index = 0
+        self.entries = []
+
+        self["title"] = Label("")
+        self["badge"] = Label("")
+        self["server_url"] = Label("")
+        self["hint"] = Label("")
+        for row in range(4):
+            self["row%d" % row] = Label("")
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            {
+                "cancel": self.go_back,
+                "red": self.go_back,
+                "ok": self.activate,
+                "green": self.activate,
+                "up": self.move_up,
+                "down": self.move_down,
+                "left": self.move_up,
+                "right": self.move_down,
+            },
+            -1,
+        )
+        self.onLayoutFinish.append(self.refresh)
+
+    def _display_url(self):
+        value = str(self.server_url or "")
+        try:
+            value = re.sub(
+                r"(?i)(https?://)[^/@\s]+:[^/@\s]+@",
+                r"\1•••:•••@",
+                value,
+            )
+        except Exception:
+            pass
+        if len(value) > 92:
+            value = value[:89] + "..."
+        return value
+
+    def _set_row_style(self, row, selected):
+        try:
+            widget = self["row%d" % row]
+            if widget.instance is not None:
+                widget.instance.setBackgroundColor(
+                    parseColor("#1689FF" if selected else "#0B1521")
+                )
+                widget.instance.setForegroundColor(
+                    parseColor("#FFFFFF" if selected else "#F4F7FB")
+                )
+        except Exception:
+            pass
+
+    def _main_entries(self):
+        return [
+            ("Server verwenden", "use"),
+            ("Server bearbeiten", "edit"),
+            ("Server löschen", "delete_prompt"),
+            ("Zurück", "cancel"),
+        ]
+
+    def _confirm_entries(self):
+        return [
+            ("Nein, Server behalten", "cancel_delete"),
+            ("Ja, Server endgültig löschen", "delete"),
+        ]
+
+    def refresh(self):
+        self.entries = self._confirm_entries() if self.confirming else self._main_entries()
+        self.index = max(0, min(len(self.entries) - 1, int(self.index)))
+
+        if self.confirming:
+            self["title"].setText("SERVER %d LÖSCHEN" % (self.slot_index + 1))
+            self["badge"].setText("SICHERHEITSABFRAGE")
+            self["hint"].setText(
+                "Nur dieser Server-Slot wird gelöscht. Ein aktiver Login wird bei Bedarf sicher zurückgesetzt."
+            )
+        else:
+            self["title"].setText("SERVER %d VERWALTEN" % (self.slot_index + 1))
+            self["badge"].setText("● AKTIV" if self.active else "BEREIT")
+            self["hint"].setText(
+                "Server auswählen, Adresse bearbeiten oder den gespeicherten Slot entfernen."
+            )
+
+        self["server_url"].setText(self._display_url())
+
+        for row in range(4):
+            label = self.entries[row][0] if row < len(self.entries) else ""
+            prefix = "  ›  " if row == self.index and label else "     "
+            self["row%d" % row].setText(prefix + label if label else "")
+            self._set_row_style(row, row == self.index and bool(label))
+
+    def move_up(self):
+        if not self.entries:
+            return
+        self.index = (self.index - 1) % len(self.entries)
+        self.refresh()
+
+    def move_down(self):
+        if not self.entries:
+            return
+        self.index = (self.index + 1) % len(self.entries)
+        self.refresh()
+
+    def go_back(self):
+        if self.confirming:
+            self.confirming = False
+            self.index = 2
+            self.refresh()
+            return
+        self.close(None)
+
+    def activate(self):
+        if not self.entries:
+            return
+        action = self.entries[self.index][1]
+        if action == "delete_prompt":
+            self.confirming = True
+            self.index = 0
+            self.refresh()
+            return
+        if action == "cancel_delete":
+            self.confirming = False
+            self.index = 2
+            self.refresh()
+            return
+        if action == "cancel":
+            self.close(None)
+            return
+        self.close((action, self.slot_index))
+
+
+def _embyflow_server_manager_v2_open(self):
+    index = _embyflow_server_manager_v1_selected_index(self)
+    current = str(self.server_slots[index] or "").strip()
+    if not current:
+        self.edit_server_slot(index)
+        return
+
+    active = ""
+    try:
+        active = self._cfg(config.embyflow.server).strip().rstrip("/")
+    except Exception:
+        pass
+    is_active = bool(
+        active and current.rstrip("/").casefold() == active.casefold()
+    )
+
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v2_result,
+        EmbyFlowServerManageScreenV2,
+        index,
+        current,
+        is_active,
+    )
+
+
+def _embyflow_server_manager_v2_result(self, result=None):
+    if not result:
+        return
+    try:
+        action, index = result
+        index = max(0, min(3, int(index)))
+    except Exception:
+        return
+
+    if action == "use":
+        self._select_server(index)
+        return
+    if action == "edit":
+        self.edit_server_slot(index)
+        return
+    if action == "delete":
+        self._embyflow_server_manager_v1_pending_delete = index
+        self._embyflow_server_manager_v1_delete_done(True)
+        return
+
+
+EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v2_open
+EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_manager_v2_result
