@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090630,
+  "build": 2026090631,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090630/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "8fba9b2f525ad8a136b87b0fbce04cfc43a2d6b656ce74ae4b685899d1639d25",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090631/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "7900d78d66ba8d5093a2e21fdbf1ba4abfa5fb521c139990335a565d5524edba",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -27,6 +27,9 @@
     "Untertitel 0629: altes EmbyFlow-UT-Menü zeigt alle Subtitle-MediaStreams der aktiven MediaSource; SRT bleibt auf dem bewährten 0628-Renderer, Bitmap-Spuren lösen keinen Server-Transcode aus",
     "Tastatur V22: einheitliches deutsches QWERTZ-Layout für EmbyFlow-Eingaben mit ä/ö/ü/ß und deutscher Shift-Ebene",
     "Passwort-Sonderzeichen: doppeltes Anführungszeichen sowie §, €, $, %, &, /, \\, |, @, #, Klammern und weitere Zeichen direkt verfügbar",
-    "Alle generischen EmbyFlow-Texteingaben verwenden die neue Tastatur; Passwort/API-Key/Token-Felder bleiben maskiert"
+    "Alle generischen EmbyFlow-Texteingaben verwenden die neue Tastatur; Passwort/API-Key/Token-Felder bleiben maskiert",
+    "Serververwaltung 0631: MENU auf einer Serverkarte öffnet Verwenden, Bearbeiten, Löschen und Abbrechen",
+    "Server löschen: Sicherheitsabfrage; nur der gewählte Slot wird entfernt und bei Bedarf der aktive Login sicher zurückgesetzt",
+    "Server bearbeiten: vorhandene Adresse öffnet direkt die einheitliche EmbyFlow-Tastatur; leere Slots lassen sich wie bisher per OK einrichten"
   ]
 }

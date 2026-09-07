@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090630
+PLUGIN_UPDATE_BUILD = 2026090631
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -39833,13 +39833,14 @@ class EmbyFlowConnectionWizard(Screen):
         self["focus_marker"] = Label("›")
 
         self["actions"] = ActionMap(
-            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            ["OkCancelActions", "DirectionActions", "ColorActions", "MenuActions"],
             {
                 "cancel": self.close_wizard,
                 "red": self.close_wizard,
                 "green": self.next_step,
                 "yellow": self.open_advanced_settings,
                 "blue": self.show_help,
+                "menu": self.manage_server_slot,
                 "ok": self.activate,
                 "left": self.move_left,
                 "right": self.move_right,
@@ -84107,3 +84108,162 @@ EmbyFlowMoviePlayer.open_subtitle_selection = _embyflow_subtitle_open_0629
 EmbyFlowMoviePlayer.subtitle_selection_finished = _embyflow_subtitle_finished_0629
 
 # EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE
+
+# EMBYFLOW_SERVER_MANAGER_V1_0631_RELEASE
+# Vier Server-Slots bleiben kompatibel. MENU auf einer Serverkarte öffnet
+# Verwenden / Bearbeiten / Löschen. Löschen ist bestätigt und löscht nur den
+# gewählten Slot. Der aktive Runtime-Server wird nur dann zurückgesetzt, wenn
+# genau dieser konfigurierte Server gelöscht wurde.
+def _embyflow_server_manager_v1_selected_index(self):
+    try:
+        if int(getattr(self, "focus", -1)) in (0, 1, 2, 3):
+            return int(self.focus)
+    except Exception:
+        pass
+    try:
+        return max(0, min(3, int(self.selected_server_index)))
+    except Exception:
+        return 0
+
+
+def _embyflow_server_manager_v1_open(self):
+    index = _embyflow_server_manager_v1_selected_index(self)
+    current = str(self.server_slots[index] or "").strip()
+
+    if not current:
+        self.edit_server_slot(index)
+        return
+
+    choices = [
+        ("Server verwenden", ("use", index)),
+        ("Server bearbeiten", ("edit", index)),
+        ("Server löschen", ("delete", index)),
+        ("Abbrechen", ("cancel", index)),
+    ]
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v1_choice_done,
+        ChoiceBox,
+        title="Server %d verwalten" % (index + 1),
+        list=choices,
+    )
+
+
+def _embyflow_server_manager_v1_choice_done(self, result=None):
+    if result is None:
+        return
+
+    value = result
+    if isinstance(result, (tuple, list)):
+        value = result[1] if len(result) > 1 else result[0]
+
+    try:
+        action, index = value
+        index = max(0, min(3, int(index)))
+    except Exception:
+        return
+
+    if action == "cancel":
+        return
+    if action == "use":
+        self._select_server(index)
+        return
+    if action == "edit":
+        self.edit_server_slot(index)
+        return
+    if action != "delete":
+        return
+
+    current = str(self.server_slots[index] or "").strip()
+    if not current:
+        return
+
+    self._embyflow_server_manager_v1_pending_delete = index
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v1_delete_done,
+        MessageBox,
+        "Server %d wirklich löschen?\n\n%s" % (index + 1, current),
+        MessageBox.TYPE_YESNO,
+        default=False,
+    )
+
+
+def _embyflow_server_manager_v1_delete_done(self, answer=False):
+    try:
+        pending = getattr(self, "_embyflow_server_manager_v1_pending_delete", None)
+        if pending is None:
+            return
+        index = max(0, min(3, int(pending)))
+    except Exception:
+        return
+
+    self._embyflow_server_manager_v1_pending_delete = None
+    if not answer:
+        return
+
+    removed = str(self.server_slots[index] or "").strip().rstrip("/")
+    active = ""
+    try:
+        active = self._cfg(config.embyflow.server).strip().rstrip("/")
+    except Exception:
+        active = ""
+
+    self._save_slot(index, "")
+    self.server_runtime_states.pop(index, None)
+
+    remaining = [
+        slot_index
+        for slot_index, value in enumerate(self.server_slots)
+        if str(value or "").strip()
+    ]
+    self.selected_server_index = remaining[0] if remaining else 0
+    self.focus = self.selected_server_index
+    self._apply_selected_slot(clear_password=True)
+
+    removed_was_active = bool(
+        removed
+        and active
+        and removed.casefold() == active.casefold()
+    )
+    if removed_was_active:
+        try:
+            self._set_cfg(config.embyflow.server, "")
+            config.embyflow.server.save()
+            configfile.save()
+        except Exception:
+            pass
+        try:
+            apply_emby_runtime_config()
+        except Exception:
+            pass
+        try:
+            clear_emby_auth_cache()
+        except Exception:
+            pass
+        try:
+            EMBY_AUTH_CACHE["server"] = ""
+            EMBY_AUTH_CACHE["token"] = ""
+            EMBY_AUTH_CACHE["user_id"] = ""
+            EMBY_AUTH_CACHE["ts"] = 0
+        except Exception:
+            pass
+
+    if remaining:
+        suffix = " Aktiver Login wurde zurückgesetzt; bitte neu anmelden." if removed_was_active else ""
+        self["server_status"].setText(
+            "Server %d gelöscht. Server %d ist ausgewählt.%s"
+            % (index + 1, self.selected_server_index + 1, suffix)
+        )
+    else:
+        suffix = " Aktiver Login wurde zurückgesetzt." if removed_was_active else ""
+        self["server_status"].setText(
+            "Server %d gelöscht. Kein Server eingerichtet.%s"
+            % (index + 1, suffix)
+        )
+
+    self["login_status"].setText("")
+    self.refresh_all()
+
+
+EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v1_open
+EmbyFlowConnectionWizard._embyflow_server_manager_v1_choice_done = _embyflow_server_manager_v1_choice_done
+EmbyFlowConnectionWizard._embyflow_server_manager_v1_delete_done = _embyflow_server_manager_v1_delete_done
