@@ -161,12 +161,12 @@ except Exception:
 
 PLUGIN_NAME = "EmbyFlow E2"
 PLUGIN_VERSION = "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1"
-PLUGIN_BUILD_DATE = "06.09.2026"
+PLUGIN_BUILD_DATE = "07.09.2026"
 PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090629
+PLUGIN_UPDATE_BUILD = 2026090630
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -59423,12 +59423,27 @@ EmbyFlowLocalSourceFinalizeScreenV18._vkb_done_v18 = (
 # Verhindert Skin-/VirtualKeyBoard-Overlays fremder Images und hält die
 # Eingabe optisch im EmbyFlow-Design. Keine Netzwerk- oder Mountlogik geändert.
 
+# EMBYFLOW_GERMAN_KEYBOARD_V22
+# Einheitliches deutsches QWERTZ-Layout für EmbyFlow-Eingaben.
+# 6 x 13 Tasten passen weiterhin in FHD und in die dynamisch skalierte HD-UI.
+# Häufige Passwort-Sonderzeichen sind direkt sichtbar; zusätzlich gibt es
+# eine echte deutsche Shift-Ebene statt nur Groß-/Kleinschreibung.
 _EMBYFLOW_V19_KEY_ROWS_BASE = (
-    ("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "-", "_"),
-    ("q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü", "+", "#"),
-    ("a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä", "@", "%"),
-    ("y", "x", "c", "v", "b", "n", "m", ",", ":", "/", "\\", "!", "?"),
-    ("<", ">", "(", ")", "[", "]", "{", "}", "&", "*", "=", "'", "LEER"),
+    ("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ß", "´", "`"),
+    ("q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü", "+", "*"),
+    ("a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä", "#", "'"),
+    ("y", "x", "c", "v", "b", "n", "m", ",", ".", "-", "_", "/", "\\"),
+    ("@", "€", "$", "%", "&", "(", ")", "[", "]", "{", "}", "<", ">"),
+    (":", ";", "\"", "!", "?", "=", "|", "~", "^", "°", "§", "`", "LEER"),
+)
+
+_EMBYFLOW_V22_KEY_ROWS_SHIFT = (
+    ("!", "\"", "§", "$", "%", "&", "/", "(", ")", "=", "?", "`", "~"),
+    ("Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü", "*", "+"),
+    ("A", "S", "D", "F", "G", "H", "J", "K", "L", "Ö", "Ä", "'", "\""),
+    ("Y", "X", "C", "V", "B", "N", "M", ";", ":", "_", "-", "?", "|"),
+    ("@", "€", "$", "%", "&", "{", "}", "[", "]", "<", ">", "/", "\\"),
+    (":", ";", "\"", "!", "?", "=", "|", "~", "^", "°", "§", "´", "LEER"),
 )
 _EMBYFLOW_V19_KEY_COLS = 13
 _EMBYFLOW_V19_KEY_W = 78
@@ -59491,7 +59506,7 @@ def _embyflow_v19_keyboard_skin():
             <eLabel position="610,1020" size="20,20" backgroundColor="yellow" />
             <eLabel text="Löschen" position="642,1008" size="160,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
             <eLabel position="848,1020" size="20,20" backgroundColor="blue" />
-            <eLabel text="Groß/Klein" position="880,1008" size="180,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
+            <eLabel text="Shift" position="880,1008" size="180,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
             <eLabel text="OK" position="1480,1008" size="60,42" font="Bold;22" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" halign="center" />
             <eLabel text="Zeichen einfügen" position="1542,1008" size="260,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
         ''',
@@ -59593,19 +59608,16 @@ class EmbyFlowTextInputScreenV19(Screen):
             return "Beispiel: /media/net/NAS/Filme"
         if "passwort" in low:
             return "Das Passwort bleibt intern unverändert; die Anzeige ist maskiert."
-        return "Blau wechselt zwischen Groß- und Kleinschreibung."
+        return "Blau schaltet die deutsche Shift-Ebene um."
 
     def current_keys(self):
-        result = []
-        for base_row in _EMBYFLOW_V19_KEY_ROWS_BASE:
-            row = []
-            for key in base_row:
-                value = key
-                if self.uppercase and len(value) == 1 and value.isalpha():
-                    value = value.upper()
-                row.append(value)
-            result.append(tuple(row))
-        return tuple(result)
+        # V22: echte deutsche Shift-Ebene. Dadurch funktionieren nicht nur
+        # Großbuchstaben/Umlaute, sondern auch 2 -> ", 3 -> §, 7 -> / usw.
+        return (
+            _EMBYFLOW_V22_KEY_ROWS_SHIFT
+            if self.uppercase
+            else _EMBYFLOW_V19_KEY_ROWS_BASE
+        )
 
     def refresh_all(self):
         self.refresh_keys()
@@ -59747,7 +59759,7 @@ def _embyflow_v21_login_keyboard_skin():
             <eLabel position="610,1020" size="20,20" backgroundColor="yellow" />
             <eLabel text="Löschen" position="642,1008" size="160,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
             <eLabel position="848,1020" size="20,20" backgroundColor="blue" />
-            <eLabel text="Groß/Klein" position="880,1008" size="180,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
+            <eLabel text="Shift" position="880,1008" size="180,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
             <eLabel text="OK" position="1480,1008" size="60,42" font="Bold;22" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" halign="center" />
             <eLabel text="Zeichen einfügen" position="1542,1008" size="260,42" font="Regular;23" foregroundColor="#F4F7FB" backgroundColor="#071421" transparent="1" />
         """,
@@ -59856,6 +59868,53 @@ class EmbyFlowLoginTextInputScreenV21(EmbyFlowTextInputScreenV19):
         except Exception:
             pass
 # EMBYFLOW_LOGIN_FULLSCREEN_KEYBOARD_V21_END
+
+# EMBYFLOW_UNIVERSAL_GERMAN_KEYBOARD_V22_START
+class EmbyFlowUniversalTextInputScreenV22(EmbyFlowTextInputScreenV19):
+    """Einheitliche EmbyFlow-Tastatur für alle generischen Texteingaben."""
+
+    def __init__(
+        self,
+        session,
+        title="Eingabe",
+        text="",
+        masked=None,
+        *args,
+        **kwargs
+    ):
+        title_text = str(title or "Eingabe")
+
+        if masked is None:
+            low = title_text.casefold().replace("_", " ").replace("-", " ")
+            masked = any(
+                marker in low
+                for marker in (
+                    "passwort",
+                    "password",
+                    "api key",
+                    "apikey",
+                    "token",
+                    "secret",
+                    "schlüssel",
+                )
+            )
+
+        EmbyFlowTextInputScreenV19.__init__(
+            self,
+            session,
+            title_text,
+            str(text or ""),
+            bool(masked),
+        )
+
+
+# Alle plugininternen Stellen, die bisher das Image-eigene VirtualKeyBoard
+# aufgerufen haben, verwenden ab hier die einheitliche deutsche EmbyFlow-
+# Tastatur. Die spezielle Login-Ansicht V21 bleibt erhalten und nutzt
+# dasselbe V22-Zeichen-/Shift-Layout über die gemeinsame Basisklasse.
+VirtualKeyBoard = EmbyFlowUniversalTextInputScreenV22
+# EMBYFLOW_UNIVERSAL_GERMAN_KEYBOARD_V22_END
+
 
 def _embyflow_v19_nas_submit_if_complete(self):
     try:
@@ -84046,3 +84105,5 @@ def _embyflow_subtitle_finished_0629(self, result):
 
 EmbyFlowMoviePlayer.open_subtitle_selection = _embyflow_subtitle_open_0629
 EmbyFlowMoviePlayer.subtitle_selection_finished = _embyflow_subtitle_finished_0629
+
+# EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE
