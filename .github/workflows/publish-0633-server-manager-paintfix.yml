@@ -1,0 +1,142 @@
+name: Server manager paint fix 2026090633
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0633-server-manager-paintfix.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-server-manager-paintfix-2026090633
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish server manager paint fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090632') != 1:
+              raise SystemExit('0632 baseline build marker mismatch')
+          if '# EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE' not in text:
+              raise SystemExit('0632 server manager UI marker missing')
+          if '# EMBYFLOW_SERVER_MANAGER_UI_V2_PAINTFIX_0633_RELEASE' in text:
+              raise SystemExit('0633 paint fix already present')
+
+          old = '''        self["title"] = Label("")
+        self["badge"] = Label("")
+        self["server_url"] = Label("")
+        self["hint"] = Label("")
+        for row in range(4):
+            self["row%d" % row] = Label("")
+'''
+          new = '''        # 0633: Inhalte bereits VOR dem ersten GUI-Layout setzen.
+        # Manche Images führen onLayoutFinish für diesen Vollbild-Screen nicht
+        # zuverlässig aus; leere Label-Komponenten blieben dann komplett leer.
+        self["title"] = Label("SERVER %d VERWALTEN" % (self.slot_index + 1))
+        self["badge"] = Label("● AKTIV" if self.active else "BEREIT")
+        self["server_url"] = Label(self._display_url())
+        self["hint"] = Label(
+            "Server auswählen, Adresse bearbeiten oder den gespeicherten Slot entfernen."
+        )
+        initial_rows = (
+            "  ›  Server verwenden",
+            "     Server bearbeiten",
+            "     Server löschen",
+            "     Zurück",
+        )
+        for row in range(4):
+            self["row%d" % row] = Label(initial_rows[row])
+'''
+          if old not in text:
+              raise SystemExit('0632 empty label init block not found')
+          text = text.replace(old, new, 1)
+
+          old_finish = '        self.onLayoutFinish.append(self.refresh)\n'
+          new_finish = '''        # Datenmodell sofort füllen; Styling wird nach dem Layout erneut gesetzt.
+        self.refresh()
+        self.onLayoutFinish.append(self.refresh)
+        try:
+            self.onShow.append(self.refresh)
+        except Exception:
+            pass
+'''
+          start = text.find('# EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE')
+          pos = text.find(old_finish, start)
+          if pos < 0:
+              raise SystemExit('0632 onLayoutFinish hook not found')
+          text = text[:pos] + new_finish + text[pos + len(old_finish):]
+
+          # Versionszahl oben im EmbyFlow-Serverfenster aktualisieren.
+          ui_start = text.find('# EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE')
+          ui_end = text.find('def _embyflow_server_manager_v2_open', ui_start)
+          ui = text[ui_start:ui_end]
+          if 'text="0632"' not in ui:
+              raise SystemExit('0632 UI badge not found')
+          ui = ui.replace('text="0632"', 'text="0633"', 1)
+          text = text[:ui_start] + ui + text[ui_end:]
+
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090632',
+              'PLUGIN_UPDATE_BUILD = 2026090633',
+              1,
+          )
+          text += '\n\n# EMBYFLOW_SERVER_MANAGER_UI_V2_PAINTFIX_0633_RELEASE\n'
+          plugin.write_text(text, encoding='utf-8', newline='\n')
+
+          final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090632:
+              raise SystemExit('manifest baseline mismatch: %r' % data.get('build'))
+          data['build'] = 2026090633
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090633/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = final_sha
+          changelog = list(data.get('changelog') or [])
+          messages = [
+              'Serververwaltung 0633: dynamische Überschrift, Serveradresse und Menüzeilen werden bereits vor dem ersten Layout gesetzt',
+              'Paint-Fix 0633: zusätzlicher Refresh beim Anzeigen verhindert leere Serververwaltungsfenster auf Images mit unzuverlässigem onLayoutFinish',
+          ]
+          for msg in messages:
+              if msg not in changelog:
+                  changelog.append(msg)
+          data['changelog'] = changelog
+          manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090633' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_SERVER_MANAGER_UI_V2_PAINTFIX_0633_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'initial_rows = (' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Fix server manager rendering build 2026090633'
+          git push origin main
+          git tag -a build-2026090633 -m 'EmbyFlow E2 build 2026090633'
+          git push origin build-2026090633
