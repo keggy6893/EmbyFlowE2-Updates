@@ -1,0 +1,89 @@
+name: Login MENU hint build 2026090637
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0637-login-menu-hint.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-login-menu-hint-2026090637
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add MENU server-edit hint and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          old_build = 'PLUGIN_UPDATE_BUILD = 2026090636'
+          new_build = 'PLUGIN_UPDATE_BUILD = 2026090637'
+          if text.count(old_build) != 1:
+              raise SystemExit('0636 baseline build marker mismatch')
+          if text.count('# EMBYFLOW_SERVER_MANAGER_UI_V4_OVERVIEW_0636_RELEASE') != 1:
+              raise SystemExit('0636 server overview marker missing or duplicated')
+          if '# EMBYFLOW_LOGIN_MENU_HINT_0637_RELEASE' in text:
+              raise SystemExit('0637 login MENU hint already present')
+
+          anchor = '''        '<eLabel position="1620,1033" size="20,20" backgroundColor="blue" />',\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit('Login footer blue-key anchor mismatch')
+
+          menu_hint = '''        '<eLabel position="980,1027" size="86,30" backgroundColor="#26313D" />',\n        '<eLabel text="MENU" position="988,1023" size="70,38" font="Bold;17" foregroundColor="%s" backgroundColor="#26313D" transparent="1" halign="center" />' % white,\n        '<eLabel text="Server bearbeiten" position="1082,1023" size="270,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),\n'''
+
+          text = text.replace(old_build, new_build, 1)
+          text = text.replace(anchor, menu_hint + anchor, 1)
+          text += '\n# EMBYFLOW_LOGIN_MENU_HINT_0637_RELEASE\n'
+
+          compile(text, str(plugin), 'exec')
+          if text.count('text="MENU" position="988,1023"') != 1:
+              raise SystemExit('MENU footer hint verification failed')
+          if text.count('text="Server bearbeiten" position="1082,1023"') != 1:
+              raise SystemExit('Server bearbeiten footer hint verification failed')
+
+          plugin.write_text(text, encoding='utf-8')
+          sha256 = hashlib.sha256(plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build', 0)) != 2026090636:
+              raise SystemExit('update.json baseline build mismatch')
+          data['build'] = 2026090637
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090637/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = sha256
+          changelog = list(data.get('changelog') or [])
+          changelog.append('Login-Fußzeile 0637: MENU – Server bearbeiten ist direkt sichtbar; Serververwaltung und Playback bleiben unverändert')
+          data['changelog'] = changelog
+          manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          git diff --check
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Show MENU server-edit hint build 2026090637'
+          git push origin main
+          git tag -a build-2026090637 -m 'EmbyFlow E2 build 2026090637'
+          git push origin build-2026090637
