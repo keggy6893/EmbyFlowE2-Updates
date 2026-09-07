@@ -1,0 +1,113 @@
+name: Server overview UI build 2026090636
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0636-server-overview-ui.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-server-overview-2026090636
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build full EmbyFlow server overview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json, zlib
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090635') != 1:
+              raise SystemExit('0635 baseline build marker mismatch')
+          if text.count('# EMBYFLOW_SERVER_MANAGER_UI_V3_ZORDER_0635_RELEASE') != 1:
+              raise SystemExit('0635 z-order marker missing or duplicated')
+          if '# EMBYFLOW_SERVER_MANAGER_UI_V4_OVERVIEW_0636_RELEASE' in text:
+              raise SystemExit('0636 overview already present')
+
+          blob = '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'
+          patch = zlib.decompress(base64.b64decode(blob)).decode('utf-8')
+          compile(patch, '<0636-patch>', 'exec')
+
+          required = [
+              '# EMBYFLOW_SERVER_MANAGER_UI_V4_OVERVIEW_0636_RELEASE',
+              'class EmbyFlowServerManageScreenV4Overview(Screen):',
+              'widget name="srv_sel_0"',
+              'widget name="srv_sel_3"',
+              'widget name="action_0"',
+              'widget name="action_3"',
+              'EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v4_open',
+          ]
+          for marker in required:
+              if marker not in patch:
+                  raise SystemExit('0636 required marker missing: %s' % marker)
+
+          text += patch
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090635',
+              'PLUGIN_UPDATE_BUILD = 2026090636',
+              1,
+          )
+          plugin.write_text(text, encoding='utf-8', newline='\n')
+          final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090635:
+              raise SystemExit('manifest baseline mismatch: %r' % data.get('build'))
+          data['build'] = 2026090636
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090636/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = final_sha
+          changelog = list(data.get('changelog') or [])
+          messages = [
+              'Serververwaltung 0636: Vollbild-Zweispaltenansicht wie im freigegebenen EmbyFlow-Mock-up',
+              '0636 links: alle vier Server-Slots gleichzeitig mit Adresse und Aktiv/Online/Offline-Status',
+              '0636 rechts: ausgewählter Server mit Verwenden, Bearbeiten, Löschen und Abbrechen',
+              '0636 Löschen: Sicherheitsabfrage direkt im EmbyFlow-Panel; keine native blaue ChoiceBox',
+              '0636 OpenATV-Layering: dynamische Karten, Details und Aktionen liegen explizit über den Panel-Flächen',
+          ]
+          for msg in messages:
+              if msg not in changelog:
+                  changelog.append(msg)
+          data['changelog'] = changelog
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090636' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_SERVER_MANAGER_UI_V4_OVERVIEW_0636_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v4_open' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Add full server overview UI build 2026090636'
+          git push origin main
+          git tag -a build-2026090636 -m 'EmbyFlow E2 build 2026090636'
+          git push origin build-2026090636
