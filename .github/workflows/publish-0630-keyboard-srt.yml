@@ -1,0 +1,147 @@
+name: German keyboard V22 build 2026090630
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0630-keyboard-srt.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-german-keyboard-v22-2026090630
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish German keyboard V22
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import json
+          import re
+          import zlib
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090629') != 1:
+              raise SystemExit('0629 baseline build marker mismatch')
+
+          start_marker = '# EMBYFLOW_LOCAL_INPUT_UI_V19_START'
+          end_marker = '# EMBYFLOW_LOCAL_INPUT_UI_V19_END'
+          start = text.find(start_marker)
+          if start < 0:
+              raise SystemExit('V19 keyboard start marker missing')
+          end = text.find(end_marker, start)
+          if end < 0:
+              raise SystemExit('V19 keyboard end marker missing')
+          end += len(end_marker)
+          if end < len(text) and text[end:end + 1] == '\n':
+              end += 1
+
+          keyboard = zlib.decompress(base64.b64decode(
+              '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'
+          )).decode('utf-8')
+
+          text = text[:start] + keyboard + text[end:]
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090629',
+              'PLUGIN_UPDATE_BUILD = 2026090630',
+              1,
+          )
+          text = re.sub(
+              r'PLUGIN_BUILD_DATE = "[^"]*"',
+              'PLUGIN_BUILD_DATE = "07.09.2026"',
+              text,
+              count=1,
+          )
+
+          release_marker = '# EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE'
+          if release_marker not in text:
+              text = text.rstrip() + '\n\n' + release_marker + '\n'
+
+          required = (
+              '# EMBYFLOW_GERMAN_KEYBOARD_V22',
+              '_EMBYFLOW_V22_KEY_ROWS_SHIFT',
+              'VirtualKeyBoard = EmbyFlowUniversalTextInputScreenV22',
+              'text="Shift"',
+              '# EMBYFLOW_UNIVERSAL_GERMAN_KEYBOARD_V22_END',
+              release_marker,
+          )
+          for marker in required:
+              if marker not in text:
+                  raise SystemExit('required keyboard marker missing: %s' % marker)
+
+          if '(":", ";", "\\\"", "!", "?", "=",' not in text:
+              raise SystemExit('double quote key missing from German keyboard')
+
+          plugin.write_text(text, encoding='utf-8', newline='\n')
+          final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090629:
+              raise SystemExit('manifest baseline mismatch: %r' % data.get('build'))
+
+          data['build'] = 2026090630
+          data['download'] = (
+              'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'
+              'build-2026090630/'
+              'plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          )
+          data['sha256'] = final_sha
+
+          changelog = list(data.get('changelog') or [])
+          messages = [
+              'Tastatur V22: einheitliches deutsches QWERTZ-Layout für EmbyFlow-Eingaben mit ä/ö/ü/ß und deutscher Shift-Ebene',
+              'Passwort-Sonderzeichen: doppeltes Anführungszeichen sowie §, €, $, %, &, /, \\, |, @, #, Klammern und weitere Zeichen direkt verfügbar',
+              'Alle generischen EmbyFlow-Texteingaben verwenden die neue Tastatur; Passwort/API-Key/Token-Felder bleiben maskiert',
+          ]
+          for message in messages:
+              if message not in changelog:
+                  changelog.append(message)
+          data['changelog'] = changelog
+
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090630' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'VirtualKeyBoard = EmbyFlowUniversalTextInputScreenV22' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q '_EMBYFLOW_V22_KEY_ROWS_SHIFT' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          git diff --check
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'German keyboard V22 build 2026090630'
+          git push origin main
+          git tag -a build-2026090630 -m 'EmbyFlow E2 build 2026090630'
+          git push origin build-2026090630
+
+# trigger after workflow registration
