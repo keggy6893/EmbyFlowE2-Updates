@@ -17,7 +17,6 @@ concurrency:
 
 jobs:
   publish:
-    if: github.actor != 'actions'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +29,9 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib, json
+          import hashlib
+          import json
+          import textwrap
 
           plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
           manifest = Path('update.json')
@@ -43,193 +44,192 @@ jobs:
           if 'EMBYFLOW_ALL_SUBTITLE_STREAMS_0629_RELEASE' in text:
               raise SystemExit('0629 patch already present')
 
-          patch = r'''
+          patch = textwrap.dedent(r'''
+              # EMBYFLOW_ALL_SUBTITLE_STREAMS_0629_RELEASE
+              # Selector inventory only: list every Subtitle MediaStream from the active
+              # MediaSource. Text subtitles keep the proven 0628 renderer. Bitmap tracks
+              # are visible but this selector never starts server-side video transcoding.
+              def _embyflow_subtitle_streams_0629(self):
+                  item = getattr(self, "item", None) or {}
+                  sources = item.get("MediaSources") or item.get("media_sources") or []
+                  if not sources:
+                      return []
 
-# EMBYFLOW_ALL_SUBTITLE_STREAMS_0629_RELEASE
-# Selector inventory only: list every Subtitle MediaStream from the active
-# MediaSource. Text subtitles keep the proven 0628 renderer. Bitmap tracks are
-# visible but this selector never starts server-side video transcoding.
-def _embyflow_subtitle_streams_0629(self):
-    item = getattr(self, "item", None) or {}
-    sources = item.get("MediaSources") or item.get("media_sources") or []
-    if not sources:
-        return []
+                  wanted = str(getattr(self, "media_source_id", "") or "")
+                  source = None
+                  if wanted:
+                      for candidate in sources:
+                          candidate_id = str(candidate.get("Id") or candidate.get("id") or "")
+                          if candidate_id == wanted:
+                              source = candidate
+                              break
 
-    wanted = str(getattr(self, "media_source_id", "") or "")
-    source = None
-    if wanted:
-        for candidate in sources:
-            candidate_id = str(candidate.get("Id") or candidate.get("id") or "")
-            if candidate_id == wanted:
-                source = candidate
-                break
+                  if source is None:
+                      source = sources[0]
 
-    if source is None:
-        source = sources[0]
-
-    streams = source.get("MediaStreams") or source.get("media_streams") or []
-    return [
-        stream for stream in streams
-        if str(stream.get("Type") or stream.get("type") or "").strip().lower() == "subtitle"
-    ]
-
-
-def _embyflow_subtitle_language_0629(self, stream, position):
-    fallback = "Untertitel %d" % (int(position) + 1)
-    value = (
-        stream.get("Language")
-        or stream.get("DisplayLanguage")
-        or stream.get("DisplayTitle")
-        or fallback
-    )
-    try:
-        return self.embyflow_track_language_name(value, fallback)
-    except Exception:
-        return str(value or fallback)
+                  streams = source.get("MediaStreams") or source.get("media_streams") or []
+                  return [
+                      stream for stream in streams
+                      if str(stream.get("Type") or stream.get("type") or "").strip().lower() == "subtitle"
+                  ]
 
 
-def _embyflow_subtitle_codec_0629(self, stream):
-    codec = str(stream.get("Codec") or "").strip()
-    aliases = {
-        "subrip": "SRT",
-        "srt": "SRT",
-        "pgssub": "PGS",
-        "hdmv_pgs_subtitle": "PGS",
-        "dvdsub": "DVDSUB",
-        "dvd_subtitle": "DVDSUB",
-        "dvbsub": "DVBSUB",
-        "dvb_subtitle": "DVBSUB",
-        "vobsub": "VOBSUB",
-        "xsub": "XSUB",
-    }
-    if codec.lower() in aliases:
-        return aliases[codec.lower()]
-    try:
-        value = self.embyflow_track_codec_name(codec)
-        if value:
-            return value
-    except Exception:
-        pass
-    return codec.upper() or "UT"
+              def _embyflow_subtitle_language_0629(self, stream, position):
+                  fallback = "Untertitel %d" % (int(position) + 1)
+                  value = (
+                      stream.get("Language")
+                      or stream.get("DisplayLanguage")
+                      or stream.get("DisplayTitle")
+                      or fallback
+                  )
+                  try:
+                      return self.embyflow_track_language_name(value, fallback)
+                  except Exception:
+                      return str(value or fallback)
 
 
-def _embyflow_subtitle_flags_0629(stream):
-    flags = []
-    title_text = " ".join((
-        str(stream.get("Title") or ""),
-        str(stream.get("DisplayTitle") or ""),
-    )).lower()
-    if stream.get("IsForced") or "forced" in title_text or "erzw" in title_text:
-        flags.append("Erzw.")
-    if stream.get("IsHearingImpaired") or "sdh" in title_text or "hearing" in title_text:
-        flags.append("SDH")
-    return "/".join(flags)
+              def _embyflow_subtitle_codec_0629(self, stream):
+                  codec = str(stream.get("Codec") or "").strip()
+                  aliases = {
+                      "subrip": "SRT",
+                      "srt": "SRT",
+                      "pgssub": "PGS",
+                      "hdmv_pgs_subtitle": "PGS",
+                      "dvdsub": "DVDSUB",
+                      "dvd_subtitle": "DVDSUB",
+                      "dvbsub": "DVBSUB",
+                      "dvb_subtitle": "DVBSUB",
+                      "vobsub": "VOBSUB",
+                      "xsub": "XSUB",
+                  }
+                  if codec.lower() in aliases:
+                      return aliases[codec.lower()]
+                  try:
+                      value = self.embyflow_track_codec_name(codec)
+                      if value:
+                          return value
+                  except Exception:
+                      pass
+                  return codec.upper() or "UT"
 
 
-def _embyflow_subtitle_open_0629(self):
-    try:
-        streams = _embyflow_subtitle_streams_0629(self)
-        entries = [{
-            "primary": "Untertitel aus",
-            "secondary": "",
-            "tertiary": "",
-            "active": self.embyflow_active_subtitle_index is None,
-            "payload": ("subtitle_off", None, "Aus", None),
-        }]
-
-        for position, stream in enumerate(streams):
-            language = _embyflow_subtitle_language_0629(self, stream, position)
-            codec = _embyflow_subtitle_codec_0629(self, stream)
-            flags = _embyflow_subtitle_flags_0629(stream)
-            try:
-                is_text = bool(_embyflow_srt_v2_is_text_stream(stream))
-            except Exception:
-                is_text = bool(stream.get("IsTextSubtitleStream"))
-
-            action = "subtitle" if is_text else "subtitle_bitmap_info_0629"
-            entries.append({
-                "primary": language,
-                "secondary": codec,
-                "tertiary": flags,
-                "active": self.embyflow_active_subtitle_index == position,
-                "payload": (action, stream, language, position),
-            })
-
-        if len(entries) == 1:
-            raise RuntimeError("Keine Untertitelspuren in der aktiven MediaSource gefunden")
-
-        active_index = 0
-        for index, entry in enumerate(entries):
-            if entry.get("active"):
-                active_index = index
-                break
-
-        self.session.openWithCallback(
-            self.subtitle_selection_finished,
-            EmbyFlowTrackSelectionScreen,
-            title="Untertitel auswählen",
-            entries=entries,
-            active_index=active_index,
-        )
-    except Exception as error:
-        self.session.open(
-            MessageBox,
-            "Untertitelauswahl nicht verfügbar: %s" % str(error),
-            MessageBox.TYPE_INFO,
-            timeout=4,
-        )
+              def _embyflow_subtitle_flags_0629(stream):
+                  flags = []
+                  title_text = " ".join((
+                      str(stream.get("Title") or ""),
+                      str(stream.get("DisplayTitle") or ""),
+                  )).lower()
+                  if stream.get("IsForced") or "forced" in title_text or "erzw" in title_text:
+                      flags.append("Erzw.")
+                  if stream.get("IsHearingImpaired") or "sdh" in title_text or "hearing" in title_text:
+                      flags.append("SDH")
+                  return "/".join(flags)
 
 
-def _embyflow_subtitle_finished_0629(self, result):
-    if not result:
-        return
+              def _embyflow_subtitle_open_0629(self):
+                  try:
+                      streams = _embyflow_subtitle_streams_0629(self)
+                      entries = [{
+                          "primary": "Untertitel aus",
+                          "secondary": "",
+                          "tertiary": "",
+                          "active": self.embyflow_active_subtitle_index is None,
+                          "payload": ("subtitle_off", None, "Aus", None),
+                      }]
 
-    try:
-        action, stream, label, position = result
+                      for position, stream in enumerate(streams):
+                          language = _embyflow_subtitle_language_0629(self, stream, position)
+                          codec = _embyflow_subtitle_codec_0629(self, stream)
+                          flags = _embyflow_subtitle_flags_0629(stream)
+                          try:
+                              is_text = bool(_embyflow_srt_v2_is_text_stream(stream))
+                          except Exception:
+                              is_text = bool(stream.get("IsTextSubtitleStream"))
 
-        if action == "subtitle_off":
-            return _embyflow_srt_v2_selection_finished(
-                self,
-                ("subtitle_off", None, label, position),
-            )
+                          action = "subtitle" if is_text else "subtitle_bitmap_info_0629"
+                          entries.append({
+                              "primary": language,
+                              "secondary": codec,
+                              "tertiary": flags,
+                              "active": self.embyflow_active_subtitle_index == position,
+                              "payload": (action, stream, language, position),
+                          })
 
-        if action == "subtitle":
-            return _embyflow_srt_v2_selection_finished(
-                self,
-                ("subtitle", None, label, position),
-            )
+                      if len(entries) == 1:
+                          raise RuntimeError("Keine Untertitelspuren in der aktiven MediaSource gefunden")
 
-        if action == "subtitle_bitmap_info_0629":
-            codec = _embyflow_subtitle_codec_0629(self, stream or {})
-            delivery = str((stream or {}).get("DeliveryMethod") or "").strip()
-            suffix = " (Emby: %s)" % delivery if delivery else ""
-            self.session.open(
-                MessageBox,
-                "%s-Untertitel ist in Emby vorhanden%s, wird aber nicht automatisch transcodiert."
-                % (codec, suffix),
-                MessageBox.TYPE_INFO,
-                timeout=5,
-            )
-            return
-    except Exception as error:
-        self.session.open(
-            MessageBox,
-            "Untertitel konnten nicht gewechselt werden: %s" % str(error),
-            MessageBox.TYPE_ERROR,
-            timeout=5,
-        )
+                      active_index = 0
+                      for index, entry in enumerate(entries):
+                          if entry.get("active"):
+                              active_index = index
+                              break
+
+                      self.session.openWithCallback(
+                          self.subtitle_selection_finished,
+                          EmbyFlowTrackSelectionScreen,
+                          title="Untertitel auswählen",
+                          entries=entries,
+                          active_index=active_index,
+                      )
+                  except Exception as error:
+                      self.session.open(
+                          MessageBox,
+                          "Untertitelauswahl nicht verfügbar: %s" % str(error),
+                          MessageBox.TYPE_INFO,
+                          timeout=4,
+                      )
 
 
-EmbyFlowMoviePlayer.open_subtitle_selection = _embyflow_subtitle_open_0629
-EmbyFlowMoviePlayer.subtitle_selection_finished = _embyflow_subtitle_finished_0629
-'''
+              def _embyflow_subtitle_finished_0629(self, result):
+                  if not result:
+                      return
+
+                  try:
+                      action, stream, label, position = result
+
+                      if action == "subtitle_off":
+                          return _embyflow_srt_v2_selection_finished(
+                              self,
+                              ("subtitle_off", None, label, position),
+                          )
+
+                      if action == "subtitle":
+                          return _embyflow_srt_v2_selection_finished(
+                              self,
+                              ("subtitle", None, label, position),
+                          )
+
+                      if action == "subtitle_bitmap_info_0629":
+                          codec = _embyflow_subtitle_codec_0629(self, stream or {})
+                          delivery = str((stream or {}).get("DeliveryMethod") or "").strip()
+                          suffix = " (Emby: %s)" % delivery if delivery else ""
+                          self.session.open(
+                              MessageBox,
+                              "%s-Untertitel ist in Emby vorhanden%s, wird aber nicht automatisch transcodiert."
+                              % (codec, suffix),
+                              MessageBox.TYPE_INFO,
+                              timeout=5,
+                          )
+                          return
+                  except Exception as error:
+                      self.session.open(
+                          MessageBox,
+                          "Untertitel konnten nicht gewechselt werden: %s" % str(error),
+                          MessageBox.TYPE_ERROR,
+                          timeout=5,
+                      )
+
+
+              EmbyFlowMoviePlayer.open_subtitle_selection = _embyflow_subtitle_open_0629
+              EmbyFlowMoviePlayer.subtitle_selection_finished = _embyflow_subtitle_finished_0629
+          ''').lstrip('\n')
 
           text = text.replace(
               'PLUGIN_UPDATE_BUILD = 2026090628',
               'PLUGIN_UPDATE_BUILD = 2026090629',
               1,
           )
-          text += patch
+          text += '\n' + patch
           plugin.write_text(text, encoding='utf-8', newline='\n')
           final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
 
