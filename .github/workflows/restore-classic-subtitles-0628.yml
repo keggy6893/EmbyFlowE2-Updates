@@ -1,0 +1,103 @@
+name: Restore classic subtitles 2026090628
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/restore-classic-subtitles-0628.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-restore-classic-subtitles-2026090628
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore proven 0624 subtitle implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, subprocess
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+
+          # 0625-0627 were subtitle-only experiments. Restore the complete
+          # proven 0624 plugin so the old EmbyFlow subtitle behaviour comes
+          # back exactly, while retaining all fixes through chapter build 0624.
+          raw = subprocess.check_output([
+              'git', 'show',
+              'build-2026090624:plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          ])
+          text = raw.decode('utf-8')
+
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090624') != 1:
+              raise SystemExit('0624 baseline build marker mismatch')
+          if 'EMBYFLOW_CHAPTER_CARDS_V18_SINGLE_SELECTED_0624_RELEASE' not in text:
+              raise SystemExit('0624 chapter marker missing')
+          for forbidden in (
+              'EMBYFLOW_HYBRID_SUBTITLES_0625_RELEASE',
+              'EMBYFLOW_BITMAP_EXTEPLAYER3_0626_RELEASE',
+              'EMBYFLOW_BITMAP_PGS_RENDERER_0627_RELEASE',
+          ):
+              if forbidden in text:
+                  raise SystemExit('0624 baseline unexpectedly contains %s' % forbidden)
+
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090624',
+              'PLUGIN_UPDATE_BUILD = 2026090628',
+              1,
+          )
+          text += '\n# EMBYFLOW_CLASSIC_SUBTITLES_RESTORED_0628_RELEASE\n'
+          plugin.write_text(text, encoding='utf-8', newline='\n')
+          final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090627:
+              raise SystemExit('manifest baseline mismatch: %r' % data.get('build'))
+          data['build'] = 2026090628
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090628/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = final_sha
+          changelog = list(data.get('changelog') or [])
+          msg = 'Untertitel-Rollback 0628: bewährte EmbyFlow-Unter­titel­logik aus Build 0624 vollständig wiederhergestellt; Hybrid-/ExtEplayer-/PGS-Experimente 0625-0627 entfernt'
+          if msg not in changelog:
+              changelog.append(msg)
+          data['changelog'] = changelog
+          manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090628' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_CLASSIC_SUBTITLES_RESTORED_0628_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_CHAPTER_CARDS_V18_SINGLE_SELECTED_0624_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_LOGINREF17_DREAMSAFE2_HTTPPOOL_NONBLOCK_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'MAX_STALE = 172800' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          ! grep -q 'EMBYFLOW_HYBRID_SUBTITLES_0625_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          ! grep -q 'EMBYFLOW_BITMAP_EXTEPLAYER3_0626_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          ! grep -q 'EMBYFLOW_BITMAP_PGS_RENDERER_0627_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Restore classic subtitles build 2026090628'
+          git push origin main
+          git tag -a build-2026090628 -m 'EmbyFlow E2 build 2026090628'
+          git push origin build-2026090628
