@@ -167,7 +167,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090637
+PLUGIN_UPDATE_BUILD = 2026090638
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -82991,9 +82991,9 @@ def _embyflow_login_reference_v13_skin():
         '<eLabel text="Weiter / Test" position="374,1023" size="200,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),
         '<eLabel position="650,1033" size="20,20" backgroundColor="yellow" />',
         '<eLabel text="Erweitert" position="684,1023" size="170,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),
-        '<eLabel position="980,1027" size="86,30" backgroundColor="#26313D" />',
-        '<eLabel text="MENU" position="988,1023" size="70,38" font="Bold;17" foregroundColor="%s" backgroundColor="#26313D" transparent="1" halign="center" />' % white,
-        '<eLabel text="Server bearbeiten" position="1082,1023" size="270,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),
+        '<eLabel position="980,1033" size="58,20" backgroundColor="#26313D" />',
+        '<eLabel text="MENU" position="980,1028" size="58,30" font="Bold;14" foregroundColor="%s" backgroundColor="#26313D" transparent="1" halign="center" />' % white,
+        '<eLabel text="Server bearbeiten" position="1052,1023" size="250,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),
         '<eLabel position="1620,1033" size="20,20" backgroundColor="blue" />',
         '<eLabel text="Hilfe" position="1654,1023" size="120,38" font="Regular;18" foregroundColor="%s" backgroundColor="%s" transparent="1" />' % (white, bg),
 
@@ -85112,3 +85112,5 @@ def _embyflow_server_manager_v4_result(self, result=None):
 EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v4_open
 EmbyFlowConnectionWizard._embyflow_server_manager_v4_result = _embyflow_server_manager_v4_result
 # EMBYFLOW_LOGIN_MENU_HINT_0637_RELEASE
+
+# EMBYFLOW_LOGIN_MENU_HINT_ALIGN_0638_RELEASE
