@@ -31,6 +31,7 @@ from Components.ServiceEventTracker import ServiceEventTracker
 from Components.Pixmap import Pixmap
 from Tools.LoadPixmap import LoadPixmap
 from Components.Label import Label
+from Components.MenuList import MenuList
 try:
     from Components.ScrollLabel import ScrollLabel
 except Exception:
@@ -166,7 +167,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090633
+PLUGIN_UPDATE_BUILD = 2026090634
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -84505,3 +84506,202 @@ EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_m
 
 
 # EMBYFLOW_SERVER_MANAGER_UI_V2_PAINTFIX_0633_RELEASE
+
+
+# EMBYFLOW_SERVER_MANAGER_UI_V3_MENULIST_0634_RELEASE
+# 0632/0633 zeigten auf einzelnen OpenATV-Images zwar den statischen Skin,
+# aber keine dynamischen Label-Komponenten. V3 verwendet deshalb für ALLE
+# variablen Inhalte einen echten Enigma2-MenuList-Unterbau. Keine ChoiceBox,
+# keine Playback-/Serverlogikänderung.
+class EmbyFlowServerManageScreenV3List(Screen):
+    skin = scale_skin("""
+    <screen name="EmbyFlowServerManageScreenV3List" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#030811">
+        <eLabel position="0,0" size="1920,1080" backgroundColor="#030811" />
+
+        <eLabel text="EMBY" position="92,58" size="210,58" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
+        <eLabel text="FLOW" position="302,58" size="210,58" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
+        <eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
+        <eLabel text="0634" position="1640,66" size="190,34" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
+        <eLabel position="90,184" size="1740,2" backgroundColor="#1689FF" />
+
+        <eLabel position="190,235" size="1540,690" backgroundColor="#07111E" />
+        <eLabel position="194,239" size="1532,682" backgroundColor="#050C16" />
+
+        <widget name="menu" position="260,286" size="1380,500" font="Regular;30" itemHeight="92" foregroundColor="#EAF1F8" foregroundColorSelected="#FFFFFF" backgroundColor="#050C16" backgroundColorSelected="#1689FF" transparent="0" scrollbarMode="showNever" />
+
+        <eLabel text="ROT  Zurück" position="260,864" size="320,34" font="Regular;21" foregroundColor="#FF6B79" backgroundColor="#050C16" transparent="1" />
+        <eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" font="Regular;21" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" />
+        <eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" font="Regular;21" foregroundColor="#8D96A1" backgroundColor="#050C16" transparent="1" halign="right" />
+    </screen>
+    """)
+
+    def __init__(self, session, slot_index, server_url, active=False):
+        Screen.__init__(self, session)
+        self.slot_index = max(0, min(3, int(slot_index)))
+        self.server_url = str(server_url or "").strip()
+        self.active = bool(active)
+        self.confirming = False
+        self["menu"] = MenuList(
+            self._main_entries(),
+            enableWrapAround=True,
+        )
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            {
+                "cancel": self.go_back,
+                "red": self.go_back,
+                "ok": self.activate,
+                "green": self.activate,
+                "up": self.move_up,
+                "down": self.move_down,
+                "left": self.move_up,
+                "right": self.move_down,
+            },
+            -1,
+        )
+
+    def _safe_url(self):
+        value = str(self.server_url or "").strip()
+        try:
+            value = re.sub(
+                r"(?i)(https?://)[^/@\s]+:[^/@\s]+@",
+                r"\1•••:•••@",
+                value,
+            )
+        except Exception:
+            pass
+        if len(value) > 58:
+            value = value[:55] + "..."
+        return value
+
+    def _main_entries(self):
+        number = self.slot_index + 1
+        state = "AKTIV" if self.active else "BEREIT"
+        url = self._safe_url() or "keine Adresse"
+        return [
+            "SERVER %d  •  %s  —  %s" % (number, state, url),
+            "Server %d verwenden" % number,
+            "Server %d bearbeiten" % number,
+            "Server %d löschen" % number,
+            "Zurück",
+        ]
+
+    def _confirm_entries(self):
+        number = self.slot_index + 1
+        return [
+            "SERVER %d WIRKLICH LÖSCHEN?" % number,
+            "Nein — Server behalten",
+            "Ja — Server endgültig löschen",
+        ]
+
+    def _set_entries(self, entries, index=0):
+        self["menu"].setList(list(entries or []))
+        try:
+            self["menu"].moveToIndex(max(0, int(index)))
+        except Exception:
+            pass
+
+    def move_up(self):
+        try:
+            self["menu"].up()
+        except Exception:
+            pass
+
+    def move_down(self):
+        try:
+            self["menu"].down()
+        except Exception:
+            pass
+
+    def _selected_index(self):
+        try:
+            return int(self["menu"].getSelectedIndex())
+        except Exception:
+            return 0
+
+    def go_back(self):
+        if self.confirming:
+            self.confirming = False
+            self._set_entries(self._main_entries(), 3)
+            return
+        self.close(None)
+
+    def activate(self):
+        index = self._selected_index()
+        if self.confirming:
+            if index == 2:
+                self.close(("delete", self.slot_index))
+                return
+            if index in (0, 1):
+                self.confirming = False
+                self._set_entries(self._main_entries(), 3)
+                return
+            return
+
+        if index == 0:
+            try:
+                self["menu"].moveToIndex(1)
+            except Exception:
+                pass
+            return
+        if index == 1:
+            self.close(("use", self.slot_index))
+            return
+        if index == 2:
+            self.close(("edit", self.slot_index))
+            return
+        if index == 3:
+            self.confirming = True
+            self._set_entries(self._confirm_entries(), 1)
+            return
+        self.close(None)
+
+
+def _embyflow_server_manager_v3_open(self):
+    index = _embyflow_server_manager_v1_selected_index(self)
+    current = str(self.server_slots[index] or "").strip()
+    if not current:
+        self.edit_server_slot(index)
+        return
+
+    active = ""
+    try:
+        active = self._cfg(config.embyflow.server).strip().rstrip("/")
+    except Exception:
+        pass
+    is_active = bool(
+        active and current.rstrip("/").casefold() == active.casefold()
+    )
+
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v3_result,
+        EmbyFlowServerManageScreenV3List,
+        index,
+        current,
+        is_active,
+    )
+
+
+def _embyflow_server_manager_v3_result(self, result=None):
+    if not result:
+        return
+    try:
+        action, index = result
+        index = max(0, min(3, int(index)))
+    except Exception:
+        return
+
+    if action == "use":
+        self._select_server(index)
+        return
+    if action == "edit":
+        self.edit_server_slot(index)
+        return
+    if action == "delete":
+        self._embyflow_server_manager_v1_pending_delete = index
+        self._embyflow_server_manager_v1_delete_done(True)
+        return
+
+
+EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v3_open
+EmbyFlowConnectionWizard._embyflow_server_manager_v3_result = _embyflow_server_manager_v3_result
