@@ -273,3 +273,5 @@ EmbyFlowMoviePlayer.subtitle_selection_finished = _embyflow_subtitle_finished_06
           git push origin main
           git tag -a build-2026090629 -m 'EmbyFlow E2 build 2026090629'
           git push origin build-2026090629
+
+# trigger after workflow registration
