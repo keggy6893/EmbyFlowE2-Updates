@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090632,
+  "build": 2026090633,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090632/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "1027809ec9a82086fd360fe0b269dc414be0adc5ed232cde74810142593d4f2f",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090633/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "58dc38592d726796ee142690acbefcebd24f6d51791ea375e2770ab0698ecc61",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -33,6 +33,8 @@
     "Server bearbeiten: vorhandene Adresse öffnet direkt die einheitliche EmbyFlow-Tastatur; leere Slots lassen sich wie bisher per OK einrichten",
     "Serververwaltung 0632: natives Enigma2-ChoiceBox-Menü durch eigenes dunkles EmbyFlow-Servermenü ersetzt",
     "Servermenü 0632: EmbyFlow Cyan/Pink-Branding, große TV-taugliche Auswahlzeilen und klare Aktiv-Markierung",
-    "Löschen 0632: Sicherheitsabfrage vollständig im EmbyFlow-Stil statt im nativen Enigma2-Dialog"
+    "Löschen 0632: Sicherheitsabfrage vollständig im EmbyFlow-Stil statt im nativen Enigma2-Dialog",
+    "Serververwaltung 0633: Überschrift, Serveradresse und Menüzeilen werden schon vor dem ersten Layout gesetzt",
+    "Paint-Fix 0633: zusätzlicher Refresh beim Anzeigen verhindert leere Serververwaltungsfenster"
   ]
 }

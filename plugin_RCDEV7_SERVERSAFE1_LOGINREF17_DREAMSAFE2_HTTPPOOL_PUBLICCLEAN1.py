@@ -166,7 +166,7 @@ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
-PLUGIN_UPDATE_BUILD = 2026090632
+PLUGIN_UPDATE_BUILD = 2026090633
 PLUGIN_UPDATE_CHANGELOG = (
     "4K HEVC/Main10/Dolby Vision: native Direct Play über Static=true statt unnötigem H.264-Volltranscode|"
     "H.264 über 1920 Pixel Breite und AV1 behalten den sicheren H.264-Kompatibilitätsfallback|"
@@ -84279,7 +84279,7 @@ class EmbyFlowServerManageScreenV2(Screen):
         <eLabel text="EMBY" position="92,58" size="210,58" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
         <eLabel text="FLOW" position="302,58" size="210,58" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
         <eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
-        <eLabel text="0632" position="1640,66" size="190,34" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
+        <eLabel text="0633" position="1640,66" size="190,34" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
 
         <eLabel position="90,184" size="1740,2" backgroundColor="#1689FF" />
 
@@ -84311,12 +84311,20 @@ class EmbyFlowServerManageScreenV2(Screen):
         self.index = 0
         self.entries = []
 
-        self["title"] = Label("")
-        self["badge"] = Label("")
-        self["server_url"] = Label("")
-        self["hint"] = Label("")
+        # 0633: Inhalte bereits VOR dem ersten GUI-Layout setzen.
+        # Manche Images führen onLayoutFinish für diesen Vollbild-Screen nicht zuverlässig aus.
+        self["title"] = Label("SERVER %d VERWALTEN" % (self.slot_index + 1))
+        self["badge"] = Label("● AKTIV" if self.active else "BEREIT")
+        self["server_url"] = Label(self._display_url())
+        self["hint"] = Label("Server auswählen, Adresse bearbeiten oder den gespeicherten Slot entfernen.")
+        initial_rows = (
+            "  ›  Server verwenden",
+            "     Server bearbeiten",
+            "     Server löschen",
+            "     Zurück",
+        )
         for row in range(4):
-            self["row%d" % row] = Label("")
+            self["row%d" % row] = Label(initial_rows[row])
 
         self["actions"] = ActionMap(
             ["OkCancelActions", "DirectionActions", "ColorActions"],
@@ -84332,7 +84340,13 @@ class EmbyFlowServerManageScreenV2(Screen):
             },
             -1,
         )
+        # Datenmodell sofort füllen; Styling wird nach dem Layout erneut gesetzt.
+        self.refresh()
         self.onLayoutFinish.append(self.refresh)
+        try:
+            self.onShow.append(self.refresh)
+        except Exception:
+            pass
 
     def _display_url(self):
         value = str(self.server_url or "")
@@ -84488,3 +84502,6 @@ def _embyflow_server_manager_v2_result(self, result=None):
 
 EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v2_open
 EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_manager_v2_result
+
+
+# EMBYFLOW_SERVER_MANAGER_UI_V2_PAINTFIX_0633_RELEASE
