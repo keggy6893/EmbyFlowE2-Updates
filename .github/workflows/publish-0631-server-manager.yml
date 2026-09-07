@@ -1,0 +1,289 @@
+name: Server management build 2026090631
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-0631-server-manager.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-server-management-2026090631
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish server management
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          text = plugin.read_text(encoding='utf-8')
+
+          if text.count('PLUGIN_UPDATE_BUILD = 2026090630') != 1:
+              raise SystemExit('0630 baseline build marker mismatch')
+          if '# EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE' not in text:
+              raise SystemExit('0630 German keyboard marker missing')
+          if 'EMBYFLOW_SERVER_MANAGER_V1_0631_RELEASE' in text:
+              raise SystemExit('0631 server manager already present')
+
+          cls_start = text.find('class EmbyFlowConnectionWizard(Screen):')
+          if cls_start < 0:
+              raise SystemExit('Connection wizard class missing')
+          cls_end = text.find('\ndef _embyflow_neon_advanced_skin():', cls_start)
+          if cls_end < 0:
+              raise SystemExit('Connection wizard class end missing')
+
+          block = text[cls_start:cls_end]
+          old_context = '["OkCancelActions", "DirectionActions", "ColorActions"],'
+          if old_context not in block:
+              raise SystemExit('Connection wizard action contexts not found')
+          block = block.replace(
+              old_context,
+              '["OkCancelActions", "DirectionActions", "ColorActions", "MenuActions"],',
+              1,
+          )
+
+          old_blue = '                "blue": self.show_help,\n'
+          if old_blue not in block:
+              raise SystemExit('Connection wizard blue/help action not found')
+          block = block.replace(
+              old_blue,
+              old_blue + '                "menu": self.manage_server_slot,\n',
+              1,
+          )
+          text = text[:cls_start] + block + text[cls_end:]
+
+          patch = r'''
+
+# EMBYFLOW_SERVER_MANAGER_V1_0631_RELEASE
+# Vier Server-Slots bleiben kompatibel. MENU auf einer Serverkarte öffnet
+# Verwenden / Bearbeiten / Löschen. Löschen ist bestätigt und löscht nur den
+# gewählten Slot. Der aktive Runtime-Server wird nur dann zurückgesetzt, wenn
+# genau dieser konfigurierte Server gelöscht wurde.
+def _embyflow_server_manager_v1_selected_index(self):
+    try:
+        if int(getattr(self, "focus", -1)) in (0, 1, 2, 3):
+            return int(self.focus)
+    except Exception:
+        pass
+    try:
+        return max(0, min(3, int(self.selected_server_index)))
+    except Exception:
+        return 0
+
+
+def _embyflow_server_manager_v1_open(self):
+    index = _embyflow_server_manager_v1_selected_index(self)
+    current = str(self.server_slots[index] or "").strip()
+
+    if not current:
+        self.edit_server_slot(index)
+        return
+
+    choices = [
+        ("Server verwenden", ("use", index)),
+        ("Server bearbeiten", ("edit", index)),
+        ("Server löschen", ("delete", index)),
+        ("Abbrechen", ("cancel", index)),
+    ]
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v1_choice_done,
+        ChoiceBox,
+        title="Server %d verwalten" % (index + 1),
+        list=choices,
+    )
+
+
+def _embyflow_server_manager_v1_choice_done(self, result=None):
+    if result is None:
+        return
+
+    value = result
+    if isinstance(result, (tuple, list)):
+        value = result[1] if len(result) > 1 else result[0]
+
+    try:
+        action, index = value
+        index = max(0, min(3, int(index)))
+    except Exception:
+        return
+
+    if action == "cancel":
+        return
+    if action == "use":
+        self._select_server(index)
+        return
+    if action == "edit":
+        self.edit_server_slot(index)
+        return
+    if action != "delete":
+        return
+
+    current = str(self.server_slots[index] or "").strip()
+    if not current:
+        return
+
+    self._embyflow_server_manager_v1_pending_delete = index
+    self.session.openWithCallback(
+        self._embyflow_server_manager_v1_delete_done,
+        MessageBox,
+        "Server %d wirklich löschen?\n\n%s" % (index + 1, current),
+        MessageBox.TYPE_YESNO,
+        default=False,
+    )
+
+
+def _embyflow_server_manager_v1_delete_done(self, answer=False):
+    try:
+        index = max(
+            0,
+            min(
+                3,
+                int(getattr(self, "_embyflow_server_manager_v1_pending_delete", 0)),
+            ),
+        )
+    except Exception:
+        index = 0
+
+    self._embyflow_server_manager_v1_pending_delete = None
+    if not answer:
+        return
+
+    removed = str(self.server_slots[index] or "").strip().rstrip("/")
+    active = ""
+    try:
+        active = self._cfg(config.embyflow.server).strip().rstrip("/")
+    except Exception:
+        active = ""
+
+    self._save_slot(index, "")
+    self.server_runtime_states.pop(index, None)
+
+    remaining = [
+        slot_index
+        for slot_index, value in enumerate(self.server_slots)
+        if str(value or "").strip()
+    ]
+    self.selected_server_index = remaining[0] if remaining else 0
+    self.focus = self.selected_server_index
+    self._apply_selected_slot(clear_password=True)
+
+    removed_was_active = bool(
+        removed
+        and active
+        and removed.casefold() == active.casefold()
+    )
+    if removed_was_active:
+        try:
+            self._set_cfg(config.embyflow.server, "")
+            config.embyflow.server.save()
+            configfile.save()
+        except Exception:
+            pass
+        try:
+            apply_emby_runtime_config()
+        except Exception:
+            pass
+        try:
+            clear_emby_auth_cache()
+        except Exception:
+            pass
+        try:
+            EMBY_AUTH_CACHE["server"] = ""
+            EMBY_AUTH_CACHE["token"] = ""
+            EMBY_AUTH_CACHE["user_id"] = ""
+            EMBY_AUTH_CACHE["ts"] = 0
+        except Exception:
+            pass
+
+    if remaining:
+        suffix = " Aktiver Login wurde zurückgesetzt; bitte neu anmelden." if removed_was_active else ""
+        self["server_status"].setText(
+            "Server %d gelöscht. Server %d ist ausgewählt.%s"
+            % (index + 1, self.selected_server_index + 1, suffix)
+        )
+    else:
+        suffix = " Aktiver Login wurde zurückgesetzt." if removed_was_active else ""
+        self["server_status"].setText(
+            "Server %d gelöscht. Kein Server eingerichtet.%s"
+            % (index + 1, suffix)
+        )
+
+    self["login_status"].setText("")
+    self.refresh_all()
+
+
+EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v1_open
+EmbyFlowConnectionWizard._embyflow_server_manager_v1_choice_done = _embyflow_server_manager_v1_choice_done
+EmbyFlowConnectionWizard._embyflow_server_manager_v1_delete_done = _embyflow_server_manager_v1_delete_done
+'''
+
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090630',
+              'PLUGIN_UPDATE_BUILD = 2026090631',
+              1,
+          )
+          text += patch
+          plugin.write_text(text, encoding='utf-8', newline='\n')
+
+          final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build') or 0) != 2026090630:
+              raise SystemExit('manifest baseline mismatch: %r' % data.get('build'))
+          data['build'] = 2026090631
+          data['download'] = 'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090631/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          data['sha256'] = final_sha
+          changelog = list(data.get('changelog') or [])
+          messages = [
+              'Serververwaltung 0631: MENU auf einer Serverkarte öffnet Verwenden, Bearbeiten, Löschen und Abbrechen',
+              'Server löschen: Sicherheitsabfrage; nur der gewählte Slot wird entfernt und bei Bedarf der aktive Login sicher zurückgesetzt',
+              'Server bearbeiten: vorhandene Adresse öffnet direkt die einheitliche EmbyFlow-Tastatur; leere Slots lassen sich wie bisher per OK einrichten',
+          ]
+          for msg in messages:
+              if msg not in changelog:
+                  changelog.append(msg)
+          data['changelog'] = changelog
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
+          print('Final plugin sha256:', final_sha)
+          PY
+
+          python3 -m py_compile plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'PLUGIN_UPDATE_BUILD = 2026090631' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_GERMAN_KEYBOARD_V22_0630_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EMBYFLOW_SERVER_MANAGER_V1_0631_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q '"menu": self.manage_server_slot' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'Server wirklich löschen' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py || grep -q 'wirklich löschen' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Add server management build 2026090631'
+          git push origin main
+          git tag -a build-2026090631 -m 'EmbyFlow E2 build 2026090631'
+          git push origin build-2026090631
