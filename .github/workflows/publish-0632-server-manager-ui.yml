@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib, json
+          import base64, hashlib, json, zlib
 
           plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
           manifest = Path('update.json')
@@ -43,225 +43,15 @@ jobs:
           if '# EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE' in text:
               raise SystemExit('0632 server manager UI already present')
 
-          patch = r'''
+          patch = zlib.decompress(base64.b64decode(
+              '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'
+          )).decode('utf-8')
 
-# EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE
-# Eigenes EmbyFlow-Menü statt Enigma2-ChoiceBox. Keine Playback-/Serverlogik
-# geändert; nur Darstellung und Bedienung der vorhandenen vier Server-Slots.
-class EmbyFlowServerManageScreenV2(Screen):
-    skin = scale_skin('''
-    <screen name="EmbyFlowServerManageScreenV2" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#030811">
-        <eLabel position="0,0" size="1920,1080" backgroundColor="#030811" />
-
-        <eLabel text="EMBY" position="92,58" size="210,58" font="Bold;46" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" />
-        <eLabel text="FLOW" position="302,58" size="210,58" font="Bold;46" foregroundColor="#FF42B5" backgroundColor="#030811" transparent="1" />
-        <eLabel text="SERVERVERWALTUNG" position="96,122" size="470,34" font="Regular;20" foregroundColor="#8D96A1" backgroundColor="#030811" transparent="1" />
-        <eLabel text="0632" position="1640,66" size="190,34" font="Regular;20" foregroundColor="#23E6E8" backgroundColor="#030811" transparent="1" halign="right" />
-
-        <eLabel position="90,184" size="1740,2" backgroundColor="#1689FF" />
-
-        <eLabel position="190,235" size="1540,690" backgroundColor="#07111E" />
-        <eLabel position="194,239" size="1532,682" backgroundColor="#050C16" />
-
-        <widget name="title" position="260,278" size="900,52" font="Bold;38" foregroundColor="#F4F7FB" backgroundColor="#050C16" transparent="1" />
-        <widget name="badge" position="1350,284" size="290,42" font="Bold;20" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" halign="right" />
-        <widget name="server_url" position="260,342" size="1380,42" font="Regular;24" foregroundColor="#AAB7C8" backgroundColor="#050C16" transparent="1" />
-        <widget name="hint" position="260,395" size="1380,54" font="Regular;20" foregroundColor="#748297" backgroundColor="#050C16" transparent="1" />
-
-        <widget name="row0" position="260,478" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
-        <widget name="row1" position="260,570" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
-        <widget name="row2" position="260,662" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
-        <widget name="row3" position="260,754" size="1380,76" font="Bold;27" foregroundColor="#F4F7FB" backgroundColor="#0B1521" transparent="0" valign="center" />
-
-        <eLabel text="ROT  Zurück" position="260,864" size="320,34" font="Regular;21" foregroundColor="#FF6B79" backgroundColor="#050C16" transparent="1" />
-        <eLabel text="OK / GRÜN  Auswählen" position="600,864" size="430,34" font="Regular;21" foregroundColor="#42E66B" backgroundColor="#050C16" transparent="1" />
-        <eLabel text="▲ / ▼  Navigieren" position="1170,864" size="470,34" font="Regular;21" foregroundColor="#8D96A1" backgroundColor="#050C16" transparent="1" halign="right" />
-    </screen>
-    ''')
-
-    def __init__(self, session, slot_index, server_url, active=False):
-        Screen.__init__(self, session)
-        self.slot_index = max(0, min(3, int(slot_index)))
-        self.server_url = str(server_url or '').strip()
-        self.active = bool(active)
-        self.confirming = False
-        self.index = 0
-        self.entries = []
-
-        self['title'] = Label('')
-        self['badge'] = Label('')
-        self['server_url'] = Label('')
-        self['hint'] = Label('')
-        for row in range(4):
-            self['row%d' % row] = Label('')
-
-        self['actions'] = ActionMap(
-            ['OkCancelActions', 'DirectionActions', 'ColorActions'],
-            {
-                'cancel': self.go_back,
-                'red': self.go_back,
-                'ok': self.activate,
-                'green': self.activate,
-                'up': self.move_up,
-                'down': self.move_down,
-                'left': self.move_up,
-                'right': self.move_down,
-            },
-            -1,
-        )
-        self.onLayoutFinish.append(self.refresh)
-
-    def _display_url(self):
-        value = str(self.server_url or '')
-        try:
-            value = re.sub(
-                r'(?i)(https?://)[^/@\s]+:[^/@\s]+@',
-                r'\1•••:•••@',
-                value,
-            )
-        except Exception:
-            pass
-        if len(value) > 92:
-            value = value[:89] + '...'
-        return value
-
-    def _set_row_style(self, row, selected):
-        try:
-            widget = self['row%d' % row]
-            if widget.instance is not None:
-                widget.instance.setBackgroundColor(
-                    parseColor('#1689FF' if selected else '#0B1521')
-                )
-                widget.instance.setForegroundColor(
-                    parseColor('#FFFFFF' if selected else '#F4F7FB')
-                )
-        except Exception:
-            pass
-
-    def _main_entries(self):
-        return [
-            ('Server verwenden', 'use'),
-            ('Server bearbeiten', 'edit'),
-            ('Server löschen', 'delete_prompt'),
-            ('Zurück', 'cancel'),
-        ]
-
-    def _confirm_entries(self):
-        return [
-            ('Nein, Server behalten', 'cancel_delete'),
-            ('Ja, Server endgültig löschen', 'delete'),
-        ]
-
-    def refresh(self):
-        self.entries = self._confirm_entries() if self.confirming else self._main_entries()
-        self.index = max(0, min(len(self.entries) - 1, int(self.index)))
-
-        if self.confirming:
-            self['title'].setText('SERVER %d LÖSCHEN' % (self.slot_index + 1))
-            self['badge'].setText('SICHERHEITSABFRAGE')
-            self['hint'].setText('Nur dieser Server-Slot wird gelöscht. Ein aktiver Login wird bei Bedarf sicher zurückgesetzt.')
-        else:
-            self['title'].setText('SERVER %d VERWALTEN' % (self.slot_index + 1))
-            self['badge'].setText('● AKTIV' if self.active else 'BEREIT')
-            self['hint'].setText('Server auswählen, Adresse bearbeiten oder den gespeicherten Slot entfernen.')
-
-        self['server_url'].setText(self._display_url())
-
-        for row in range(4):
-            label = self.entries[row][0] if row < len(self.entries) else ''
-            prefix = '  ›  ' if row == self.index and label else '     '
-            self['row%d' % row].setText(prefix + label if label else '')
-            self._set_row_style(row, row == self.index and bool(label))
-
-    def move_up(self):
-        if not self.entries:
-            return
-        self.index = (self.index - 1) % len(self.entries)
-        self.refresh()
-
-    def move_down(self):
-        if not self.entries:
-            return
-        self.index = (self.index + 1) % len(self.entries)
-        self.refresh()
-
-    def go_back(self):
-        if self.confirming:
-            self.confirming = False
-            self.index = 2
-            self.refresh()
-            return
-        self.close(None)
-
-    def activate(self):
-        if not self.entries:
-            return
-        action = self.entries[self.index][1]
-        if action == 'delete_prompt':
-            self.confirming = True
-            self.index = 0
-            self.refresh()
-            return
-        if action == 'cancel_delete':
-            self.confirming = False
-            self.index = 2
-            self.refresh()
-            return
-        if action == 'cancel':
-            self.close(None)
-            return
-        self.close((action, self.slot_index))
-
-
-def _embyflow_server_manager_v2_open(self):
-    index = _embyflow_server_manager_v1_selected_index(self)
-    current = str(self.server_slots[index] or '').strip()
-    if not current:
-        self.edit_server_slot(index)
-        return
-
-    active = ''
-    try:
-        active = self._cfg(config.embyflow.server).strip().rstrip('/')
-    except Exception:
-        pass
-    is_active = bool(active and current.rstrip('/').casefold() == active.casefold())
-
-    self.session.openWithCallback(
-        self._embyflow_server_manager_v2_result,
-        EmbyFlowServerManageScreenV2,
-        index,
-        current,
-        is_active,
-    )
-
-
-def _embyflow_server_manager_v2_result(self, result=None):
-    if not result:
-        return
-    try:
-        action, index = result
-        index = max(0, min(3, int(index)))
-    except Exception:
-        return
-
-    if action == 'use':
-        self._select_server(index)
-        return
-    if action == 'edit':
-        self.edit_server_slot(index)
-        return
-    if action == 'delete':
-        self._embyflow_server_manager_v1_pending_delete = index
-        self._embyflow_server_manager_v1_delete_done(True)
-        return
-
-
-EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v2_open
-EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_manager_v2_result
-'''
-
-          text = text.replace('PLUGIN_UPDATE_BUILD = 2026090631', 'PLUGIN_UPDATE_BUILD = 2026090632', 1)
+          text = text.replace(
+              'PLUGIN_UPDATE_BUILD = 2026090631',
+              'PLUGIN_UPDATE_BUILD = 2026090632',
+              1,
+          )
           text += patch
           plugin.write_text(text, encoding='utf-8', newline='\n')
           final_sha = hashlib.sha256(plugin.read_bytes()).hexdigest()
@@ -282,7 +72,11 @@ EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_m
               if msg not in changelog:
                   changelog.append(msg)
           data['changelog'] = changelog
-          manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
           print('Final plugin sha256:', final_sha)
           PY
 
@@ -290,7 +84,7 @@ EmbyFlowConnectionWizard._embyflow_server_manager_v2_result = _embyflow_server_m
           grep -q 'PLUGIN_UPDATE_BUILD = 2026090632' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
           grep -q 'EMBYFLOW_SERVER_MANAGER_UI_V2_0632_RELEASE' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
           grep -q 'class EmbyFlowServerManageScreenV2' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
-          grep -q "EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v2_open" plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -q 'EmbyFlowConnectionWizard.manage_server_slot = _embyflow_server_manager_v2_open' plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
 
       - name: Commit and tag
         shell: bash
