@@ -1,9 +1,9 @@
 {
   "version": "2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1",
-  "build": 2026090636,
+  "build": 2026090637,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090636/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
-  "sha256": "21546fbd9cb9d2748b95144e01e4b6ee0b7bd9efce922eec1b59682a888ea8ec",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/build-2026090637/plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py",
+  "sha256": "e196fc534e842d2981ce652ea18650e72fb5478f4e45b431840cdcdf69de4d5a",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
@@ -46,6 +46,7 @@
     "0636 links: alle vier Server-Slots gleichzeitig mit Adresse und Aktiv/Online/Offline-Status",
     "0636 rechts: ausgewählter Server mit Verwenden, Bearbeiten, Löschen und Abbrechen",
     "0636 Löschen: Sicherheitsabfrage direkt im EmbyFlow-Panel; keine native blaue ChoiceBox",
-    "0636 OpenATV-Layering: dynamische Karten, Details und Aktionen liegen explizit über den Panel-Flächen"
+    "0636 OpenATV-Layering: dynamische Karten, Details und Aktionen liegen explizit über den Panel-Flächen",
+    "Login-Fußzeile 0637: MENU – Server bearbeiten ist direkt sichtbar; Serververwaltung und Playback bleiben unverändert"
   ]
 }
