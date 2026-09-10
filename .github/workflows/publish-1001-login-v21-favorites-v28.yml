@@ -1,0 +1,218 @@
+name: Publish Login V21 and Favorites V28 build 2026091001
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-1001-login-v21-favorites-v28.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-login-v21-favorites-v28-2026091001
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'actions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge approved Login V21 and Favorites V28 into public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import json
+          import lzma
+
+          old_plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          new_plugin = Path('plugin_RCDEV8_SERVERSAFE1_LOGINV21_FAVRES28_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          login_pack = Path('Anmeldung/Anmeldung_V21.inc.py.xz.b64')
+          favorite_pack = Path('Favoriten/Favoriten_V28.inc.py.xz.b64')
+
+          old_version = '2026-RCDEV7-SERVERSAFE1-LOGINREF17-DREAMSAFE2-PUBLICCLEAN1'
+          new_version = '2026-RCDEV8-SERVERSAFE1-DREAMSAFE2-LOGINV21-FAVRES28-PUBLICCLEAN1'
+          old_build = 'PLUGIN_UPDATE_BUILD = 2026090638'
+          new_build = 'PLUGIN_UPDATE_BUILD = 2026091001'
+
+          if not old_plugin.is_file():
+              raise SystemExit('0638 public baseline plugin missing')
+          if not manifest.is_file():
+              raise SystemExit('update.json missing')
+          if not login_pack.is_file() or not favorite_pack.is_file():
+              raise SystemExit('approved Login/Favorites feature pack missing')
+          if new_plugin.exists():
+              raise SystemExit('1001 release plugin already exists')
+
+          baseline = old_plugin.read_text(encoding='utf-8')
+
+          if baseline.count('PLUGIN_VERSION = "%s"' % old_version) != 1:
+              raise SystemExit('0638 baseline version marker mismatch')
+          if baseline.count(old_build) != 1:
+              raise SystemExit('0638 baseline build marker mismatch')
+
+          def unpack(path):
+              packed = base64.b64decode(path.read_bytes(), validate=True)
+              return lzma.decompress(packed).decode('utf-8')
+
+          login = unpack(login_pack)
+          favorites = unpack(favorite_pack)
+
+          # Only the two approved feature families may be merged here.
+          for marker in (
+              '# EMBYFLOW_LOGIN_PLEX_STRUCTURE_V18_UI_ONLY_START',
+              '# EMBYFLOW_LOGIN_RELEASE_UI_V19_START',
+              '# EMBYFLOW_LOGIN_RELEASE_UX_V20_START',
+              '# EMBYFLOW_LOGIN_CONTEXT_PREVIEW_V21_START',
+          ):
+              if login.count(marker) != 1:
+                  raise SystemExit('Login pack marker mismatch: ' + marker)
+
+          for marker in (
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V22_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V23_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V24_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V25_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V26_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V27_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V28_START',
+          ):
+              if favorites.count(marker) != 1:
+                  raise SystemExit('Favorites pack marker mismatch: ' + marker)
+
+          forbidden = (
+              'EMBYFLOW_UT_WEBVTT_SIDECAR_HLS_TEST_20260909_START',
+              'EMBYFLOW_UT_WEBVTT_HLS_PRIME_TEST_20260909_START',
+              'EMBYFLOW_UT_WEBVTT_BODY_PROBE_20260909_START',
+              'EMBYFLOW_UT_WEBVTT_SUBTITLE_PLAYLIST_20260909_START',
+              'EMBYFLOW_SRT_PRELOAD_CACHE_V3_2_20260910_START',
+              'PLEX_MIRROR_BURN',
+          )
+          for needle in forbidden:
+              if needle in login or needle in favorites:
+                  raise SystemExit('Unapproved subtitle/test code found in feature pack: ' + needle)
+              if needle in baseline:
+                  raise SystemExit('Unapproved subtitle/test code unexpectedly present in public baseline: ' + needle)
+
+          # No local test identity/server may enter the public build.
+          for needle in (
+              '29416.iovagy.org',
+              '192.168.1.11',
+              'GoM6893',
+              'streamboy',
+          ):
+              if needle in login or needle in favorites:
+                  raise SystemExit('Private/test-specific value found in feature pack')
+
+          text = baseline
+          text = text.replace(
+              'PLUGIN_VERSION = "%s"' % old_version,
+              'PLUGIN_VERSION = "%s"' % new_version,
+              1,
+          )
+          text = text.replace(
+              'PLUGIN_BUILD_DATE = "07.09.2026"',
+              'PLUGIN_BUILD_DATE = "10.09.2026"',
+              1,
+          )
+          text = text.replace(old_build, new_build, 1)
+
+          changelog_open = 'PLUGIN_UPDATE_CHANGELOG = (\n'
+          if text.count(changelog_open) != 1:
+              raise SystemExit('PLUGIN_UPDATE_CHANGELOG marker mismatch')
+
+          new_local_notes = (
+              '    "Login V21: neue EmbyFlow-Zweispalten-Anmeldung mit linker Navigation und kontextabhängigem rechten Inhaltsbereich|"\n'
+              '    "Login V21: vier Server-Slots, bestehende Zugangsdaten und bestehende Auth-/Serverlogik bleiben erhalten; kein QR-, Google- oder Apple-Login|"\n'
+              '    "Favoriten V28: bei getrennten Film-Items mit mehreren Auflösungen kann 1080p, 4K/UHD oder beide Varianten gezielt favorisiert werden|"\n'
+              '    "Favoriten V28: sichere Variantenzuordnung über ProviderIds, Jahr und Laufzeit sowie dynamische Qualitäts-Badges|"\n'
+              '    "Favoriten V28: Favorit entfernen bleibt ohne Auflösungsdialog; Playback und Untertitel bleiben unverändert|"\n'
+          )
+          text = text.replace(
+              changelog_open,
+              changelog_open + new_local_notes,
+              1,
+          )
+
+          # Append only the approved feature blocks to the known public baseline.
+          text = text.rstrip() + '\n\n' + login.strip() + '\n\n' + favorites.strip() + '\n'
+
+          # Release-gate checks.
+          compile(text, str(new_plugin), 'exec')
+          for marker in (
+              '# EMBYFLOW_LOGIN_CONTEXT_PREVIEW_V21_START',
+              '# EMBYFLOW_FAVORITE_RESOLUTION_V28_START',
+          ):
+              if text.count(marker) != 1:
+                  raise SystemExit('final feature marker mismatch: ' + marker)
+
+          for needle in forbidden:
+              if needle in text:
+                  raise SystemExit('subtitle/test code leaked into final public release: ' + needle)
+
+          if text.count(new_build) != 1:
+              raise SystemExit('final build marker mismatch')
+          if text.count('PLUGIN_VERSION = "%s"' % new_version) != 1:
+              raise SystemExit('final version marker mismatch')
+
+          new_plugin.write_text(text, encoding='utf-8')
+          sha256 = hashlib.sha256(new_plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build', 0)) != 2026090638:
+              raise SystemExit('update.json baseline build mismatch')
+
+          data['version'] = new_version
+          data['build'] = 2026091001
+          data['channel'] = 'rcdev'
+          data['download'] = (
+              'https://raw.githubusercontent.com/keggy6893/'
+              'EmbyFlowE2-Updates/build-2026091001/'
+              'plugin_RCDEV8_SERVERSAFE1_LOGINV21_FAVRES28_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          )
+          data['sha256'] = sha256
+          data['target'] = 'plugin.py'
+          data['artifact_type'] = 'plugin_py'
+
+          release_notes = [
+              'Login V21: neue EmbyFlow-Zweispalten-Anmeldung mit linker Navigation und kontextabhängigem rechten Inhaltsbereich',
+              'Login V21: vier Server-Slots und bestehende Auth-/Serverlogik bleiben erhalten; kein QR-, Google- oder Apple-Login',
+              'Favoriten V28: bei getrennten 1080p-/4K-Film-Items kann gezielt eine Auflösung oder beide Varianten favorisiert werden',
+              'Favoriten V28: sichere Variantenzuordnung über ProviderIds, Jahr und Laufzeit; dynamische 1080p-/4K-UHD-Badges',
+              'Favoriten V28: Entfernen eines Favoriten bleibt ohne Auflösungsdialog',
+              'Release 1001 enthält keine Untertitel-Teststände; Playback- und Untertitelcode bleiben auf dem öffentlichen 0638-Basisstand',
+          ]
+          previous = list(data.get('changelog') or [])
+          data['changelog'] = release_notes + previous
+
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+
+          print('release_file=' + str(new_plugin))
+          print('sha256=' + sha256)
+          print('size=' + str(new_plugin.stat().st_size))
+          PY
+
+          git diff --check
+          python3 -m py_compile plugin_RCDEV8_SERVERSAFE1_LOGINV21_FAVRES28_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV8_SERVERSAFE1_LOGINV21_FAVRES28_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Publish Login V21 and Favorites V28 build 2026091001'
+          git push origin main
+          git tag -a build-2026091001 -m 'EmbyFlow E2 build 2026091001'
+          git push origin build-2026091001
