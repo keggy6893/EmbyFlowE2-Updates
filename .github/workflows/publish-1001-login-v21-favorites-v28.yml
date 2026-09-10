@@ -34,6 +34,7 @@ jobs:
           import hashlib
           import json
           import lzma
+          import re
 
           old_plugin = Path('plugin_RCDEV7_SERVERSAFE1_LOGINREF17_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
           new_plugin = Path('plugin_RCDEV8_SERVERSAFE1_LOGINV21_FAVRES28_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
@@ -46,40 +47,35 @@ jobs:
           old_build = 'PLUGIN_UPDATE_BUILD = 2026090638'
           new_build = 'PLUGIN_UPDATE_BUILD = 2026091001'
 
-          if not old_plugin.is_file():
-              raise SystemExit('0638 public baseline plugin missing')
-          if not manifest.is_file():
-              raise SystemExit('update.json missing')
-          if not login_pack.is_file() or not favorite_pack.is_file():
-              raise SystemExit('approved Login/Favorites feature pack missing')
+          for required in (old_plugin, manifest, login_pack, favorite_pack):
+              if not required.is_file():
+                  raise SystemExit('required release input missing: ' + str(required))
           if new_plugin.exists():
               raise SystemExit('1001 release plugin already exists')
 
           baseline = old_plugin.read_text(encoding='utf-8')
-
           if baseline.count('PLUGIN_VERSION = "%s"' % old_version) != 1:
               raise SystemExit('0638 baseline version marker mismatch')
           if baseline.count(old_build) != 1:
               raise SystemExit('0638 baseline build marker mismatch')
 
           def unpack(path):
-              packed = base64.b64decode(path.read_bytes(), validate=True)
+              # GitHub text files normally end with LF. Strip all ASCII
+              # whitespace before strict Base64 validation.
+              encoded = b''.join(path.read_bytes().split())
+              packed = base64.b64decode(encoded, validate=True)
               return lzma.decompress(packed).decode('utf-8')
 
           login = unpack(login_pack)
           favorites = unpack(favorite_pack)
 
-          # Only the two approved feature families may be merged here.
-          for marker in (
+          login_markers = (
               '# EMBYFLOW_LOGIN_PLEX_STRUCTURE_V18_UI_ONLY_START',
               '# EMBYFLOW_LOGIN_RELEASE_UI_V19_START',
               '# EMBYFLOW_LOGIN_RELEASE_UX_V20_START',
               '# EMBYFLOW_LOGIN_CONTEXT_PREVIEW_V21_START',
-          ):
-              if login.count(marker) != 1:
-                  raise SystemExit('Login pack marker mismatch: ' + marker)
-
-          for marker in (
+          )
+          favorite_markers = (
               '# EMBYFLOW_FAVORITE_RESOLUTION_V22_START',
               '# EMBYFLOW_FAVORITE_RESOLUTION_V23_START',
               '# EMBYFLOW_FAVORITE_RESOLUTION_V24_START',
@@ -87,7 +83,11 @@ jobs:
               '# EMBYFLOW_FAVORITE_RESOLUTION_V26_START',
               '# EMBYFLOW_FAVORITE_RESOLUTION_V27_START',
               '# EMBYFLOW_FAVORITE_RESOLUTION_V28_START',
-          ):
+          )
+          for marker in login_markers:
+              if login.count(marker) != 1:
+                  raise SystemExit('Login pack marker mismatch: ' + marker)
+          for marker in favorite_markers:
               if favorites.count(marker) != 1:
                   raise SystemExit('Favorites pack marker mismatch: ' + marker)
 
@@ -101,19 +101,14 @@ jobs:
           )
           for needle in forbidden:
               if needle in login or needle in favorites:
-                  raise SystemExit('Unapproved subtitle/test code found in feature pack: ' + needle)
+                  raise SystemExit('unapproved subtitle/test code in feature pack: ' + needle)
               if needle in baseline:
-                  raise SystemExit('Unapproved subtitle/test code unexpectedly present in public baseline: ' + needle)
+                  raise SystemExit('unapproved subtitle/test code in public baseline: ' + needle)
 
-          # No local test identity/server may enter the public build.
-          for needle in (
-              '29416.iovagy.org',
-              '192.168.1.11',
-              'GoM6893',
-              'streamboy',
-          ):
+          # Prevent machine/user/server-specific test data entering public code.
+          for needle in ('29416.iovagy.org', '192.168.1.11', 'GoM6893', 'streamboy'):
               if needle in login or needle in favorites:
-                  raise SystemExit('Private/test-specific value found in feature pack')
+                  raise SystemExit('private/test-specific value found in feature pack')
 
           text = baseline
           text = text.replace(
@@ -121,34 +116,36 @@ jobs:
               'PLUGIN_VERSION = "%s"' % new_version,
               1,
           )
-          text = text.replace(
-              'PLUGIN_BUILD_DATE = "07.09.2026"',
-              'PLUGIN_BUILD_DATE = "10.09.2026"',
-              1,
-          )
           text = text.replace(old_build, new_build, 1)
+
+          # Build date may differ in historical baselines, so replace the
+          # single constant structurally rather than hardcoding yesterday.
+          text, date_count = re.subn(
+              r'^PLUGIN_BUILD_DATE\s*=\s*"[^"]*"',
+              'PLUGIN_BUILD_DATE = "10.09.2026"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if date_count != 1:
+              raise SystemExit('PLUGIN_BUILD_DATE marker mismatch')
 
           changelog_open = 'PLUGIN_UPDATE_CHANGELOG = (\n'
           if text.count(changelog_open) != 1:
               raise SystemExit('PLUGIN_UPDATE_CHANGELOG marker mismatch')
-
-          new_local_notes = (
+          local_notes = (
               '    "Login V21: neue EmbyFlow-Zweispalten-Anmeldung mit linker Navigation und kontextabhängigem rechten Inhaltsbereich|"\n'
               '    "Login V21: vier Server-Slots, bestehende Zugangsdaten und bestehende Auth-/Serverlogik bleiben erhalten; kein QR-, Google- oder Apple-Login|"\n'
               '    "Favoriten V28: bei getrennten Film-Items mit mehreren Auflösungen kann 1080p, 4K/UHD oder beide Varianten gezielt favorisiert werden|"\n'
               '    "Favoriten V28: sichere Variantenzuordnung über ProviderIds, Jahr und Laufzeit sowie dynamische Qualitäts-Badges|"\n'
               '    "Favoriten V28: Favorit entfernen bleibt ohne Auflösungsdialog; Playback und Untertitel bleiben unverändert|"\n'
           )
-          text = text.replace(
-              changelog_open,
-              changelog_open + new_local_notes,
-              1,
-          )
+          text = text.replace(changelog_open, changelog_open + local_notes, 1)
 
-          # Append only the approved feature blocks to the known public baseline.
+          # Append only approved feature snippets to the known public baseline.
           text = text.rstrip() + '\n\n' + login.strip() + '\n\n' + favorites.strip() + '\n'
 
-          # Release-gate checks.
+          # Syntax and release gates before publishing anything.
           compile(text, str(new_plugin), 'exec')
           for marker in (
               '# EMBYFLOW_LOGIN_CONTEXT_PREVIEW_V21_START',
@@ -156,11 +153,9 @@ jobs:
           ):
               if text.count(marker) != 1:
                   raise SystemExit('final feature marker mismatch: ' + marker)
-
           for needle in forbidden:
               if needle in text:
                   raise SystemExit('subtitle/test code leaked into final public release: ' + needle)
-
           if text.count(new_build) != 1:
               raise SystemExit('final build marker mismatch')
           if text.count('PLUGIN_VERSION = "%s"' % new_version) != 1:
@@ -172,7 +167,6 @@ jobs:
           data = json.loads(manifest.read_text(encoding='utf-8'))
           if int(data.get('build', 0)) != 2026090638:
               raise SystemExit('update.json baseline build mismatch')
-
           data['version'] = new_version
           data['build'] = 2026091001
           data['channel'] = 'rcdev'
@@ -193,9 +187,7 @@ jobs:
               'Favoriten V28: Entfernen eines Favoriten bleibt ohne Auflösungsdialog',
               'Release 1001 enthält keine Untertitel-Teststände; Playback- und Untertitelcode bleiben auf dem öffentlichen 0638-Basisstand',
           ]
-          previous = list(data.get('changelog') or [])
-          data['changelog'] = release_notes + previous
-
+          data['changelog'] = release_notes + list(data.get('changelog') or [])
           manifest.write_text(
               json.dumps(data, ensure_ascii=False, indent=2) + '\n',
               encoding='utf-8',
