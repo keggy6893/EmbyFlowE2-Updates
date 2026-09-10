@@ -60,8 +60,6 @@ jobs:
               raise SystemExit('0638 baseline build marker mismatch')
 
           def unpack(path):
-              # GitHub text files normally end with LF. Strip all ASCII
-              # whitespace before strict Base64 validation.
               encoded = b''.join(path.read_bytes().split())
               packed = base64.b64decode(encoded, validate=True)
               return lzma.decompress(packed).decode('utf-8')
@@ -71,7 +69,7 @@ jobs:
 
           login_markers = (
               '# EMBYFLOW_LOGIN_PLEX_STRUCTURE_V18_UI_ONLY_START',
-              '# EMBYFLOW_LOGIN_RELEASE_UI_V19_START',
+              '# EMBYFLOW_LOGIN_LEFT_NAV_V19_UI_NAV_START',
               '# EMBYFLOW_LOGIN_RELEASE_UX_V20_START',
               '# EMBYFLOW_LOGIN_CONTEXT_PREVIEW_V21_START',
           )
@@ -105,7 +103,6 @@ jobs:
               if needle in baseline:
                   raise SystemExit('unapproved subtitle/test code in public baseline: ' + needle)
 
-          # Prevent machine/user/server-specific test data entering public code.
           for needle in ('29416.iovagy.org', '192.168.1.11', 'GoM6893', 'streamboy'):
               if needle in login or needle in favorites:
                   raise SystemExit('private/test-specific value found in feature pack')
@@ -117,9 +114,6 @@ jobs:
               1,
           )
           text = text.replace(old_build, new_build, 1)
-
-          # Build date may differ in historical baselines, so replace the
-          # single constant structurally rather than hardcoding yesterday.
           text, date_count = re.subn(
               r'^PLUGIN_BUILD_DATE\s*=\s*"[^"]*"',
               'PLUGIN_BUILD_DATE = "10.09.2026"',
@@ -141,11 +135,8 @@ jobs:
               '    "Favoriten V28: Favorit entfernen bleibt ohne Auflösungsdialog; Playback und Untertitel bleiben unverändert|"\n'
           )
           text = text.replace(changelog_open, changelog_open + local_notes, 1)
-
-          # Append only approved feature snippets to the known public baseline.
           text = text.rstrip() + '\n\n' + login.strip() + '\n\n' + favorites.strip() + '\n'
 
-          # Syntax and release gates before publishing anything.
           compile(text, str(new_plugin), 'exec')
           for marker in (
               '# EMBYFLOW_LOGIN_CONTEXT_PREVIEW_V21_START',
@@ -178,7 +169,6 @@ jobs:
           data['sha256'] = sha256
           data['target'] = 'plugin.py'
           data['artifact_type'] = 'plugin_py'
-
           release_notes = [
               'Login V21: neue EmbyFlow-Zweispalten-Anmeldung mit linker Navigation und kontextabhängigem rechten Inhaltsbereich',
               'Login V21: vier Server-Slots und bestehende Auth-/Serverlogik bleiben erhalten; kein QR-, Google- oder Apple-Login',
