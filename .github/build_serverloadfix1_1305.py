@@ -62,7 +62,7 @@ fix = r'''# EMBYFLOW_SERVERLOADFIX1_START
 # Einige Enigma2-Images koennen nach einem Kaltstart leere Runtime-ConfigText-
 # Werte liefern, obwohl config.embyflow.* bereits in /etc/enigma2/settings
 # persistiert ist. Nur fehlende Runtime-Verbindungswerte werden read-only aus
-# dieser Datei wiederhergestellt. Kein save(), configfile.save() oder Write.
+# dieser Datei wiederhergestellt. Kein persistierender Schreibzugriff.
 def _embyflow_serverloadfix1_hydrate_missing_runtime_values():
     settings_path = "/etc/enigma2/settings"
     key_to_attr = {
