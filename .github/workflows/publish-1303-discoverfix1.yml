@@ -1,0 +1,46 @@
+name: Publish DiscoverFix1 build 2026091303
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-1303-discoverfix1.yml'
+      - '.github/build_discoverfix1_1303.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-discoverfix1-2026091303
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build and validate DiscoverFix1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/build_discoverfix1_1303.py
+          git diff --check
+          python3 -m py_compile plugin_RCDEV12_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Publish build and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV12_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Publish DiscoverFix1 build 2026091303'
+          git push origin main
+          git tag -a build-2026091303 -m 'EmbyFlow E2 build 2026091303'
+          git push origin build-2026091303
