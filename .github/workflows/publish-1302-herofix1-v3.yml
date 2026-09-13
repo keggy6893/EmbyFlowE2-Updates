@@ -1,0 +1,45 @@
+name: Publish HeroFix1 build 2026091302
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-1302-herofix1-v3.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-herofix1-2026091302-v3
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build and validate HeroFix1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 release_tools/build_1302_herofix1.py
+          git diff --check
+          python3 -m py_compile plugin_RCDEV11_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_HEROFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Publish build and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV11_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_HEROFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Publish HeroFix1 build 2026091302'
+          git push origin main
+          git tag -a build-2026091302 -m 'EmbyFlow E2 build 2026091302'
+          git push origin build-2026091302
