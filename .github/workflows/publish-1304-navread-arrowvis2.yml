@@ -1,0 +1,46 @@
+name: Publish NAV readability + ArrowVIS2 build 2026091304
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-1304-navread-arrowvis2.yml'
+      - '.github/build_navread_arrowvis2_1304.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-navread-arrowvis2-2026091304
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build and validate NAV readability + ArrowVIS2
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/build_navread_arrowvis2_1304.py
+          git diff --check
+          python3 -m py_compile plugin_RCDEV13_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Publish build and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV13_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Publish NAV readability and ArrowVIS2 build 2026091304'
+          git push origin main
+          git tag -a build-2026091304 -m 'EmbyFlow E2 build 2026091304'
+          git push origin build-2026091304
