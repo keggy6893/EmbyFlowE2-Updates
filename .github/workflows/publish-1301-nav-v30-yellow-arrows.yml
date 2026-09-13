@@ -1,0 +1,184 @@
+name: Publish Navigation V30 yellow arrows build 2026091301
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-1301-nav-v30-yellow-arrows.yml'
+      - 'Navigation/Navigation_V30_YellowArrows.inc.py.xz.b64'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-nav-v30-yellow-arrows-2026091301
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge Navigation V30 and yellow parent arrows into public RCDEV9
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import json
+          import lzma
+          import re
+
+          old_plugin = Path('plugin_RCDEV9_SERVERSAFE1_LOGINV21_FAVRES28_NAVV29_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          new_plugin = Path('plugin_RCDEV10_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py')
+          manifest = Path('update.json')
+          nav_pack = Path('Navigation/Navigation_V30_YellowArrows.inc.py.xz.b64')
+
+          old_version = '2026-RCDEV9-SERVERSAFE1-DREAMSAFE2-LOGINV21-FAVRES28-NAVV29-PUBLICCLEAN1'
+          new_version = '2026-RCDEV10-SERVERSAFE1-DREAMSAFE2-LOGINV21-FAVRES28-NAVV30-PUBLICCLEAN1'
+          old_build = 'PLUGIN_UPDATE_BUILD = 2026091002'
+          new_build = 'PLUGIN_UPDATE_BUILD = 2026091301'
+
+          for required in (old_plugin, manifest, nav_pack):
+              if not required.is_file():
+                  raise SystemExit('required release input missing: ' + str(required))
+          if new_plugin.exists():
+              raise SystemExit('1301 release plugin already exists')
+
+          baseline = old_plugin.read_text(encoding='utf-8')
+          if baseline.count('PLUGIN_VERSION = "%s"' % old_version) != 1:
+              raise SystemExit('1002 baseline version marker mismatch')
+          if baseline.count(old_build) != 1:
+              raise SystemExit('1002 baseline build marker mismatch')
+          if baseline.count('# EMBYFLOW_DYNAMIC_NAV_REFRESH_V29_START') != 1:
+              raise SystemExit('Navigation V29 missing from public baseline')
+          if '# EMBYFLOW_NAV_GROUPS_V30_START' in baseline:
+              raise SystemExit('Navigation V30 already present in baseline')
+
+          encoded = b''.join(nav_pack.read_bytes().split())
+          packed = base64.b64decode(encoded, validate=True)
+          nav = lzma.decompress(packed).decode('utf-8')
+
+          expected_pack_sha = 'f5da654784959a09687e7c9440a6daf0cee6ea5bc7afe8bab19cec3b9fca0e6e'
+          actual_pack_sha = hashlib.sha256(nav.encode('utf-8')).hexdigest()
+          if actual_pack_sha != expected_pack_sha:
+              raise SystemExit('Navigation V30 feature pack hash mismatch: ' + actual_pack_sha)
+          if nav.count('# EMBYFLOW_NAV_GROUPS_V30_START') != 1:
+              raise SystemExit('Navigation V30 start marker mismatch')
+          if nav.count('# EMBYFLOW_NAV_GROUPS_V30_END') != 1:
+              raise SystemExit('Navigation V30 end marker mismatch')
+          if nav.count('# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_START') != 1:
+              raise SystemExit('yellow arrow start marker mismatch')
+          if nav.count('# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_END') != 1:
+              raise SystemExit('yellow arrow end marker mismatch')
+          if '#FFD400' not in nav or 'side_sub_arrow_17' not in nav:
+              raise SystemExit('yellow arrow UI payload incomplete')
+
+          forbidden_pack = (
+              'EMBYFLOW_PGS_HLS_RETRY_PROXY_FIX',
+              'PGS_HLS_RETRY_PROXY',
+              'TRANSCODE_RECOVERY',
+              'UTFIX16',
+              'UTFIX17',
+              'UTFIX18',
+              'UTFIX19',
+              '192.168.1.11',
+          )
+          for needle in forbidden_pack:
+              if needle in nav:
+                  raise SystemExit('forbidden experimental/private code in Navigation V30 pack: ' + needle)
+
+          text = baseline
+          text = text.replace(
+              'PLUGIN_VERSION = "%s"' % old_version,
+              'PLUGIN_VERSION = "%s"' % new_version,
+              1,
+          )
+          text = text.replace(old_build, new_build, 1)
+          text, date_count = re.subn(
+              r'^PLUGIN_BUILD_DATE\s*=\s*"[^"]*"',
+              'PLUGIN_BUILD_DATE = "13.09.2026"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if date_count != 1:
+              raise SystemExit('PLUGIN_BUILD_DATE marker mismatch')
+
+          changelog_open = 'PLUGIN_UPDATE_CHANGELOG = (\n'
+          if text.count(changelog_open) != 1:
+              raise SystemExit('PLUGIN_UPDATE_CHANGELOG marker mismatch')
+          local_notes = (
+              '    "Navigation V30: Filme und Serien werden als auf-/zuklappbare Gruppen mit Dreieck angezeigt|"\n'
+              '    "Navigation V30: Die Dreiecke vor Filme und Serien sind gelb; die Beschriftung behaelt die normale Menuefarbe|"\n'
+              '    "Navigation V30: reiner Navigations-/UI-Fix; Playback und Untertitel bleiben unveraendert|"\n'
+          )
+          text = text.replace(changelog_open, changelog_open + local_notes, 1)
+          text = text.rstrip() + '\n\n' + nav.strip() + '\n'
+
+          compile(text, str(new_plugin), 'exec')
+          if text.count('# EMBYFLOW_DYNAMIC_NAV_REFRESH_V29_START') != 1:
+              raise SystemExit('final Navigation V29 marker mismatch')
+          if text.count('# EMBYFLOW_NAV_GROUPS_V30_START') != 1:
+              raise SystemExit('final Navigation V30 marker mismatch')
+          if text.count('# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_START') != 1:
+              raise SystemExit('final yellow arrow marker mismatch')
+          if text.count(new_build) != 1:
+              raise SystemExit('final build marker mismatch')
+          if text.count('PLUGIN_VERSION = "%s"' % new_version) != 1:
+              raise SystemExit('final version marker mismatch')
+          for needle in ('EMBYFLOW_PGS_HLS_RETRY_PROXY_FIX', 'PGS_HLS_RETRY_PROXY', 'TRANSCODE_RECOVERY', 'UTFIX16'):
+              if needle in text:
+                  raise SystemExit('experimental PGS test marker leaked into public release: ' + needle)
+
+          new_plugin.write_text(text, encoding='utf-8')
+          sha256 = hashlib.sha256(new_plugin.read_bytes()).hexdigest()
+
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          if int(data.get('build', 0)) != 2026091002:
+              raise SystemExit('update.json baseline build mismatch')
+          data['version'] = new_version
+          data['build'] = 2026091301
+          data['channel'] = 'rcdev'
+          data['download'] = (
+              'https://raw.githubusercontent.com/keggy6893/'
+              'EmbyFlowE2-Updates/build-2026091301/'
+              'plugin_RCDEV10_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py'
+          )
+          data['sha256'] = sha256
+          data['target'] = 'plugin.py'
+          data['artifact_type'] = 'plugin_py'
+          release_notes = [
+              'Navigation V30: Filme und Serien sind auf-/zuklappbare Gruppen mit Dreieck',
+              'Navigation V30: nur die Dreiecke sind gelb; Filme/Serien behalten die normale Textfarbe',
+              'Release 1301 ist ein reiner Navigations-/UI-Fix; Playback und Untertitel bleiben unverändert',
+          ]
+          data['changelog'] = release_notes + list(data.get('changelog') or [])
+          manifest.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+
+          print('release_file=' + str(new_plugin))
+          print('sha256=' + sha256)
+          print('size=' + str(new_plugin.stat().st_size))
+          PY
+
+          git diff --check
+          python3 -m py_compile plugin_RCDEV10_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV10_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Publish Navigation V30 yellow arrows build 2026091301'
+          git push origin main
+          git tag -a build-2026091301 -m 'EmbyFlow E2 build 2026091301'
+          git push origin build-2026091301
