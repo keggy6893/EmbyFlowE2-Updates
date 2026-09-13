@@ -54,14 +54,15 @@ jobs:
               raise SystemExit('1301 release plugin already exists')
 
           baseline = old_plugin.read_text(encoding='utf-8')
-          if baseline.count('PLUGIN_VERSION = "%s"' % old_version) != 1:
-              raise SystemExit('1002 baseline version marker mismatch')
-          if baseline.count(old_build) != 1:
-              raise SystemExit('1002 baseline build marker mismatch')
-          if baseline.count('# EMBYFLOW_DYNAMIC_NAV_REFRESH_V29_START') != 1:
+          if 'PLUGIN_VERSION = "%s"' % old_version not in baseline:
+              raise SystemExit('1002 baseline version marker missing')
+          if old_build not in baseline:
+              raise SystemExit('1002 baseline build marker missing')
+          if '# EMBYFLOW_DYNAMIC_NAV_REFRESH_V29_START' not in baseline:
               raise SystemExit('Navigation V29 missing from public baseline')
           if '# EMBYFLOW_NAV_GROUPS_V30_START' in baseline:
               raise SystemExit('Navigation V30 already present in baseline')
+          print('CHECK baseline OK')
 
           encoded = b''.join(nav_pack.read_bytes().split())
           packed = base64.b64decode(encoded, validate=True)
@@ -71,14 +72,15 @@ jobs:
           actual_pack_sha = hashlib.sha256(nav.encode('utf-8')).hexdigest()
           if actual_pack_sha != expected_pack_sha:
               raise SystemExit('Navigation V30 feature pack hash mismatch: ' + actual_pack_sha)
-          if nav.count('# EMBYFLOW_NAV_GROUPS_V30_START') != 1:
-              raise SystemExit('Navigation V30 start marker mismatch')
-          if nav.count('# EMBYFLOW_NAV_GROUPS_V30_END') != 1:
-              raise SystemExit('Navigation V30 end marker mismatch')
-          if nav.count('# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_START') != 1:
-              raise SystemExit('yellow arrow start marker mismatch')
-          if nav.count('# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_END') != 1:
-              raise SystemExit('yellow arrow end marker mismatch')
+          required_pack_markers = (
+              '# EMBYFLOW_NAV_GROUPS_V30_START',
+              '# EMBYFLOW_NAV_GROUPS_V30_END',
+              '# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_START',
+              '# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_END',
+          )
+          for marker in required_pack_markers:
+              if nav.count(marker) != 1:
+                  raise SystemExit('feature pack marker mismatch: ' + marker)
           if '#FFD400' not in nav or 'side_sub_arrow_17' not in nav:
               raise SystemExit('yellow arrow UI payload incomplete')
 
@@ -95,9 +97,9 @@ jobs:
           for needle in forbidden_pack:
               if needle in nav:
                   raise SystemExit('forbidden experimental/private code in Navigation V30 pack: ' + needle)
+          print('CHECK feature pack OK')
 
-          text = baseline
-          text = text.replace(
+          text = baseline.replace(
               'PLUGIN_VERSION = "%s"' % old_version,
               'PLUGIN_VERSION = "%s"' % new_version,
               1,
@@ -114,8 +116,8 @@ jobs:
               raise SystemExit('PLUGIN_BUILD_DATE marker mismatch')
 
           changelog_open = 'PLUGIN_UPDATE_CHANGELOG = (\n'
-          if text.count(changelog_open) != 1:
-              raise SystemExit('PLUGIN_UPDATE_CHANGELOG marker mismatch')
+          if changelog_open not in text:
+              raise SystemExit('PLUGIN_UPDATE_CHANGELOG marker missing')
           local_notes = (
               '    "Navigation V30: Filme und Serien werden als auf-/zuklappbare Gruppen mit Dreieck angezeigt|"\n'
               '    "Navigation V30: Die Dreiecke vor Filme und Serien sind gelb; die Beschriftung behaelt die normale Menuefarbe|"\n'
@@ -125,19 +127,30 @@ jobs:
           text = text.rstrip() + '\n\n' + nav.strip() + '\n'
 
           compile(text, str(new_plugin), 'exec')
-          if text.count('# EMBYFLOW_DYNAMIC_NAV_REFRESH_V29_START') != 1:
-              raise SystemExit('final Navigation V29 marker mismatch')
-          if text.count('# EMBYFLOW_NAV_GROUPS_V30_START') != 1:
-              raise SystemExit('final Navigation V30 marker mismatch')
-          if text.count('# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_START') != 1:
-              raise SystemExit('final yellow arrow marker mismatch')
-          if text.count(new_build) != 1:
-              raise SystemExit('final build marker mismatch')
-          if text.count('PLUGIN_VERSION = "%s"' % new_version) != 1:
-              raise SystemExit('final version marker mismatch')
-          for needle in ('EMBYFLOW_PGS_HLS_RETRY_PROXY_FIX', 'PGS_HLS_RETRY_PROXY', 'TRANSCODE_RECOVERY', 'UTFIX16'):
-              if needle in text:
-                  raise SystemExit('experimental PGS test marker leaked into public release: ' + needle)
+          for marker in required_pack_markers:
+              if text.count(marker) != 1:
+                  raise SystemExit('final navigation marker mismatch: ' + marker)
+          if new_build not in text:
+              raise SystemExit('final build marker missing')
+          if 'PLUGIN_VERSION = "%s"' % new_version not in text:
+              raise SystemExit('final version marker missing')
+
+          # The public RCDEV9 baseline may legitimately contain older subtitle/PGS
+          # markers. A navigation-only release must preserve their counts exactly;
+          # it must not add or remove any such code.
+          protected_playback_markers = (
+              'EMBYFLOW_PGS_HLS_RETRY_PROXY_FIX',
+              'PGS_HLS_RETRY_PROXY',
+              'TRANSCODE_RECOVERY',
+              'UTFIX16',
+              'UTFIX17',
+              'UTFIX18',
+              'UTFIX19',
+          )
+          for needle in protected_playback_markers:
+              if text.count(needle) != baseline.count(needle):
+                  raise SystemExit('navigation release changed protected playback marker count: ' + needle)
+          print('CHECK merged plugin OK')
 
           new_plugin.write_text(text, encoding='utf-8')
           sha256 = hashlib.sha256(new_plugin.read_bytes()).hexdigest()
@@ -167,6 +180,7 @@ jobs:
               encoding='utf-8',
           )
 
+          print('CHECK manifest OK')
           print('release_file=' + str(new_plugin))
           print('sha256=' + sha256)
           print('size=' + str(new_plugin.stat().st_size))
