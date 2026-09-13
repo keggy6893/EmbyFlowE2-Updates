@@ -1,0 +1,275 @@
+from pathlib import Path
+import hashlib
+import json
+import re
+
+old_plugin = Path("plugin_RCDEV10_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py")
+new_plugin = Path("plugin_RCDEV11_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_HEROFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py")
+manifest = Path("update.json")
+
+old_version = "2026-RCDEV10-SERVERSAFE1-DREAMSAFE2-LOGINV21-FAVRES28-NAVV30-PUBLICCLEAN1"
+new_version = "2026-RCDEV11-SERVERSAFE1-DREAMSAFE2-LOGINV21-FAVRES28-NAVV30-HEROFIX1-PUBLICCLEAN1"
+old_build = "PLUGIN_UPDATE_BUILD = 2026091301"
+new_build = "PLUGIN_UPDATE_BUILD = 2026091302"
+
+for required in (old_plugin, manifest):
+    if not required.is_file():
+        raise SystemExit("required release input missing: " + str(required))
+if new_plugin.exists():
+    raise SystemExit("1302 release plugin already exists")
+
+baseline = old_plugin.read_text(encoding="utf-8")
+if 'PLUGIN_VERSION = "%s"' % old_version not in baseline:
+    raise SystemExit("1301 baseline version marker missing")
+if old_build not in baseline:
+    raise SystemExit("1301 baseline build marker missing")
+
+nav_markers = (
+    "# EMBYFLOW_NAV_GROUPS_V30_START",
+    "# EMBYFLOW_NAV_GROUPS_V30_END",
+    "# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_START",
+    "# EMBYFLOW_NAV_YELLOW_PARENT_ARROWS_V1_END",
+)
+for marker in nav_markers:
+    if baseline.count(marker) != 1:
+        raise SystemExit("Navigation V30 baseline marker mismatch: " + marker)
+print("CHECK baseline OK")
+
+text = baseline.replace(
+    'PLUGIN_VERSION = "%s"' % old_version,
+    'PLUGIN_VERSION = "%s"' % new_version,
+    1,
+)
+text = text.replace(old_build, new_build, 1)
+text, date_count = re.subn(
+    r'^PLUGIN_BUILD_DATE\s*=\s*"[^"]*"',
+    'PLUGIN_BUILD_DATE = "13.09.2026"',
+    text,
+    count=1,
+    flags=re.MULTILINE,
+)
+if date_count != 1:
+    raise SystemExit("PLUGIN_BUILD_DATE marker mismatch")
+
+changelog_open = "PLUGIN_UPDATE_CHANGELOG = (\n"
+if changelog_open not in text:
+    raise SystemExit("PLUGIN_UPDATE_CHANGELOG marker missing")
+local_notes = (
+    '    "HeroFix1: fehlende Filmtitel im Startseiten-Hero erhalten einen sicheren Titel-Fallback|"\n'
+    '    "HeroFix1: Hero-Bilder nutzen Backdrop, danach Thumb und Primary statt bei fehlendem Backdrop schwarz zu bleiben|"\n'
+    '    "HeroFix1: Hero- und Negativ-Cache werden einmalig neu aufgebaut; Navigation V30, Playback und Untertitel bleiben unveraendert|"\n'
+)
+text = text.replace(changelog_open, changelog_open + local_notes, 1)
+
+# Fix 1: robust title rendering for stale/older cache entries.
+old_title = '        self["hero_title"].setText(slide.get("title", ""))'
+if text.count(old_title) != 1:
+    raise SystemExit("hero title render marker mismatch")
+new_title = '''        hero_title = str(
+            slide.get("title")
+            or slide.get("name")
+            or slide.get("Name")
+            or slide.get("search_term")
+            or ""
+        ).strip()
+        if not hero_title:
+            hero_title = "EmbyFlow"
+        self["hero_title"].setText(hero_title)'''
+text = text.replace(old_title, new_title, 1)
+
+# Force a clean hero list cache generation so old black/blank slides are not
+# kept for the six-hour TTL after the upgrade.
+old_cache_name = "hero_slides.json"
+new_cache_name = "hero_slides_herofix1.json"
+old_cache_count = text.count(old_cache_name)
+if old_cache_count < 3:
+    raise SystemExit("hero cache references unexpectedly missing")
+text = text.replace(old_cache_name, new_cache_name)
+if old_cache_name in text:
+    raise SystemExit("old hero cache name remained after migration")
+
+func_start = text.find("def fetch_hero_slides(limit=8):")
+func_end = text.find('\n\nif not hasattr(config, "embyflow"):', func_start)
+if func_start < 0 or func_end < 0:
+    raise SystemExit("fetch_hero_slides boundaries not found")
+hero_func = text[func_start:func_end]
+
+# Ignore old Backdrop-only negative-cache markers once after HeroFix1.
+old_missing = '            missing_path = img_path + ".missing"'
+if hero_func.count(old_missing) != 1:
+    raise SystemExit("hero negative cache marker mismatch")
+hero_func = hero_func.replace(
+    old_missing,
+    '            missing_path = img_path + ".herofix1.missing"',
+    1,
+)
+
+# Fix 2: prefer Backdrop, then landscape Thumb, then Primary.
+art_start_marker = "            else:\n              try:\n                  img = embyflow_http_get("
+art_end_marker = "            slides.append({"
+art_start = hero_func.find(art_start_marker)
+art_end = hero_func.find(art_end_marker, art_start)
+if art_start < 0 or art_end < 0:
+    raise SystemExit("old hero artwork block not found")
+old_art_block = hero_func[art_start:art_end]
+if "/Images/Backdrop/0" not in old_art_block:
+    raise SystemExit("unexpected old hero artwork block")
+
+new_art_block = '''            else:
+                image_loaded = False
+                image_error = "no-artwork"
+                image_candidates = (
+                    ("Backdrop/0", "backdrop"),
+                    ("Thumb/0", "thumb"),
+                    ("Primary", "primary"),
+                )
+
+                for image_path, image_label in image_candidates:
+                    raw_path = HERO_CACHE_DIR + "/hero_raw_%s.jpg" % item.get("Id")
+                    try:
+                        img = embyflow_http_get(
+                            server + "/Items/%s/Images/%s" % (
+                                item.get("Id"),
+                                image_path,
+                            ),
+                            headers={
+                                "X-Emby-Token": token,
+                                "X-Emby-Authorization": AUTH_HEADER,
+                            },
+                            params={
+                                "api_key": token,
+                                "maxWidth": "800",
+                                "maxHeight": "450",
+                                "quality": "90",
+                            },
+                            timeout=10,
+                            verify=True,
+                        )
+
+                        if img.status_code != 200 or len(img.content) <= 1000:
+                            image_error = "%s-http-%s" % (
+                                image_label,
+                                getattr(img, "status_code", "?"),
+                            )
+                            continue
+
+                        f = open(raw_path, "wb")
+                        f.write(img.content)
+                        f.close()
+
+                        im = Image.open(raw_path).convert("RGB")
+                        target_w, target_h = 680, 300
+                        iw, ih = im.size
+                        scale = max(
+                            float(target_w) / float(iw),
+                            float(target_h) / float(ih),
+                        )
+                        nw, nh = int(iw * scale), int(ih * scale)
+                        im = im.resize((nw, nh), Image.LANCZOS)
+                        left = max(0, int((nw - target_w) / 2))
+                        top = max(0, int((nh - target_h) / 2))
+                        im = im.crop((left, top, left + target_w, top + target_h))
+                        im.save(
+                            img_path,
+                            "JPEG",
+                            quality=84,
+                            optimize=True,
+                        )
+
+                        try:
+                            os.remove(raw_path)
+                        except Exception:
+                            pass
+
+                        embyflow_clear_negative_cache(missing_path)
+                        embyflow_touch_cache_file(img_path, 0)
+                        hero_downloads += 1
+                        image_loaded = True
+                        break
+
+                    except Exception as candidate_error:
+                        image_error = "%s-%s" % (
+                            image_label,
+                            str(candidate_error),
+                        )
+                        try:
+                            if os.path.exists(raw_path):
+                                os.remove(raw_path)
+                        except Exception:
+                            pass
+
+                if not image_loaded:
+                    embyflow_mark_negative_cache(
+                        missing_path,
+                        image_error,
+                    )
+                    img_path = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/hero_bg.png"
+'''
+hero_func = hero_func[:art_start] + new_art_block + hero_func[art_end:]
+text = text[:func_start] + hero_func + text[func_end:]
+
+# Invariants: this release must not alter Navigation V30 or playback/subtitles.
+for marker in nav_markers:
+    if text.count(marker) != baseline.count(marker):
+        raise SystemExit("HeroFix1 changed Navigation V30 marker count: " + marker)
+
+protected_playback_markers = (
+    "EMBYFLOW_PGS_HLS_RETRY_PROXY_FIX",
+    "PGS_HLS_RETRY_PROXY",
+    "TRANSCODE_RECOVERY",
+    "UTFIX16",
+    "UTFIX17",
+    "UTFIX18",
+    "UTFIX19",
+)
+for needle in protected_playback_markers:
+    if text.count(needle) != baseline.count(needle):
+        raise SystemExit("HeroFix1 changed protected playback marker count: " + needle)
+
+for required in (
+    "hero_slides_herofix1.json",
+    '("Backdrop/0", "backdrop")',
+    '("Thumb/0", "thumb")',
+    '("Primary", "primary")',
+    "hero_title = str(",
+):
+    if required not in text:
+        raise SystemExit("HeroFix1 required marker missing: " + required)
+
+compile(text, str(new_plugin), "exec")
+new_plugin.write_text(text, encoding="utf-8")
+sha256 = hashlib.sha256(new_plugin.read_bytes()).hexdigest()
+print("CHECK HeroFix1 plugin OK")
+
+data = json.loads(manifest.read_text(encoding="utf-8"))
+if int(data.get("build", 0)) != 2026091301:
+    raise SystemExit("update.json baseline build mismatch")
+if data.get("version") != old_version:
+    raise SystemExit("update.json baseline version mismatch")
+
+data["version"] = new_version
+data["build"] = 2026091302
+data["channel"] = "rcdev"
+data["download"] = (
+    "https://raw.githubusercontent.com/keggy6893/"
+    "EmbyFlowE2-Updates/build-2026091302/"
+    "plugin_RCDEV11_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_HEROFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py"
+)
+data["sha256"] = sha256
+data["target"] = "plugin.py"
+data["artifact_type"] = "plugin_py"
+release_notes = [
+    "HeroFix1: fehlende Filmtitel im Startseiten-Hero erhalten einen sicheren Titel-Fallback",
+    "HeroFix1: Hero-Artwork faellt von Backdrop auf Thumb und danach Primary zurueck",
+    "HeroFix1: alter Hero-/Negativ-Cache wird fuer diesen Fix nicht wiederverwendet; Navigation V30, Playback und Untertitel bleiben unveraendert",
+]
+data["changelog"] = release_notes + list(data.get("changelog") or [])
+manifest.write_text(
+    json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)
+
+print("CHECK manifest OK")
+print("release_file=" + str(new_plugin))
+print("sha256=" + sha256)
+print("size=" + str(new_plugin.stat().st_size))
