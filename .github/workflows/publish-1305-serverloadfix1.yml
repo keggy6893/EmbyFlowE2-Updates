@@ -53,3 +53,5 @@ jobs:
           git push origin main
           git tag -a build-2026091305 -m 'EmbyFlow E2 build 2026091305'
           git push origin build-2026091305
+
+# trigger: 2026091305
