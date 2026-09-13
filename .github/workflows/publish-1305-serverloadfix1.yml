@@ -1,0 +1,55 @@
+name: Publish SERVERLOADFIX1 build 2026091305
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-1305-serverloadfix1.yml'
+      - '.github/build_serverloadfix1_1305.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-serverloadfix1-2026091305
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build and validate SERVERLOADFIX1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/build_serverloadfix1_1305.py
+          git diff --check
+          python3 -m py_compile plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Verify release delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only | sort)" = $'plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py\nupdate.json'
+          grep -Fq '# EMBYFLOW_SERVERLOADFIX1_START' plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          grep -Fq '# EMBYFLOW_SERVERLOADFIX1_END' plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+          ! grep -Eq 'UTFIX20|TRANSCODE_RECOVERY|PGS_HLS_RETRY_PROXY' plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
+
+      - name: Publish build and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'EmbyFlowE2 Update Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py update.json
+          git commit -m 'Publish SERVERLOADFIX1 build 2026091305'
+          git push origin main
+          git tag -a build-2026091305 -m 'EmbyFlow E2 build 2026091305'
+          git push origin build-2026091305
