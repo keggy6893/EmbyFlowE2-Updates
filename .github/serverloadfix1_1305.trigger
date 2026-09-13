@@ -1,3 +1,4 @@
 Trigger release build 2026091305 after VU+ cold-boot validation.
 Retry after read-only guard comment fix.
 Retry after untracked release-file delta check fix.
+Retry after compile-cache exclusion.
