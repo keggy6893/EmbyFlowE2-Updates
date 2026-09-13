@@ -41,6 +41,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf __pycache__
           changed="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )"
           test "$changed" = $'plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py\nupdate.json'
           grep -Fq '# EMBYFLOW_SERVERLOADFIX1_START' plugin_RCDEV14_SERVERSAFE1_LOGINV21_FAVRES28_NAVV30_DISCOVERFIX1_NAVREAD1_ARROWVIS2_SERVERLOADFIX1_DREAMSAFE2_HTTPPOOL_PUBLICCLEAN1.py
