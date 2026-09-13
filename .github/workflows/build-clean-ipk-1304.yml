@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/build-clean-ipk-1304.yml'
       - '.github/build_clean_ipk_1304.py'
+      - '.github/inspect_clean_ipk_1304.py'
 
 permissions:
   contents: read
@@ -16,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Inspect privacy matches with address redacted
+        run: python3 .github/inspect_clean_ipk_1304.py
 
       - name: Build and validate clean IPK
         run: python3 .github/build_clean_ipk_1304.py
