@@ -81,7 +81,9 @@ jobs:
           for marker in required_pack_markers:
               if nav.count(marker) != 1:
                   raise SystemExit('feature pack marker mismatch: ' + marker)
-          if '#FFD400' not in nav or 'side_sub_arrow_17' not in nav:
+          # Widgets are generated dynamically with side_sub_arrow_%d, so a literal
+          # side_sub_arrow_17 string is intentionally not present in the source.
+          if '#FFD400' not in nav or 'side_sub_arrow_%d' not in nav:
               raise SystemExit('yellow arrow UI payload incomplete')
 
           forbidden_pack = (
@@ -135,9 +137,6 @@ jobs:
           if 'PLUGIN_VERSION = "%s"' % new_version not in text:
               raise SystemExit('final version marker missing')
 
-          # The public RCDEV9 baseline may legitimately contain older subtitle/PGS
-          # markers. A navigation-only release must preserve their counts exactly;
-          # it must not add or remove any such code.
           protected_playback_markers = (
               'EMBYFLOW_PGS_HLS_RETRY_PROXY_FIX',
               'PGS_HLS_RETRY_PROXY',
