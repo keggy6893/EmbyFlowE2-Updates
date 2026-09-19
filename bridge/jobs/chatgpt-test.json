@@ -1,0 +1,8 @@
+{
+  "protocol": "embyflow-box-bridge-v1",
+  "id": "chatgpt-test",
+  "action": "status",
+  "mode": "read-only",
+  "created_by": "ChatGPT",
+  "note": "Bridge connectivity test only. No deployment, restart, or file modification on the Enigma2 box."
+}
