@@ -4,9 +4,8 @@
     "action":  "pull",
     "mode":  "read-only",
     "host":  "HUMMEL",
-    "started_at":  "2026-09-19T07:16:59.2591983Z",
-    "finished_at":  "2026-09-19T07:17:00.0861000Z",
-    "exit_code":  0,
-    "ok":  true,
-    "output":  "Aktuelle Box-Datei: C:\\Users\\bumse\\Downloads\\InfuseMedia\\EmbyFlowE2_BOX_plugin_20260919-091659.py\r\nFertig."
+    "finished_at":  "2026-09-19T07:20:00.7639416Z",
+    "exit_code":  1,
+    "ok":  false,
+    "output":  "Fehler beim Ausführen des Programms \"gh.exe\": Der Dateiname oder die Erweiterung ist zu langIn C:\\Users\\bumse\\Downloads\\InfuseMedia\\EmbyFlow-ChatGPT-Bridge-FIX3.ps1:77 Zeichen:17\r\n+     $response = \u0026 gh @args 2\u003e\u00261\r\n+                 ~~~~~~~~~~~~~~~."
 }
