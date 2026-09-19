@@ -1,0 +1,14 @@
+{
+  "version": "2026-RCDEV17-UPDATER-V2-TEST-20260919",
+  "build": 2026091903,
+  "channel": "rcdev",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_TESTER_BUNDLE_2026-09-19.tar.gz",
+  "sha256": "c7fc46121713e5dcb5e8b500984f6a02bc1512165dccd4df2aefa6f3b52b1914",
+  "target": "EmbyFlowE2",
+  "artifact_type": "bundle_tar_gz",
+  "changelog": [
+    "ISOLIERTER TEST: Updater V2 Bundle-Pfad",
+    "Getesteter aktueller EmbyFlowE2-Stand mit Kapitelzeit-Ausrichtung und Ähnliche-Hörbücher-Menü",
+    "Bundle enthält ausschließlich plugin.py, ring.png und ring_focus.png"
+  ]
+}
