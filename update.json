@@ -2,13 +2,13 @@
   "version": "2026-RCDEV17-UPDATER-V2-BOOTSTRAP",
   "build": 2026091903,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_CURRENT_plugin.py",
-  "sha256": "c6a0ef19b73e1e46e53c4a530c1327d493ec7611a498fbe7d412e7919bcb7c5d",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BOOTSTRAP_V2_20260919.py",
+  "sha256": "5927f059cbc18b841f1aa755ab7413076452e7e4e9dc594843d99346779669c1",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
     "Kompatibilitätsupdate für ältere EmbyFlow-E2-Installationen",
     "Aktualisiert den integrierten Updater auf V2",
-    "Danach kann der neue AUDIO-Release direkt über den normalen Updater installiert werden"
+    "Vorbereitung für den AUDIO-Release"
   ]
 }
