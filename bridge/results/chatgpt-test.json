@@ -1,0 +1,12 @@
+{
+    "protocol":  "embyflow-box-bridge-v1",
+    "id":  "chatgpt-test",
+    "action":  "status",
+    "mode":  "read-only",
+    "host":  "HUMMEL",
+    "started_at":  "2026-09-19T07:10:21.1701774Z",
+    "finished_at":  "2026-09-19T07:10:21.7328078Z",
+    "exit_code":  0,
+    "ok":  true,
+    "output":  "HOST=vuduo4kse\r\nDATE=Sat Sep 19 09:10:22 CEST 2026\r\nUPTIME= 09:10:22 up 20:35, 0 users, load average: 0.06, 0.05, 0.00\r\n\r\nLOAD:\r\n0.06 0.05 0.00 1/195 32035\r\n\r\nRAM:\r\n               total        used        free      shared  buff/cache   available\r\nMem:         1619176      364040     1147072      131440      279692     1255136\r\nSwap:         809584           0      809584\r\n\r\nENIGMA2:\r\n18888\r\nFertig."
+}
