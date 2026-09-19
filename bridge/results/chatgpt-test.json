@@ -1,11 +1,15 @@
-{
-    "protocol":  "embyflow-box-bridge-v1",
-    "id":  "audio-player-source-pull-20260919-01",
-    "action":  "pull",
-    "mode":  "read-only",
-    "host":  "HUMMEL",
-    "finished_at":  "2026-09-19T07:28:32.6307231Z",
-    "exit_code":  1,
-    "ok":  false,
-    "output":  "gh: Not Found (HTTP 404)"
-}
+[
+    "33987ff2d3ba7cf95ea874fb884b0b5920c9e5a1",
+    {
+        "protocol":  "embyflow-box-bridge-v1",
+        "id":  "audio-player-source-pull-20260919-01",
+        "action":  "pull",
+        "mode":  "read-only",
+        "host":  "HUMMEL",
+        "started_at":  "2026-09-19T07:33:08.3804988Z",
+        "finished_at":  "2026-09-19T07:33:14.3515660Z",
+        "exit_code":  0,
+        "ok":  true,
+        "output":  "Aktuelle Box-Datei: C:\\Users\\bumse\\Downloads\\InfuseMedia\\EmbyFlowE2_BOX_plugin_20260919-093308.py\r\nFertig.\r\nSOURCE_PUBLISHED=bridge/source/current-plugin.py"
+    }
+]
