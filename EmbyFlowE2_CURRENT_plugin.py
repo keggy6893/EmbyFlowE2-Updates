@@ -2313,6 +2313,7 @@ def fetch_stream_info(
                 "movie": "Movie",
                 "video": "Video",
                 "episode": "Episode",
+                "audio": "Audio",
             }.get(
                 prepared_type_raw.lower(),
                 prepared_type_raw
@@ -2325,6 +2326,7 @@ def fetch_stream_info(
                     "Movie",
                     "Video",
                     "Episode",
+                    "Audio",
                 )
             ):
                 prepared_item["Id"] = prepared_id
@@ -2369,7 +2371,7 @@ def fetch_stream_info(
                 "SearchTerm": search_term,
                 "Recursive": "true",
                 "Limit": "10",
-                "IncludeItemTypes": "Movie,Video,Episode",
+                "IncludeItemTypes": "Movie,Video,Episode,Audio",
                 "Fields": (
                     "MediaSources,OfficialRating,"
                     "RunTimeTicks,UserData,SeriesId,SeasonId,"
@@ -2391,6 +2393,35 @@ def fetch_stream_info(
 
     for item in candidate_items:
         item_id = item.get("Id")
+
+        # EMBYFLOW_AUDIO_PLAYER_V1_STREAM
+        # Audio is isolated from the established video/transcode path.
+        if item_id and item.get("Type") == "Audio":
+            media_sources = item.get("MediaSources") or []
+            source = media_sources[0] if media_sources else {}
+            container = str(source.get("Container") or item.get("Container") or "").strip().lower()
+            ext = re.sub(r"[^a-z0-9]", "", container)
+            endpoint = "%s/Audio/%s/stream" % (server, item_id)
+            if ext:
+                endpoint += "." + ext
+            stream_url = (
+                endpoint
+                + "?Static=true&api_key=%s" % token
+            )
+            item["EmbyFlowPlaybackMode"] = "audio-direct"
+            return {
+                "url": stream_url,
+                "server": server,
+                "token": token,
+                "user_id": user_id,
+                "item": item,
+                "force_url": True,
+                "play_session_id": str(uuid4()),
+                "playback_mode": "audio-direct",
+                "server_resume_ticks": 0,
+                "audio_port": "mediaplugins2026-port1",
+            }
+
         if item_id and item.get("Type") in ("Movie", "Video", "Episode"):
             enrich_media_source_for_player(item)
             force_transcode = False
@@ -4002,6 +4033,139 @@ def emby_library_items(parent_id, include_types, limit=100):
         except:
             pass
     return items
+
+
+
+# EMBYFLOW_HB_MEDIA_PORT2
+_AUDIO_ONLY_CONTAINERS = set((
+    "mp3", "aac", "m4a", "m4b", "flac", "wav", "wave", "ogg",
+    "oga", "opus", "alac", "aiff", "aif", "wma", "ape",
+))
+
+def embyflow_resolve_audio_item(item):
+    """Resolve an arbitrary audiobook/library card to a real playable Audio item.
+
+    Never trusts the grid Type alone.  The full Emby item is inspected for an
+    audio-only MediaSource.  Container/book cards are resolved to their first
+    real Audio child.  Video-bearing items are explicitly rejected.
+    """
+    if not isinstance(item, dict):
+        return None
+
+    item_id = str(item.get("Id") or item.get("id") or "").strip()
+    if not item_id:
+        return None
+
+    raw = None
+    try:
+        server, token, user_id = get_emby_auth()
+        if token and user_id:
+            response = embyflow_http_get(
+                server + "/Users/%s/Items/%s" % (user_id, item_id),
+                headers={
+                    "X-Emby-Token": token,
+                    "X-Emby-Authorization": AUTH_HEADER,
+                },
+                params={
+                    "Fields": (
+                        "Overview,Genres,ProductionYear,RunTimeTicks,"
+                        "MediaSources,MediaStreams,Chapters,Artists,"
+                        "Album,AlbumArtist,Container,Path,ParentId,UserData"
+                    )
+                },
+                timeout=8,
+                verify=True,
+            )
+            if response.status_code == 200:
+                raw = response.json() or {}
+    except Exception:
+        raw = None
+
+    def audio_only(candidate):
+        if not isinstance(candidate, dict):
+            return False
+        sources = candidate.get("MediaSources") or candidate.get("media_sources") or []
+        container = str(candidate.get("Container") or candidate.get("container") or "").lower().lstrip(".")
+        has_audio = False
+        has_video = False
+        for source in sources:
+            if not isinstance(source, dict):
+                continue
+            source_container = str(source.get("Container") or "").lower().lstrip(".")
+            if source_container and not container:
+                container = source_container
+            for stream in source.get("MediaStreams") or []:
+                stream_type = str(stream.get("Type") or "").lower()
+                if stream_type == "audio":
+                    has_audio = True
+                elif stream_type == "video":
+                    has_video = True
+        media_type = str(candidate.get("MediaType") or candidate.get("media_type") or "").lower()
+        item_type = str(candidate.get("Type") or candidate.get("type") or "").lower()
+        if has_video:
+            return False
+        if has_audio:
+            return True
+        if media_type in ("audio", "audiobook", "music", "song", "track"):
+            return True
+        if item_type == "audio":
+            return True
+        return container in _AUDIO_ONLY_CONTAINERS
+
+    if raw and audio_only(raw):
+        normalized = dict(raw)
+        normalized["Type"] = "Audio"
+        normalized["type"] = "Audio"
+        normalized["MediaType"] = "Audio"
+        return normalized
+
+    # A Book/AudioBook/Folder/MusicAlbum can be a display container whose
+    # playable file is an Audio child.
+    try:
+        children = emby_child_items(item_id, "Audio", 500, recursive=True)
+    except Exception:
+        children = []
+
+    if children:
+        child = children[0]
+        child_id = str(child.get("Id") or child.get("id") or "").strip()
+        if child_id:
+            try:
+                server, token, user_id = get_emby_auth()
+                response = embyflow_http_get(
+                    server + "/Users/%s/Items/%s" % (user_id, child_id),
+                    headers={
+                        "X-Emby-Token": token,
+                        "X-Emby-Authorization": AUTH_HEADER,
+                    },
+                    params={
+                        "Fields": (
+                            "Overview,Genres,ProductionYear,RunTimeTicks,"
+                            "MediaSources,MediaStreams,Chapters,Artists,"
+                            "Album,AlbumArtist,Container,Path,ParentId,UserData"
+                        )
+                    },
+                    timeout=8,
+                    verify=True,
+                )
+                if response.status_code == 200:
+                    child_raw = response.json() or {}
+                    if audio_only(child_raw):
+                        normalized = dict(child_raw)
+                        normalized["Type"] = "Audio"
+                        normalized["type"] = "Audio"
+                        normalized["MediaType"] = "Audio"
+                        return normalized
+            except Exception:
+                pass
+        if audio_only(child):
+            normalized = dict(child)
+            normalized["Type"] = "Audio"
+            normalized["type"] = "Audio"
+            normalized["MediaType"] = "Audio"
+            return normalized
+
+    return None
 
 
 def emby_child_items(parent_id, include_types, limit=120, recursive=False):
@@ -17841,93 +18005,107 @@ class EmbyFlowGridScreen(Screen):
         return candidates[0] if candidates else available[0]
 
     def _load_server_letter(self, letter_key):
-        # SERVER_SIDE_AZ_LOAD_DEV_V1
-        if (
-            not self.server_parent_id
-            or not self.server_include_types
-        ):
+        # EMBYFLOW_HB_RECEIVER_COMPARE_FIX2_FULL_AZ
+        # Port of the working MediaPlugins principle:
+        # load the complete library in pages, then apply A-Z locally.
+        # This deliberately does NOT use IncludeItemTypes, NameStartsWith,
+        # IsNotFolder or a guessed Movie type for audiobook libraries.
+        if not self.server_parent_id:
             return False
 
-        items, total_count = (
-            emby_server_letter_items(
-                self.server_parent_id,
-                self.server_include_types,
-                letter_key,
-                500
+        master = []
+        seen_ids = set()
+        start_index = 0
+        page_size = 300
+        max_items = 10000
+
+        # Preserve the real collection_type from the cards that opened this
+        # grid. Empty is valid for audiobook/dynamic libraries.
+        collection_type = ""
+        try:
+            source = (
+                list(getattr(self, "server_original_items", []) or [])
+                or list(self.grid_items or [])
             )
-        )
+            if source:
+                collection_type = str(
+                    source[0].get("collection_type") or ""
+                )
+        except Exception:
+            collection_type = ""
+
+        while start_index < max_items:
+            page = emby_dynamic_view_items(
+                self.server_parent_id,
+                collection_type,
+                min(page_size, max_items - start_index),
+                start_index,
+                "az"
+            )
+            page = list(page or [])
+            if not page:
+                break
+
+            added = 0
+            server_total = 0
+            for candidate in page:
+                try:
+                    iid = str(
+                        candidate.get("Id")
+                        or candidate.get("id")
+                        or ""
+                    )
+                    if iid and iid in seen_ids:
+                        continue
+                    if iid:
+                        seen_ids.add(iid)
+                    master.append(candidate)
+                    added += 1
+                    server_total = max(
+                        server_total,
+                        int(candidate.get("_embyflow_library_total") or 0)
+                    )
+                except Exception:
+                    pass
+
+            if added <= 0:
+                break
+
+            start_index += len(page)
+
+            if len(page) < page_size:
+                break
+            if server_total and start_index >= server_total:
+                break
+
+        # If paging unexpectedly produced nothing, never destroy the current
+        # grid; use the cards already present as a last-resort master list.
+        if not master:
+            master = list(
+                getattr(self, "server_original_items", []) or self.grid_items or []
+            )
+
+        items = []
+        for candidate in master:
+            try:
+                candidate_title = (
+                    candidate.get("sort_name")
+                    or candidate.get("SortName")
+                    or candidate.get("title")
+                    or candidate.get("Name")
+                    or ""
+                )
+                if self._az_title_matches(candidate_title, letter_key):
+                    items.append(candidate)
+            except Exception:
+                pass
 
         self.grid_items = items
-        self.server_letter_total = int(
-            total_count or 0
-        )
-        self.server_letter_key = str(
-            letter_key or ""
-        )
+        self.server_letter_total = len(items)
+        self.server_letter_key = str(letter_key or "")
         self.server_letter_active = True
         self.page = 0
         self.focus = 0
-
-        try:
-            with embyflow_open_log(
-                "/tmp/embyflow_letter_query.log",
-                "w",
-                encoding="utf-8"
-            ) as log:
-                log.write(
-                    u"========================================\n"
-                )
-                log.write(
-                    u"EmbyFlow serverseitige A-Z-Abfrage\n"
-                )
-                log.write(
-                    u"========================================\n\n"
-                )
-                log.write(
-                    u"Kategorie : %s\n"
-                    % self.server_library_name
-                )
-                log.write(
-                    u"ParentId  : %s\n"
-                    % self.server_parent_id
-                )
-                log.write(
-                    u"Typ       : %s\n"
-                    % self.server_include_types
-                )
-                log.write(
-                    u"Buchstabe : %s\n"
-                    % letter_key
-                )
-                log.write(
-                    u"Server    : %s Treffer\n"
-                    % self.server_letter_total
-                )
-                log.write(
-                    u"Geladen   : %s Titel\n\n"
-                    % len(items)
-                )
-
-                for index, item in enumerate(
-                    items,
-                    1
-                ):
-                    log.write(
-                        u"%03d | %s | %s\n"
-                        % (
-                            index,
-                            item.get(
-                                "sort_name"
-                            )
-                            or "",
-                            item.get("title")
-                            or "",
-                        )
-                    )
-
-        except Exception:
-            pass
-
         return True
 
 
@@ -19162,6 +19340,82 @@ class EmbyFlowGridScreen(Screen):
                     episodes
                 )
                 return
+
+            # EMBYFLOW_AUDIO_DIAG1
+            # Read-only diagnostic snapshot of the selected grid item.
+            # No playback decision is changed here.
+            try:
+                if str(item_type or "").strip().lower() == "audio":
+                    import json
+                    with embyflow_open_log("/tmp/embyflow_audio_diag.log", "a") as log:
+                        log.write("\n=== AUDIO GRID SELECT ===\n")
+                        log.write("id=%s\n" % str(item_id or ""))
+                        log.write("title=%s\n" % str(title or ""))
+                        log.write("item_type=%s\n" % str(item_type or ""))
+                        log.write("MediaType=%s\n" % str(item.get("MediaType") or item.get("media_type") or ""))
+                        log.write("Container=%s\n" % str(item.get("Container") or item.get("container") or ""))
+                        log.write("Path=%s\n" % str(item.get("Path") or item.get("path") or ""))
+                        log.write("MediaSources=%s\n" % json.dumps(
+                            item.get("MediaSources") or item.get("media_sources") or [],
+                            ensure_ascii=False,
+                            sort_keys=True
+                        ))
+                        log.write("MediaStreams=%s\n" % json.dumps(
+                            item.get("MediaStreams") or item.get("media_streams") or [],
+                            ensure_ascii=False,
+                            sort_keys=True
+                        ))
+            except Exception as error:
+                try:
+                    with embyflow_open_log("/tmp/embyflow_audio_diag.log", "a") as log:
+                        log.write("DIAG_ERROR=%s\n" % str(error))
+                except Exception:
+                    pass
+
+            # EMBYFLOW_HB_MEDIA_PORT2_ROUTE
+            # Resolve the selected card from Emby instead of trusting its grid
+            # Type.  This mirrors the proven MediaPlugins principle: audio is
+            # detected from the real media object before normal video/details.
+            resolved_audio = None
+            try:
+                resolved_audio = embyflow_resolve_audio_item(item)
+            except Exception:
+                resolved_audio = None
+
+            if resolved_audio:
+                resolved_id = resolved_audio.get("Id") or resolved_audio.get("id")
+                resolved_title = (
+                    resolved_audio.get("Name")
+                    or resolved_audio.get("title")
+                    or title
+                )
+                stream_info = None
+                try:
+                    stream_info = fetch_stream_info(
+                        search_term=resolved_title,
+                        audio_mode="direct",
+                        item_id=resolved_id,
+                        item_data=resolved_audio
+                    )
+                except Exception:
+                    stream_info = None
+
+                stream_url = (stream_info or {}).get("url")
+                if stream_url:
+                    ref = eServiceReference(
+                        STREAM_SERVICE_TYPE,
+                        0,
+                        stream_url
+                    )
+                    ref.setName(str(resolved_title or title))
+                    open_embyflow_player(
+                        self.session,
+                        ref,
+                        str(resolved_title or title),
+                        stream_url,
+                        stream_info
+                    )
+                    return
 
             self.session.open(EmbyFlowDetailScreen, item)
 
@@ -37980,6 +38234,972 @@ def open_embyflow_player(
 EMBYFLOW_SAFE_PLAYER_START_TIMERS = []
 
 
+
+# EMBYFLOW_AUDIO_PLAYER_V1
+_EMBYFLOW_AUDIO_GRADIENT_CACHE = "/tmp/embyflow_audio_backdrops/gradient_overlay_v1.png"
+
+
+def _embyflow_build_audio_gradient_overlay():
+    """Builds (once, then cached to disk) a 1920x1080 RGBA veil that fades
+    from transparent over the cover area to a steady dark tone across the
+    text/controls side, plus a darker band behind the transport row.
+    This lets the per-cover blurred backdrop be more vivid/distinct while
+    keeping text and buttons readable, without a per-frame runtime cost.
+    """
+    try:
+        if os.path.isfile(_EMBYFLOW_AUDIO_GRADIENT_CACHE):
+            return _EMBYFLOW_AUDIO_GRADIENT_CACHE
+        from PIL import Image as PILImage
+
+        w, h = 1920, 1080
+        veil_rgb = (5, 10, 16)
+
+        # Horizontal veil as a single-row gradient, then stretched vertically
+        # (fast: O(w) in Python, the resize itself is native PIL code).
+        row = []
+        fade_start, fade_end, steady_alpha = 560, 1150, 190
+        for x in range(w):
+            if x < fade_start:
+                a = 0
+            elif x < fade_end:
+                a = int(steady_alpha * ((x - fade_start) / float(fade_end - fade_start)))
+            else:
+                a = steady_alpha
+            row.append(veil_rgb + (a,))
+        row_img = PILImage.new("RGBA", (w, 1))
+        row_img.putdata(row)
+        overlay = row_img.resize((w, h), PILImage.NEAREST)
+
+        # Extra darkening band behind the transport controls / hint row so
+        # they stay legible regardless of how bright the backdrop is there.
+        band_h = h - 930
+        if band_h > 0:
+            band = PILImage.new("RGBA", (w, band_h), veil_rgb + (60,))
+            overlay.alpha_composite(band, (0, 930))
+
+        cache_dir = os.path.dirname(_EMBYFLOW_AUDIO_GRADIENT_CACHE)
+        if not os.path.isdir(cache_dir):
+            os.makedirs(cache_dir)
+        overlay.save(_EMBYFLOW_AUDIO_GRADIENT_CACHE, "PNG")
+        return _EMBYFLOW_AUDIO_GRADIENT_CACHE
+    except Exception:
+        return None
+
+
+class EmbyFlowAudioPlayer(Screen):
+    """EmbyFlow port of the proven MediaPlugins2026 audiobook player."""
+
+    def __init__(self, session, ref, title="EmbyFlow Audio", playback_info=None, last_service=None):
+        self.ref = ref
+        self.title_text = str(title or "Audio")
+        self.playback_info = playback_info or {}
+        self.item = dict(self.playback_info.get("item") or {})
+        self.last_service = last_service
+        self.closed = False
+        self.paused = False
+        self.started = False
+        self.fallback_used = False
+        self.candidates = []
+        self.candidate_index = 0
+        self.start_time = 0.0
+        self.chapters = []
+        # EMBYFLOW_AUDIO_RESUME_V1
+        self.item_id = str(self.item.get("Id") or self.item.get("id") or "")
+        self.resume_start_ticks = 0
+        self.resume_seek_pending = False
+        self._last_resume_save_ts = 0
+        self._speed_steps = [1.0, 1.25, 1.5, 2.0]
+        self._speed_index = 0
+
+        # EMBYFLOW_AUDIO_TEMPLATE_UI1
+        self.skin = scale_skin("""
+        <screen name="EmbyFlowAudioPlayer" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#06111b">
+            <widget name="background" position="0,0" size="1920,1080" alphatest="blend" scale="1" zPosition="0" />
+            <widget name="shade" position="0,0" size="1920,1080" backgroundColor="#06111b" transparent="1" zPosition="1" />
+            <widget name="content_shade" position="0,0" size="1920,1080" alphatest="blend" scale="1" zPosition="2" />
+
+            <widget name="brand" position="64,40" size="480,42" font="Regular;29" foregroundColor="#ffffff" transparent="1" zPosition="8" />
+            <widget name="subbrand" position="66,82" size="320,28" font="Regular;17" foregroundColor="#79bfff" transparent="1" zPosition="8" />
+            <widget name="clock" position="1660,40" size="200,40" font="Regular;28" foregroundColor="#ffffff" transparent="1" halign="right" zPosition="8" />
+            <widget name="date" position="1480,82" size="380,28" font="Regular;17" foregroundColor="#d5dde4" transparent="1" halign="right" zPosition="8" />
+
+            <widget name="cover_frame" position="58,148" size="532,532" backgroundColor="#16384d" transparent="0" zPosition="4" />
+            <widget name="cover" position="64,154" size="520,520" alphatest="blend" scale="1" zPosition="6" />
+
+            <widget name="title" position="640,178" size="1110,96" font="Regular;39" foregroundColor="#ffffff" transparent="1" valign="center" zPosition="8" />
+            <widget name="artist" position="640,286" size="1110,38" font="Regular;25" foregroundColor="#ffffff" transparent="1" zPosition="8" />
+            <widget name="album" position="640,332" size="1110,34" font="Regular;21" foregroundColor="#d9e1e7" transparent="1" zPosition="8" />
+
+            <widget name="badge_type" position="640,390" size="150,46" font="Regular;19" foregroundColor="#eef4f8" backgroundColor="#152b3b" transparent="0" halign="center" valign="center" zPosition="7" />
+            <widget name="badge_time" position="804,390" size="185,46" font="Regular;19" foregroundColor="#eef4f8" backgroundColor="#152b3b" transparent="0" halign="center" valign="center" zPosition="7" />
+            <widget name="badge_chapters" position="1003,390" size="180,46" font="Regular;19" foregroundColor="#eef4f8" backgroundColor="#152b3b" transparent="0" halign="center" valign="center" zPosition="7" />
+            <widget name="meta" position="640,450" size="1110,34" font="Regular;18" foregroundColor="#aebbc5" transparent="1" zPosition="8" />
+            <widget name="chapter" position="640,492" size="1110,34" font="Regular;19" foregroundColor="#49adf5" transparent="1" zPosition="8" />
+            <widget name="overview" position="640,548" size="1110,125" font="Regular;20" foregroundColor="#eef2f5" transparent="1" zPosition="8" />
+
+            <widget name="chapter_box" position="2000,148" size="520,532" backgroundColor="#101c27" transparent="0" zPosition="4" />
+            <widget name="chapter_head" position="2030,174" size="460,42" font="Regular;27" foregroundColor="#ffffff" transparent="1" zPosition="8" />
+            <widget name="chapter_focus" position="2020,230" size="480,50" backgroundColor="#125b8d" transparent="0" zPosition="6" />
+            <widget name="chapter_list" position="2034,238" size="450,410" font="Regular;20" foregroundColor="#e5ecf1" transparent="1" zPosition="8" />
+
+            <widget name="progress_bg" position="125,775" size="1670,9" backgroundColor="#4d5d69" transparent="0" zPosition="5" />
+            <widget name="progress" position="125,775" size="1,9" backgroundColor="#159dff" transparent="0" zPosition="6" />
+            <widget name="chapter_ticks" position="125,762" size="1670,26" font="Regular;14" foregroundColor="#b9d9ef" transparent="1" zPosition="7" />
+            <widget name="elapsed" position="125,800" size="260,36" font="Regular;23" foregroundColor="#ffffff" transparent="1" zPosition="8" />
+            <widget name="remaining" position="1475,800" size="320,36" font="Regular;23" foregroundColor="#ffffff" transparent="1" halign="right" zPosition="8" />
+
+            <widget name="control_focus" position="616,871" size="84,84" pixmap="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/images/audio_controls/ring_focus.png" alphatest="blend" scale="1" zPosition="9" />
+            <widget name="chapter_ring" position="616,871" size="84,84" pixmap="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/images/audio_controls/ring.png" alphatest="blend" scale="1" zPosition="5" />
+            <widget name="chapter_btn" position="622,877" size="72,72" font="Regular;29" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="7" />
+            <widget name="back_ring" position="776,871" size="84,84" pixmap="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/images/audio_controls/ring.png" alphatest="blend" scale="1" zPosition="5" />
+            <widget name="seek_back" position="782,877" size="72,72" font="Regular;25" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="7" />
+            <widget name="pause_ring" position="946,871" size="84,84" pixmap="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/images/audio_controls/ring.png" alphatest="blend" scale="1" zPosition="5" />
+            <widget name="pause" position="952,877" size="72,72" font="Regular;38" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="8" />
+            <widget name="fwd_ring" position="1116,871" size="84,84" pixmap="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/images/audio_controls/ring.png" alphatest="blend" scale="1" zPosition="5" />
+            <widget name="seek_fwd" position="1122,877" size="72,72" font="Regular;25" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="7" />
+            <widget name="favorite_ring" position="1276,871" size="84,84" pixmap="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/images/audio_controls/ring.png" alphatest="blend" scale="1" zPosition="5" />
+            <widget name="favorite_btn" position="1282,877" size="72,72" font="Regular;29" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="7" />
+
+            <widget name="chapter_label" position="570,970" size="175,30" font="Regular;18" foregroundColor="#e3e8ec" transparent="1" halign="center" zPosition="8" />
+            <widget name="back_label" position="730,970" size="175,30" font="Regular;18" foregroundColor="#e3e8ec" transparent="1" halign="center" zPosition="8" />
+            <widget name="pause_label" position="900,985" size="175,30" font="Regular;18" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="8" />
+            <widget name="fwd_label" position="1070,970" size="175,30" font="Regular;18" foregroundColor="#e3e8ec" transparent="1" halign="center" zPosition="8" />
+            <widget name="favorite_label" position="1230,970" size="175,30" font="Regular;18" foregroundColor="#e3e8ec" transparent="1" halign="center" zPosition="8" />
+
+            <widget name="fold_panel" position="430,250" size="1060,560" backgroundColor="#0b1722" transparent="0" zPosition="20" />
+            <widget name="fold_title" position="470,285" size="980,50" font="Regular;30" foregroundColor="#ffffff" transparent="1" zPosition="22" />
+            <widget name="fold_focus" position="455,350" size="1010,52" backgroundColor="#145f92" transparent="0" zPosition="21" />
+            <widget name="fold_list" position="480,358" size="960,360" font="Regular;22" foregroundColor="#e9f0f5" transparent="1" zPosition="22" />
+            <widget name="fold_hint" position="470,750" size="980,30" font="Regular;18" foregroundColor="#9eb0bd" transparent="1" halign="center" zPosition="22" />
+
+            <widget name="speed" position="1320,1010" size="160,30" font="Regular;17" foregroundColor="#d5e5f0" transparent="1" halign="right" zPosition="8" />
+            <widget name="mode" position="1500,1010" size="295,30" font="Regular;17" foregroundColor="#70b9ed" transparent="1" halign="right" zPosition="8" />
+            <widget name="hint" position="420,1035" size="1080,26" font="Regular;15" foregroundColor="#82909a" transparent="1" halign="center" zPosition="8" />
+        </screen>
+        """)
+
+        Screen.__init__(self, session)
+        self["background"] = Pixmap()
+        self["shade"] = Label("")
+        self["content_shade"] = Pixmap()
+        self["cover_frame"] = Label("")
+        self["cover"] = Pixmap()
+        self["brand"] = Label("HÖRBUCH")
+        self["subbrand"] = Label("EmbyFlowE2")
+        self["clock"] = Label("")
+        self["date"] = Label("")
+        self["title"] = Label(self.title_text)
+        self["artist"] = Label("")
+        self["album"] = Label("")
+        self["meta"] = Label("AUDIO")
+        self["chapter"] = Label("KAPITEL")
+        self["overview"] = Label("")
+        self["badge_type"] = Label("Hörbuch")
+        self["badge_time"] = Label("")
+        self["badge_chapters"] = Label("")
+        self["chapter_box"] = Label("")
+        self["chapter_head"] = Label("Kapitel")
+        self["chapter_focus"] = Label("")
+        self["chapter_list"] = Label("")
+        self["progress_bg"] = Label("")
+        self["progress"] = Label("")
+        self["chapter_ticks"] = Label("")
+        self["speed"] = Label("1.00x")
+        self["elapsed"] = Label("0:00")
+        self["remaining"] = Label("GESAMT-REST --:--")
+        self["fold_panel"] = Label("")
+        self["fold_title"] = Label("")
+        self["fold_focus"] = Label("")
+        self["fold_list"] = Label("")
+        self["fold_hint"] = Label("▲/▼ Kapitel wählen     OK Springen     EXIT/ROT Schließen")
+        self._chapterFoldOpen = False
+        self._chapterFoldIndex = 0
+        self["control_focus"] = Pixmap()
+        self["chapter_ring"] = Pixmap()
+        self["back_ring"] = Pixmap()
+        self["pause_ring"] = Pixmap()
+        self["fwd_ring"] = Pixmap()
+        self["favorite_ring"] = Pixmap()
+        self["chapter_btn"] = Label("≡")
+        self["seek_back"] = Label("◀")
+        self["pause"] = Label("II")
+        self["seek_fwd"] = Label("▶")
+        self["favorite_btn"] = Label("♡")
+        self["chapter_label"] = Label("Kapitel")
+        self["back_label"] = Label("-30 Sek.")
+        self["pause_label"] = Label("Pause")
+        self["fwd_label"] = Label("+30 Sek.")
+        self["favorite_label"] = Label("Favorit")
+        self["hint"] = Label("ROT Zurück   •   GRÜN Favorit   •   GELB Tempo   •   BLAU Kapitel")
+        self["mode"] = Label("")
+
+        self._controlFocusActive = False
+        self._controlIndex = 2
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            {
+                "ok": self._controlOK,
+                "menu": self.openChapterOverlay,
+                "cancel": self._foldCancel, "red": self._foldCancel,
+                "green": self._toggleAudioFavorite,
+                "left": self._controlLeft,
+                "right": self._controlRight,
+                "up": self._controlUp,
+                "down": self._controlDown,
+                "yellow": self._cyclePlaybackSpeed,
+                "blue": self.openChapterOverlay,
+            }, -2
+        )
+
+        self.clock_timer = eTimer()
+        self.clock_timer.callback.append(self._updateClock)
+        self.progress_timer = eTimer()
+        self.progress_timer.callback.append(self._updateProgress)
+        self.startup_timer = eTimer()
+        self.startup_timer.callback.append(self._startupCheck)
+
+        self.event_tracker = ServiceEventTracker(
+            screen=self,
+            eventmap={iPlayableService.evStart: self._serviceStarted,
+                      iPlayableService.evEOF: self._serviceEOF},
+        )
+        self.onLayoutFinish.append(self._onLayoutReady)
+        self.onLayoutFinish.append(self._controlFocusRender)
+        self.onClose.append(self._onClose)
+
+    @staticmethod
+    def _fmt_pts(pts):
+        sec = max(0, int(pts or 0) // 90000)
+        h, rem = divmod(sec, 3600)
+        m, sec = divmod(rem, 60)
+        return ("%d:%02d:%02d" % (h, m, sec)) if h else ("%d:%02d" % (m, sec))
+
+    def _onLayoutReady(self):
+        self._loadStaticArtwork()
+        self._applyGradientOverlay()
+        self._updateClock()
+        self.clock_timer.start(30000, False)
+        self._loadFullInfo()
+        self._buildCandidates()
+        self._playCandidate()
+
+    def _applyGradientOverlay(self):
+        # EMBYFLOW_AUDIO_GRADIENT_OVERLAY_V1
+        try:
+            path = _embyflow_build_audio_gradient_overlay()
+            if path and self["content_shade"].instance:
+                embyflow_decode_image_to_widget(
+                    self, "content_shade", path, 1920, 1080,
+                    token="audio-gradient-overlay"
+                )
+        except Exception:
+            pass
+
+    def _loadStaticArtwork(self):
+        root = os.path.dirname(__file__)
+        path = os.path.join(root, "audio_assets", "audio_player_bg.jpg")
+        try:
+            if os.path.isfile(path) and self["background"].instance:
+                self["background"].instance.setScale(1)
+                self["background"].instance.setPixmapFromFile(path)
+                self["background"].show()
+        except Exception:
+            pass
+
+    def _updateClock(self):
+        if not self.closed:
+            self["clock"].setText(time.strftime("%H:%M"))
+            try:
+                days = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
+                months = ("Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
+                          "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
+                now = datetime.now()
+                self["date"].setText("%s, %d. %s %d" % (
+                    days[now.weekday()], now.day, months[now.month - 1], now.year
+                ))
+            except Exception:
+                self["date"].setText("")
+
+    def _loadFullInfo(self):
+        try:
+            server, token, user_id = get_emby_auth()
+            iid = str(self.item.get("Id") or self.item.get("id") or "").strip()
+            if not (server and token and user_id and iid):
+                return
+            response = embyflow_http_get(
+                server.rstrip("/") + "/Users/%s/Items/%s" % (user_id, iid),
+                headers={"X-Emby-Token": token, "X-Emby-Authorization": AUTH_HEADER},
+                params={"Fields":"Chapters,MediaSources,People,Artists,Album,AlbumArtist,Container,RunTimeTicks,Overview,ProductionYear,UserData"},
+                timeout=8, verify=True
+            )
+            if int(getattr(response, "status_code", 0) or 0) != 200:
+                return
+            full = response.json() or {}
+            if isinstance(full, dict):
+                merged = dict(self.item); merged.update(full); self.item = merged
+            self["title"].setText(str(self.item.get("Name") or self.title_text))
+            artists = self.item.get("Artists") or []
+            artist = ", ".join(str(x) for x in artists if x) or str(self.item.get("AlbumArtist") or "")
+            self["artist"].setText(artist)
+            _album = str(self.item.get("Album") or "").strip()
+            _title_cmp = str(self.item.get("Name") or self.title_text or "").strip()
+            self["album"].setText("" if _album and _album.casefold() == _title_cmp.casefold() else _album)
+            overview = str(self.item.get("Overview") or "").strip()
+            overview = "\n".join(re.sub(r"[ \t]+", " ", line.strip()) for line in overview.splitlines())
+            if len(overview) > 360:
+                overview = overview[:357].rstrip() + "..."
+            self["overview"].setText(overview)
+            source = (self.item.get("MediaSources") or [{}])[0] or {}
+            stream = next((x for x in (source.get("MediaStreams") or []) if str(x.get("Type") or "").lower()=="audio"), {})
+            codec = str(stream.get("Codec") or "").upper()
+            container = str(source.get("Container") or self.item.get("Container") or "").upper()
+            channels = int(stream.get("Channels") or 0)
+            bits = [x for x in (artist, codec, container if container != codec else "",
+                                ("%s.0" % channels if channels and channels <= 2 else ("%s.1" % max(1, channels-1) if channels else ""))) if x]
+            self["meta"].setText("   •   ".join(bits) if bits else "AUDIO")
+            self.chapters = []
+            for idx, ch in enumerate(self.item.get("Chapters") or []):
+                self.chapters.append({"name": str(ch.get("Name") or "Kapitel %d"%(idx+1)),
+                                      "ticks": int(ch.get("StartPositionTicks") or 0)})
+            self.chapters.sort(key=lambda x:x["ticks"])
+            self["chapter_head"].setText("Kapitel     %d" % len(self.chapters) if self.chapters else "Kapitel")
+            self["badge_chapters"].setText("Kapitel: %d" % len(self.chapters) if self.chapters else "Kapitel: --")
+            try:
+                rt = int(self.item.get("RunTimeTicks") or source.get("RunTimeTicks") or 0) // 10000000
+                hh, rr = divmod(rt, 3600)
+                mm, ss = divmod(rr, 60)
+                self["badge_time"].setText("%d:%02d:%02d" % (hh, mm, ss) if hh else "%02d:%02d" % (mm, ss))
+            except Exception:
+                self["badge_time"].setText("")
+            # Resume: prefer Emby's UserData position, fall back to existing local resume store.
+            try:
+                server_pos = int(((self.item.get("UserData") or {}).get("PlaybackPositionTicks")) or
+                                 self.item.get("PlaybackPositionTicks") or 0)
+            except Exception:
+                server_pos = 0
+            try:
+                local_pos, _local_runtime = get_embyflow_local_resume(iid)
+            except Exception:
+                local_pos = 0
+            self.resume_start_ticks = int(server_pos or local_pos or 0)
+            self.resume_seek_pending = self.resume_start_ticks > 0
+
+            self._renderChapterList(0)
+            self._renderChapterTicks()
+            self._updateSpeedIndicator()
+            self._loadCover(server, token, iid)
+        except Exception as exc:
+            try:
+                with embyflow_open_log("/tmp/embyflow_audio_port1.log","a") as log:
+                    log.write("INFO %s\n" % str(exc))
+            except Exception:
+                pass
+
+    def _loadCover(self, server, token, iid):
+        def apply_cover(path):
+            try:
+                if not path or not os.path.isfile(path) or os.path.getsize(path) <= 500:
+                    return False
+                embyflow_decode_image_to_widget(self, "cover", path, 520, 520,
+                                                token="audio-cover-%s" % iid)
+                self._buildDynamicBackground(path, iid)
+                return True
+            except Exception:
+                return False
+
+        try:
+            path = _grid_cache_path(self.item, False)
+            if apply_cover(path):
+                return
+            EMBYFLOW_POSTER_CACHE_MANAGER.enqueue([self.item], False, priority=0)
+            EMBYFLOW_POSTER_CACHE_MANAGER.prioritize([self.item], False)
+            def poll():
+                try:
+                    apply_cover(_grid_cache_path(self.item, False))
+                except Exception:
+                    pass
+            t = eTimer()
+            self._cover_timer = t
+            t.callback.append(poll)
+            t.start(700, True)
+        except Exception:
+            pass
+
+    def _buildDynamicBackground(self, cover_path, iid):
+        # EMBYFLOW_AUDIO_TEMPLATE_UI1_BACKDROP
+        try:
+            if not cover_path or not os.path.isfile(cover_path):
+                return
+            target = None
+            try:
+                from PIL import Image as PILImage, ImageFilter, ImageEnhance
+                cache_dir = "/tmp/embyflow_audio_backdrops"
+                if not os.path.isdir(cache_dir):
+                    os.makedirs(cache_dir)
+                target = os.path.join(
+                    cache_dir,
+                    "hb_template2_%s.jpg" % re.sub(r"[^A-Za-z0-9_-]", "_", str(iid))
+                )
+
+                # Cheap dominant-color pick (1x1 downsize) — done every call,
+                # not just on cache miss, so the cover_frame accent also
+                # applies when the blurred backdrop is already cached from
+                # an earlier playback of the same title.
+                try:
+                    with PILImage.open(cover_path) as probe:
+                        dom = probe.convert("RGB").resize((1, 1), PILImage.BILINEAR).getpixel((0, 0))
+                    self._audio_accent_color = "#%02x%02x%02x" % (
+                        max(0, min(255, int(dom[0] * 0.55))),
+                        max(0, min(255, int(dom[1] * 0.55))),
+                        max(0, min(255, int(dom[2] * 0.55))),
+                    )
+                except Exception:
+                    self._audio_accent_color = None
+
+                if (not os.path.isfile(target) or
+                        os.path.getmtime(target) < os.path.getmtime(cover_path)):
+                    image = PILImage.open(cover_path).convert("RGB")
+                    iw, ih = image.size
+                    scale = max(1920.0 / float(max(1, iw)), 1080.0 / float(max(1, ih)))
+                    nw, nh = max(1920, int(iw * scale)), max(1080, int(ih * scale))
+                    image = image.resize((nw, nh), PILImage.LANCZOS)
+                    left, top = max(0, (nw-1920)//2), max(0, (nh-1080)//2)
+                    image = image.crop((left, top, left+1920, top+1080))
+                    image = image.filter(ImageFilter.GaussianBlur(radius=48))
+                    image = ImageEnhance.Color(image).enhance(0.80)
+                    image = ImageEnhance.Brightness(image).enhance(0.42)
+                    image.save(target, "JPEG", quality=85)
+            except Exception:
+                target = None
+            source = target if target and os.path.isfile(target) else cover_path
+            embyflow_decode_image_to_widget(
+                self, "background", source, 1920, 1080,
+                token="audio-template-bg-%s" % iid
+            )
+            try:
+                accent = getattr(self, "_audio_accent_color", None)
+                if accent and self["cover_frame"].instance:
+                    self["cover_frame"].instance.setBackgroundColor(parseColor(accent))
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _renderChapterTicks(self):
+        # EMBYFLOW_AUDIO_CHAPTER_TICKS_V1
+        try:
+            chapters = self.chapters or []
+            total_ticks = int(self.item.get("RunTimeTicks") or 0)
+            if len(chapters) < 2 or total_ticks <= 0:
+                self["chapter_ticks"].setText("")
+                return
+            cells = [" "] * 150
+            for ch in chapters[1:]:
+                ct = int(ch.get("ticks") or 0)
+                pos = int(round((float(ct) / float(total_ticks)) * (len(cells)-1)))
+                if 0 <= pos < len(cells):
+                    cells[pos] = "│"
+            self["chapter_ticks"].setText("".join(cells))
+        except Exception:
+            self["chapter_ticks"].setText("")
+
+    def _updateSpeedIndicator(self):
+        # EMBYFLOW_AUDIO_SPEED_INDICATOR_V1
+        # Current player has no variable-rate implementation yet; display truthful normal rate.
+        try:
+            self["speed"].setText("1.00x")
+        except Exception:
+            pass
+
+    def _renderChapterList(self, active_idx):
+        try:
+            if not self.chapters:
+                self["chapter_list"].setText("Keine Kapitelinformationen")
+                self["chapter_focus"].hide()
+                return
+            self["chapter_focus"].show()
+            active_idx = max(0, min(int(active_idx), len(self.chapters) - 1))
+            first = active_idx
+            last = min(len(self.chapters), first + 9)
+            if last - first < 9:
+                first = max(0, last - 9)
+            lines = []
+            for i in range(first, last):
+                ch = self.chapters[i]
+                sec = int(ch.get("ticks") or 0) // 10000000
+                h, rem = divmod(sec, 3600)
+                m, sec = divmod(rem, 60)
+                stamp = ("%d:%02d:%02d" % (h, m, sec)) if h else ("%02d:%02d" % (m, sec))
+                prefix = "> " if i == active_idx else "  "
+                name = str(ch.get("name") or ("Kapitel %d" % (i + 1)))
+                if len(name) > 24:
+                    name = name[:21] + "..."
+                lines.append("%s%d. %-24s %s" % (prefix, i + 1, name, stamp))
+            self["chapter_list"].setText("\n".join(lines))
+        except Exception:
+            pass
+
+    def _buildCandidates(self):
+        server, token, user_id = get_emby_auth()
+        iid = str(self.item.get("Id") or self.item.get("id") or "").strip()
+        source = (self.item.get("MediaSources") or [{}])[0] or {}
+        container = str(source.get("Container") or self.item.get("Container") or "").strip().lower().lstrip(".")
+        safe = container if container.replace("_","").replace("-","").isalnum() else ""
+        base = server.rstrip("/")
+        direct = "%s/Audio/%s/stream%s?Static=true&api_key=%s" % (base, iid, ("."+safe) if safe else "", token)
+        fallback = ("%s/Audio/%s/universal?UserId=%s&DeviceId=embyflowe2-audio"
+                    "&MaxStreamingBitrate=320000&Container=mp3&TranscodingContainer=mp3"
+                    "&TranscodingProtocol=http&AudioCodec=mp3&api_key=%s") % (base, iid, user_id, token)
+        self.candidates = [("DIRECT %s"%((container or "AUDIO").upper()), direct), ("FALLBACK MP3", fallback)]
+
+    def _playCandidate(self):
+        if self.closed or self.candidate_index >= len(self.candidates):
+            return
+        label, url = self.candidates[self.candidate_index]
+        self.started = False
+        self.start_time = time.time()
+        self["mode"].setText(label)
+        ref = eServiceReference(STREAM_SERVICE_TYPE, 0, url)
+        ref.setName(str(self.item.get("Name") or self.title_text))
+        self.session.nav.playService(ref)
+        self.startup_timer.start(7000, True)
+
+    def _serviceStarted(self):
+        if self.closed: return
+        self.started = True
+        try: self.startup_timer.stop()
+        except Exception: pass
+        self.progress_timer.start(1000, False)
+        self._reportAudioPlayback("Playing")
+        if self.resume_seek_pending:
+            try:
+                self.resume_timer = eTimer()
+                self.resume_timer.callback.append(self._applyAudioResume)
+                self.resume_timer.start(1200, True)
+            except Exception:
+                self._applyAudioResume()
+
+    def _startupCheck(self):
+        if not self.closed and not self.started:
+            self._tryFallback()
+
+    def _serviceEOF(self):
+        if not self.closed and time.time()-self.start_time < 10 and self.candidate_index+1 < len(self.candidates):
+            self._tryFallback()
+        elif not self.closed:
+            self.keyClose()
+
+    def _tryFallback(self):
+        if self.candidate_index + 1 < len(self.candidates):
+            self.candidate_index += 1
+            self.fallback_used = True
+            self._playCandidate()
+
+    def _seek(self):
+        try:
+            service=self.session.nav.getCurrentService()
+            return service.seek() if service else None
+        except Exception: return None
+
+    def _positionLength(self):
+        seek=self._seek()
+        if not seek: return 0,0
+        try:
+            ep,p=seek.getPlayPosition(); el,l=seek.getLength()
+            return (int(p or 0) if ep==0 else 0, int(l or 0) if el==0 else 0)
+        except Exception: return 0,0
+
+    def _updateProgress(self):
+        if self.closed: return
+        pos,total=self._positionLength()
+        self["elapsed"].setText(self._fmt_pts(pos))
+        self["remaining"].setText("GESAMT-REST %s"%self._fmt_pts(max(0,total-pos)) if total else "GESAMT-REST --:--")
+        try:
+            width=int(1670*min(1.0,float(pos)/float(total))) if total else 1
+            if self["progress"].instance: self["progress"].instance.resize(EFS(max(1,width),12))
+        except Exception: pass
+        self._updateChapter(pos)
+        try:
+            now = int(time.time())
+            if now - int(self._last_resume_save_ts or 0) >= 10:
+                self._last_resume_save_ts = now
+                self._saveAudioResume(pos, total, report=True)
+        except Exception:
+            pass
+
+    def _updateChapter(self, pos_pts):
+        if not self.chapters: return
+        pos_ticks=int(pos_pts)*1000//9
+        idx=0
+        for i,ch in enumerate(self.chapters):
+            if ch["ticks"] <= pos_ticks: idx=i
+            else: break
+        _chapter_name = str(self.chapters[idx].get("name") or "").strip()
+        _fallbacks = ("kapitel %d" % (idx+1), "chapter %d" % (idx+1))
+        if _chapter_name.casefold() in _fallbacks or not _chapter_name:
+            self["chapter"].setText("KAPITEL %d/%d"%(idx+1,len(self.chapters)))
+        else:
+            self["chapter"].setText("KAPITEL %d/%d  ·  %s"%(idx+1,len(self.chapters),_chapter_name.upper()))
+        self._renderChapterList(idx)
+
+    def _audioPositionTicks(self):
+        pos, total = self._positionLength()
+        return int(pos) * 1000 // 9, int(total) * 1000 // 9
+
+    def _audioReportPayload(self, position_ticks):
+        iid = str(self.item.get("Id") or self.item.get("id") or self.item_id or "")
+        if not iid:
+            return None
+        source = (self.item.get("MediaSources") or [{}])[0] or {}
+        return {
+            "ItemId": iid,
+            "MediaSourceId": str(source.get("Id") or ""),
+            "PositionTicks": int(position_ticks or 0),
+            "CanSeek": True,
+            "IsPaused": bool(self.paused),
+            "PlayMethod": "DirectPlay",
+            "AudioStreamIndex": int(source.get("DefaultAudioStreamIndex") or 0),
+            "PlaybackRate": 0 if self.paused else 1,
+        }
+
+    def _reportAudioPlayback(self, endpoint, position_ticks=None):
+        try:
+            server, token, _uid = get_emby_auth()
+            if not (server and token):
+                return
+            if position_ticks is None:
+                position_ticks = self._audioPositionTicks()[0]
+            payload = self._audioReportPayload(position_ticks)
+            if not payload:
+                return
+            if endpoint == "Playing":
+                url = server.rstrip("/") + "/emby/Sessions/Playing?reqformat=json"
+            elif endpoint == "Progress":
+                url = server.rstrip("/") + "/emby/Sessions/Playing/Progress?reqformat=json"
+                payload["EventName"] = "Pause" if self.paused else "TimeUpdate"
+            else:
+                url = server.rstrip("/") + "/emby/Sessions/Playing/Stopped?reqformat=json"
+            embyflow_http_post(
+                url,
+                headers={"X-Emby-Token": token, "X-Emby-Authorization": AUTH_HEADER},
+                json=payload, timeout=5, verify=True
+            )
+        except Exception as exc:
+            try:
+                with embyflow_open_log("/tmp/embyflow_audio_resume.log","a") as log:
+                    log.write("REPORT %s error=%s\n" % (endpoint, str(exc)))
+            except Exception:
+                pass
+
+    def _saveAudioResume(self, pos_pts=None, total_pts=None, report=False):
+        try:
+            if pos_pts is None or total_pts is None:
+                pos_pts, total_pts = self._positionLength()
+            pos_ticks = int(pos_pts or 0) * 1000 // 9
+            total_ticks = int(total_pts or 0) * 1000 // 9
+            if not total_ticks:
+                total_ticks = int(self.item.get("RunTimeTicks") or 0)
+            info = dict(self.playback_info or {})
+            info["item"] = self.item
+            save_embyflow_local_resume(
+                info, pos_ticks, total_ticks,
+                str(self.item.get("Name") or self.title_text),
+                str(self.item.get("Id") or self.item.get("id") or self.item_id or "")
+            )
+            if report:
+                self._reportAudioPlayback("Progress", pos_ticks)
+        except Exception:
+            pass
+
+    def _applyAudioResume(self):
+        if not self.resume_seek_pending:
+            return
+        target = int(self.resume_start_ticks or 0)
+        if target <= 0:
+            self.resume_seek_pending = False
+            return
+        try:
+            seek = self._seek()
+            if not seek:
+                return
+            target_pts = int((target / 10000000.0) * 90000.0)
+            result = seek.seekTo(target_pts)
+            if result in (None, 0):
+                self.resume_seek_pending = False
+                self._reportAudioPlayback("Progress", target)
+        except Exception:
+            pass
+
+    def _cyclePlaybackSpeed(self):
+        # Enigma2 service-rate support varies by image/service. Never fake a rate change.
+        # Cycle only when the current pauseable interface exposes setFastForward.
+        try:
+            service = self.session.nav.getCurrentService()
+            pause = service.pause() if service else None
+            if not pause or not hasattr(pause, "setFastForward"):
+                self["speed"].setText("1.00x")
+                return
+            next_index = (self._speed_index + 1) % len(self._speed_steps)
+            target = self._speed_steps[next_index]
+            # Enigma2 trickmode uses integer ratios; fractional audiobook rates are not
+            # portable. Keep 1.00x unless the service explicitly accepts a safe rate.
+            if target == 2.0:
+                result = pause.setFastForward(2)
+                if result in (None, 0):
+                    self._speed_index = next_index
+                    self["speed"].setText("2.00x")
+                    return
+            try:
+                pause.setFastForward(1)
+            except Exception:
+                pass
+            self._speed_index = 0
+            self["speed"].setText("1.00x")
+        except Exception:
+            self._speed_index = 0
+            self["speed"].setText("1.00x")
+
+    def seekRelative(self, seconds):
+        seek=self._seek()
+        if seek:
+            try: seek.seekRelative(1 if seconds>=0 else -1, abs(int(seconds))*90000)
+            except Exception: pass
+
+    def _chapterIndex(self):
+        if not self.chapters: return -1
+        pos,_=self._positionLength(); ticks=int(pos)*1000//9; idx=0
+        for i,ch in enumerate(self.chapters):
+            if ch["ticks"]<=ticks: idx=i
+            else: break
+        return idx
+
+    def _seekChapter(self, idx):
+        if 0 <= idx < len(self.chapters):
+            seek=self._seek()
+            if seek:
+                try: seek.seekTo(int(self.chapters[idx]["ticks"])*9//1000)
+                except Exception: pass
+
+    def _foldWidgets(self):
+        return ("fold_panel", "fold_title", "fold_focus", "fold_list", "fold_hint")
+
+    def _foldShow(self, show):
+        for name in self._foldWidgets():
+            try:
+                (self[name].show if show else self[name].hide)()
+            except Exception:
+                pass
+
+    def _currentAudioChapterIndex(self):
+        try:
+            pos = self._positionLength()[0]
+            pos_ticks = int((float(pos) / 90000.0) * 10000000.0)
+            idx = 0
+            for i, ch in enumerate(self.chapters or []):
+                if int(ch.get("ticks") or 0) <= pos_ticks:
+                    idx = i
+                else:
+                    break
+            return idx
+        except Exception:
+            return 0
+
+    def _renderFold(self):
+        if not self._chapterFoldOpen:
+            self._foldShow(False)
+            return
+        self._foldShow(True)
+        chapters = self.chapters or []
+        self["fold_title"].setText("Kapitel     %d" % len(chapters))
+        if not chapters:
+            self["fold_focus"].hide()
+            self["fold_list"].setText("Keine Kapitelinformationen")
+            return
+        # EMBYFLOW_AUDIO_CHAPTER_NO_SELECTION_BAR_V1
+        # Auswahl ausschließlich über "> " + Text, kein farbiger Balken.
+        self["fold_focus"].hide()
+        self._chapterFoldIndex = max(0, min(self._chapterFoldIndex, len(chapters)-1))
+        first = max(0, self._chapterFoldIndex - 3)
+        last = min(len(chapters), first + 8)
+        if last-first < 8:
+            first=max(0,last-8)
+        lines=[]
+        for i in range(first,last):
+            ch=chapters[i]
+            sec=int(ch.get("ticks") or 0)//10000000
+            h,rem=divmod(sec,3600); m,sec=divmod(rem,60)
+            stamp=("%d:%02d:%02d"%(h,m,sec)) if h else ("%02d:%02d"%(m,sec))
+            name=str(ch.get("name") or ("Kapitel %d"%(i+1)))
+            if len(name)>58: name=name[:55]+"..."
+            prefix="> " if i==self._chapterFoldIndex else "  "
+            lines.append("%s%d. %-58s %s"%(prefix,i+1,name,stamp))
+        self["fold_list"].setText("\n".join(lines))
+
+    def _controlFocusRender(self):
+        # EMBYFLOW_AUDIO_INLINE_FOLDOUT_V2
+        try:
+            # EMBYFLOW_AUDIO_REAL_ROUND_CONTROLS_V1
+            positions = [616, 776, 946, 1116, 1276]
+            if self._controlFocusActive and not self._chapterFoldOpen:
+                self["control_focus"].show()
+                self["control_focus"].instance.move(ePoint(
+                    scale_skin_value(positions[self._controlIndex]),
+                    scale_skin_value(871)
+                ))
+            else:
+                self["control_focus"].hide()
+            self._renderFold()
+        except Exception:
+            pass
+
+    def _controlDown(self):
+        if self._chapterFoldOpen:
+            if self.chapters:
+                self._chapterFoldIndex=(self._chapterFoldIndex+1)%len(self.chapters)
+                self._renderFold()
+            return
+        if not self._controlFocusActive:
+            self._controlFocusActive=True
+            self._controlIndex=2
+        self._controlFocusRender()
+
+    def _controlUp(self):
+        if self._chapterFoldOpen:
+            if self.chapters:
+                self._chapterFoldIndex=(self._chapterFoldIndex-1)%len(self.chapters)
+                self._renderFold()
+            return
+        if self._controlFocusActive:
+            self._controlFocusActive=False
+            self._controlFocusRender()
+        else:
+            self.previousChapter()
+
+    def _controlLeft(self):
+        if self._chapterFoldOpen:
+            return
+        if self._controlFocusActive:
+            self._controlIndex=(self._controlIndex-1)%5
+            self._controlFocusRender()
+        else:
+            self.seekRelative(-30)
+
+    def _controlRight(self):
+        if self._chapterFoldOpen:
+            return
+        if self._controlFocusActive:
+            self._controlIndex=(self._controlIndex+1)%5
+            self._controlFocusRender()
+        else:
+            self.seekRelative(30)
+
+    def _controlOK(self):
+        # EMBYFLOW_AUDIO_CHAPTER_OK_V2_FINAL
+        if self._chapterFoldOpen:
+            self._foldSelect()
+            return
+
+        # The selected control is authoritative. Check Kapitel before the
+        # focus flag so OK cannot fall through to Pause while Kapitel is selected.
+        idx = int(getattr(self, "_controlIndex", 2))
+        if idx == 0:
+            self.openChapterOverlay()
+            return
+
+        if not self._controlFocusActive:
+            self.togglePause()
+            return
+        if idx == 1:
+            self.seekRelative(-30)
+        elif idx == 2:
+            self.togglePause()
+        elif idx == 3:
+            self.seekRelative(30)
+        else:
+            self._toggleAudioFavorite()
+
+    def _foldSelect(self):
+        chapters=self.chapters or []
+        if not chapters: return
+        try:
+            ticks=int(chapters[self._chapterFoldIndex].get("ticks") or 0)
+            seek=self.session.nav.getCurrentService().seek()
+            if seek is not None:
+                seek.seekTo(int((ticks/10000000.0)*90000.0))
+            self._renderChapterList(self._chapterFoldIndex)
+        except Exception:
+            return
+        self._chapterFoldOpen=False
+        self._foldShow(False)
+        self._controlFocusRender()
+
+    def _foldCancel(self):
+        if self._chapterFoldOpen:
+            self._chapterFoldOpen=False
+            self._foldShow(False)
+            self._controlFocusRender()
+        else:
+            self.keyClose()
+
+    def _toggleAudioFavorite(self):
+        try:
+            for name in ("toggleFavorite","toggle_favorite"):
+                fn=getattr(self,name,None)
+                if callable(fn):
+                    fn(); return
+        except Exception:
+            pass
+
+    def openChapterOverlay(self):
+        # EMBYFLOW_AUDIO_INLINE_FOLDOUT_OPEN_V2
+        self._chapterFoldOpen = not self._chapterFoldOpen
+        if self._chapterFoldOpen:
+            self._chapterFoldIndex = self._currentAudioChapterIndex()
+        self._controlFocusRender()
+
+    def previousChapter(self):
+        idx=self._chapterIndex()
+        if idx < 0: self.seekRelative(-30)
+        else: self._seekChapter(max(0,idx-1))
+
+    def nextChapter(self):
+        idx=self._chapterIndex()
+        if idx < 0: self.seekRelative(30)
+        else: self._seekChapter(min(len(self.chapters)-1,idx+1))
+
+    def togglePause(self):
+        try:
+            service=self.session.nav.getCurrentService(); pause=service.pause() if service else None
+            if pause:
+                if self.paused: pause.unpause(); self.paused=False; self["pause"].setText("II")
+                else: pause.pause(); self.paused=True; self["pause"].setText(">")
+                self._saveAudioResume(report=True)
+        except Exception: pass
+
+    def keyClose(self):
+        if not self.closed: self.close()
+
+    def _onClose(self):
+        if self.closed: return
+        try:
+            pos_pts, total_pts = self._positionLength()
+            self._saveAudioResume(pos_pts, total_pts, report=False)
+            self._reportAudioPlayback("Stopped", int(pos_pts or 0) * 1000 // 9)
+        except Exception:
+            pass
+        self.closed=True
+        for timer in (self.clock_timer,self.progress_timer,self.startup_timer,getattr(self,"resume_timer",None),getattr(self,"_cover_timer",None)):
+            try:
+                if timer: timer.stop()
+            except Exception: pass
+        try: self.session.nav.stopService()
+        except Exception: pass
+        if self.last_service is not None:
+            try: self.session.nav.playService(self.last_service)
+            except Exception: pass
+
+
+
 def _open_embyflow_player_now(
     session,
     ref,
@@ -38051,14 +39271,31 @@ def _open_embyflow_player_now(
             pass
 
         try:
-            session.open(
-                EmbyFlowMoviePlayer,
-                ref,
-                title,
-                playback_info,
-                old_ref,
-                False
-            )
+            _player_item = (playback_info or {}).get("item") or {}
+            _player_type = str(
+                _player_item.get("Type")
+                or _player_item.get("type")
+                or _player_item.get("item_type")
+                or ""
+            ).strip().lower()
+
+            if _player_type == "audio":
+                session.open(
+                    EmbyFlowAudioPlayer,
+                    ref,
+                    title,
+                    playback_info,
+                    old_ref
+                )
+            else:
+                session.open(
+                    EmbyFlowMoviePlayer,
+                    ref,
+                    title,
+                    playback_info,
+                    old_ref,
+                    False
+                )
         except Exception as error:
             try:
                 with embyflow_open_log(
@@ -38113,6 +39350,98 @@ def _open_embyflow_player_now(
         )
     except Exception:
         open_player_after_stop()
+
+
+class EmbyFlowAudioChapterOverlay(Screen):
+    # EMBYFLOW_AUDIO_CHAPTER_FOLDOUT_V1
+    skin = scale_skin("""
+    <screen name="EmbyFlowAudioChapterOverlay" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#06111b" transparent="1">
+        <widget name="panel" position="300,560" size="1120,390" backgroundColor="#0b1722" transparent="0" zPosition="2" />
+        <widget name="title" position="335,590" size="1035,48" font="Regular;29" foregroundColor="#ffffff" transparent="1" zPosition="4" />
+        <widget name="focus" position="325,650" size="1070,48" backgroundColor="#145f92" transparent="0" zPosition="3" />
+        <widget name="list" position="345,658" size="1030,235" font="Regular;22" foregroundColor="#e9f0f5" transparent="1" zPosition="4" />
+        <widget name="hint" position="335,910" size="1035,28" font="Regular;17" foregroundColor="#9eb0bd" transparent="1" halign="center" zPosition="4" />
+    </screen>
+    """)
+
+    def __init__(self, session, player):
+        Screen.__init__(self, session)
+        self.player = player
+        self.chapters = list(getattr(player, "chapters", []) or [])
+        try:
+            self.index = max(0, min(int(getattr(player, "_currentChapterIndex", lambda: 0)()), len(self.chapters)-1))
+        except Exception:
+            self.index = 0
+
+        self["panel"] = Label("")
+        self["title"] = Label("Kapitel (%d)" % len(self.chapters))
+        self["focus"] = Label("")
+        self["list"] = Label("")
+        self["hint"] = Label("▲/▼ Kapitel wählen     OK Springen     EXIT/ROT Schließen")
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            {
+                "ok": self._select,
+                "cancel": self.close,
+                "red": self.close,
+                "up": self._up,
+                "down": self._down,
+            },
+            -1
+        )
+        self.onLayoutFinish.append(self._render)
+
+    def _up(self):
+        if self.chapters:
+            self.index = (self.index - 1) % len(self.chapters)
+            self._render()
+
+    def _down(self):
+        if self.chapters:
+            self.index = (self.index + 1) % len(self.chapters)
+            self._render()
+
+    def _render(self):
+        if not self.chapters:
+            self["focus"].hide()
+            self["list"].setText("Keine Kapitelinformationen")
+            return
+        self["focus"].show()
+        first = max(0, self.index - 2)
+        last = min(len(self.chapters), first + 6)
+        if last - first < 6:
+            first = max(0, last - 6)
+        lines = []
+        for i in range(first, last):
+            ch = self.chapters[i]
+            sec = int(ch.get("ticks") or 0) // 10000000
+            h, rem = divmod(sec, 3600)
+            m, sec = divmod(rem, 60)
+            stamp = ("%d:%02d:%02d" % (h, m, sec)) if h else ("%02d:%02d" % (m, sec))
+            name = str(ch.get("name") or ("Kapitel %d" % (i + 1)))
+            if len(name) > 58:
+                name = name[:55] + "..."
+            prefix = "> " if i == self.index else "  "
+            lines.append("%s%d. %-58s %s" % (prefix, i + 1, name, stamp))
+        self["list"].setText("\n".join(lines))
+
+    def _select(self):
+        if not self.chapters:
+            return
+        try:
+            ticks = int(self.chapters[self.index].get("ticks") or 0)
+            target_pts = int((ticks / 10000000.0) * 90000.0)
+            seek = self.player.session.nav.getCurrentService().seek()
+            if seek is not None:
+                seek.seekTo(target_pts)
+            try:
+                self.player._renderChapterList(self.index)
+            except Exception:
+                pass
+        except Exception:
+            return
+        self.close()
+
 
 class EmbyFlowSetupScreen(ConfigListScreen, Screen):
     skin = scale_skin("""
@@ -39995,7 +41324,7 @@ class EmbyFlowDetailScreen(Screen):
                     )
                     return
 
-            if not skip_dolby_warning and item_has_dolby_vision(self.data):
+            if str(item_type or "").lower() != "audio" and not skip_dolby_warning and item_has_dolby_vision(self.data):
                 self.session.openWithCallback(
                     lambda answer: self.play_selected(audio_mode, True) if answer else None,
                     MessageBox,
