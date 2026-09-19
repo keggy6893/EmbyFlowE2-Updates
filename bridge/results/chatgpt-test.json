@@ -4,8 +4,8 @@
     "action":  "pull",
     "mode":  "read-only",
     "host":  "HUMMEL",
-    "finished_at":  "2026-09-19T07:20:00.7639416Z",
+    "finished_at":  "2026-09-19T07:28:32.6307231Z",
     "exit_code":  1,
     "ok":  false,
-    "output":  "Fehler beim Ausführen des Programms \"gh.exe\": Der Dateiname oder die Erweiterung ist zu langIn C:\\Users\\bumse\\Downloads\\InfuseMedia\\EmbyFlow-ChatGPT-Bridge-FIX3.ps1:77 Zeichen:17\r\n+     $response = \u0026 gh @args 2\u003e\u00261\r\n+                 ~~~~~~~~~~~~~~~."
+    "output":  "gh: Not Found (HTTP 404)"
 }
