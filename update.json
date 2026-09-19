@@ -1,18 +1,14 @@
 {
-  "version": "2026-RCDEV17-AUDIO-20260919",
-  "build": 2026091904,
+  "version": "2026-RCDEV17-UPDATER-V2-BOOTSTRAP",
+  "build": 2026091903,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_AUDIO_RCDEV17_FINAL_2026-09-19.tar.gz",
-  "sha256": "b001b8e84a2f443075637031ebf81a5e3b222a0f7c7b4ef65aa84bbe15a3b88c",
-  "target": "EmbyFlowE2",
-  "artifact_type": "bundle_tar_gz",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_CURRENT_plugin.py",
+  "sha256": "c6a0ef19b73e1e46e53c4a530c1327d493ec7611a498fbe7d412e7919bcb7c5d",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
   "changelog": [
-    "Neuer Hörbuch-/Audio-Player mit Cover, Metadaten, Fortschritt und Kapitelmarken",
-    "Kapitel-Popup mit echten Emby-Kapiteln, Sprungfunktion und rechts ausgerichteten Kapitelzeiten",
-    "Ähnliche Hörbücher über MENU",
-    "Runde Audio-Steuerelemente mit Kapitel, -30 Sek., Pause, +30 Sek. und Favorit",
-    "Farbtasten: Rot Zurück, Grün Favorit, Gelb Tempo, Blau Kapitel",
-    "Updater V2 installiert plugin.py sowie die benötigten Audio-Control-Grafiken als geprüftes Bundle",
-    "Release-Buildkennung im Plugin auf 2026091904 angeglichen, damit derselbe Release nach Installation nicht erneut angeboten wird"
+    "Kompatibilitätsupdate für ältere EmbyFlow-E2-Installationen",
+    "Aktualisiert den integrierten Updater auf V2",
+    "Danach kann der neue AUDIO-Release direkt über den normalen Updater installiert werden"
   ]
 }
