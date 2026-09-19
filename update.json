@@ -2,8 +2,8 @@
   "version": "2026-RCDEV17-AUDIO-20260919",
   "build": 2026091904,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_TESTER_BUNDLE_2026-09-19.tar.gz",
-  "sha256": "c7fc46121713e5dcb5e8b500984f6a02bc1512165dccd4df2aefa6f3b52b1914",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_AUDIO_RCDEV17_FINAL_2026-09-19.tar.gz",
+  "sha256": "b001b8e84a2f443075637031ebf81a5e3b222a0f7c7b4ef65aa84bbe15a3b88c",
   "target": "EmbyFlowE2",
   "artifact_type": "bundle_tar_gz",
   "changelog": [
@@ -13,6 +13,6 @@
     "Runde Audio-Steuerelemente mit Kapitel, -30 Sek., Pause, +30 Sek. und Favorit",
     "Farbtasten: Rot Zurück, Grün Favorit, Gelb Tempo, Blau Kapitel",
     "Updater V2 installiert plugin.py sowie die benötigten Audio-Control-Grafiken als geprüftes Bundle",
-    "Bundle-Updater am 19.09.2026 end-to-end auf Enigma2/OpenATV getestet"
+    "Release-Buildkennung im Plugin auf 2026091904 angeglichen, damit derselbe Release nach Installation nicht erneut angeboten wird"
   ]
 }
