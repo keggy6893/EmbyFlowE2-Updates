@@ -38369,7 +38369,8 @@ class EmbyFlowAudioPlayer(Screen):
             <widget name="fold_panel" position="430,250" size="1060,560" backgroundColor="#0b1722" transparent="0" zPosition="20" />
             <widget name="fold_title" position="470,285" size="980,50" font="Regular;30" foregroundColor="#ffffff" transparent="1" zPosition="22" />
             <widget name="fold_focus" position="455,350" size="1010,52" backgroundColor="#145f92" transparent="0" zPosition="21" />
-            <widget name="fold_list" position="480,358" size="960,360" font="Regular;22" foregroundColor="#e9f0f5" transparent="1" zPosition="22" />
+            <widget name="fold_list" position="480,358" size="800,360" font="Regular;22" foregroundColor="#e9f0f5" transparent="1" zPosition="22" />
+            <widget name="fold_times" position="1280,358" size="160,360" font="Regular;22" foregroundColor="#e9f0f5" transparent="1" halign="right" zPosition="22" />
             <widget name="fold_hint" position="470,750" size="980,30" font="Regular;18" foregroundColor="#9eb0bd" transparent="1" halign="center" zPosition="22" />
 
             <widget name="speed" position="1320,1010" size="160,30" font="Regular;17" foregroundColor="#d5e5f0" transparent="1" halign="right" zPosition="8" />
@@ -38411,9 +38412,14 @@ class EmbyFlowAudioPlayer(Screen):
         self["fold_title"] = Label("")
         self["fold_focus"] = Label("")
         self["fold_list"] = Label("")
+        self["fold_times"] = Label("")
         self["fold_hint"] = Label("▲/▼ Kapitel wählen     OK Springen     EXIT/ROT Schließen")
         self._chapterFoldOpen = False
         self._chapterFoldIndex = 0
+        # EMBYFLOW_AUDIO_RELATED_V1
+        self._foldMode = "chapters"
+        self._relatedItems = []
+        self._relatedIndex = 0
         self["control_focus"] = Pixmap()
         self["chapter_ring"] = Pixmap()
         self["back_ring"] = Pixmap()
@@ -38430,16 +38436,16 @@ class EmbyFlowAudioPlayer(Screen):
         self["pause_label"] = Label("Pause")
         self["fwd_label"] = Label("+30 Sek.")
         self["favorite_label"] = Label("Favorit")
-        self["hint"] = Label("ROT Zurück   •   GRÜN Favorit   •   GELB Tempo   •   BLAU Kapitel")
+        self["hint"] = Label("ROT Zurück   •   GRÜN Favorit   •   GELB Tempo   •   BLAU Kapitel   •   MENU Ähnlich")
         self["mode"] = Label("")
 
         self._controlFocusActive = False
         self._controlIndex = 2
         self["actions"] = ActionMap(
-            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            ["OkCancelActions", "DirectionActions", "ColorActions", "MenuActions"],
             {
                 "ok": self._controlOK,
-                "menu": self.openChapterOverlay,
+                "menu": self.openRelatedOverlay,
                 "cancel": self._foldCancel, "red": self._foldCancel,
                 "green": self._toggleAudioFavorite,
                 "left": self._controlLeft,
@@ -38981,7 +38987,7 @@ class EmbyFlowAudioPlayer(Screen):
                 except Exception: pass
 
     def _foldWidgets(self):
-        return ("fold_panel", "fold_title", "fold_focus", "fold_list", "fold_hint")
+        return ("fold_panel", "fold_title", "fold_focus", "fold_list", "fold_times", "fold_hint")
 
     def _foldShow(self, show):
         for name in self._foldWidgets():
@@ -39009,21 +39015,51 @@ class EmbyFlowAudioPlayer(Screen):
             self._foldShow(False)
             return
         self._foldShow(True)
+
+        # EMBYFLOW_AUDIO_RELATED_V1
+        if getattr(self, "_foldMode", "chapters") == "related":
+            items = self._relatedItems or []
+            self["fold_title"].setText("Ähnliche Hörbücher     %d" % len(items))
+            self["fold_focus"].hide()
+            self["fold_times"].setText("")
+            self["fold_hint"].setText("▲/▼ Hörbuch wählen     OK Abspielen     EXIT/ROT Schließen")
+            if not items:
+                self["fold_list"].setText("Keine ähnlichen Hörbücher auf dem Server gefunden")
+                return
+            self._relatedIndex = max(0, min(self._relatedIndex, len(items)-1))
+            first = max(0, self._relatedIndex - 3)
+            last = min(len(items), first + 8)
+            if last-first < 8:
+                first = max(0, last-8)
+            lines = []
+            for i in range(first, last):
+                item = items[i]
+                name = str(item.get("Name") or item.get("name") or "Hörbuch")
+                if len(name) > 72:
+                    name = name[:69] + "..."
+                prefix = "> " if i == self._relatedIndex else "  "
+                lines.append("%s%d. %s" % (prefix, i+1, name))
+            self["fold_list"].setText("\n".join(lines))
+            return
+
         chapters = self.chapters or []
         self["fold_title"].setText("Kapitel     %d" % len(chapters))
+        self["fold_hint"].setText("▲/▼ Kapitel wählen     OK Springen     EXIT/ROT Schließen")
         if not chapters:
             self["fold_focus"].hide()
             self["fold_list"].setText("Keine Kapitelinformationen")
+            self["fold_times"].setText("")
             return
         # EMBYFLOW_AUDIO_CHAPTER_NO_SELECTION_BAR_V1
-        # Auswahl ausschließlich über "> " + Text, kein farbiger Balken.
         self["fold_focus"].hide()
         self._chapterFoldIndex = max(0, min(self._chapterFoldIndex, len(chapters)-1))
         first = max(0, self._chapterFoldIndex - 3)
         last = min(len(chapters), first + 8)
         if last-first < 8:
             first=max(0,last-8)
+        # EMBYFLOW_AUDIO_CHAPTER_TIME_COLUMN_V1
         lines=[]
+        times=[]
         for i in range(first,last):
             ch=chapters[i]
             sec=int(ch.get("ticks") or 0)//10000000
@@ -39032,8 +39068,10 @@ class EmbyFlowAudioPlayer(Screen):
             name=str(ch.get("name") or ("Kapitel %d"%(i+1)))
             if len(name)>58: name=name[:55]+"..."
             prefix="> " if i==self._chapterFoldIndex else "  "
-            lines.append("%s%d. %-58s %s"%(prefix,i+1,name,stamp))
+            lines.append("%s%d. %s"%(prefix,i+1,name))
+            times.append(stamp)
         self["fold_list"].setText("\n".join(lines))
+        self["fold_times"].setText("\n".join(times))
 
     def _controlFocusRender(self):
         # EMBYFLOW_AUDIO_INLINE_FOLDOUT_V2
@@ -39054,7 +39092,11 @@ class EmbyFlowAudioPlayer(Screen):
 
     def _controlDown(self):
         if self._chapterFoldOpen:
-            if self.chapters:
+            if getattr(self, "_foldMode", "chapters") == "related":
+                if self._relatedItems:
+                    self._relatedIndex=(self._relatedIndex+1)%len(self._relatedItems)
+                    self._renderFold()
+            elif self.chapters:
                 self._chapterFoldIndex=(self._chapterFoldIndex+1)%len(self.chapters)
                 self._renderFold()
             return
@@ -39065,7 +39107,11 @@ class EmbyFlowAudioPlayer(Screen):
 
     def _controlUp(self):
         if self._chapterFoldOpen:
-            if self.chapters:
+            if getattr(self, "_foldMode", "chapters") == "related":
+                if self._relatedItems:
+                    self._relatedIndex=(self._relatedIndex-1)%len(self._relatedItems)
+                    self._renderFold()
+            elif self.chapters:
                 self._chapterFoldIndex=(self._chapterFoldIndex-1)%len(self.chapters)
                 self._renderFold()
             return
@@ -39096,7 +39142,10 @@ class EmbyFlowAudioPlayer(Screen):
     def _controlOK(self):
         # EMBYFLOW_AUDIO_CHAPTER_OK_V2_FINAL
         if self._chapterFoldOpen:
-            self._foldSelect()
+            if getattr(self, "_foldMode", "chapters") == "related":
+                self._relatedSelect()
+            else:
+                self._foldSelect()
             return
 
         # The selected control is authoritative. Check Kapitel before the
@@ -39152,10 +39201,98 @@ class EmbyFlowAudioPlayer(Screen):
 
     def openChapterOverlay(self):
         # EMBYFLOW_AUDIO_INLINE_FOLDOUT_OPEN_V2
-        self._chapterFoldOpen = not self._chapterFoldOpen
-        if self._chapterFoldOpen:
+        if self._chapterFoldOpen and getattr(self, "_foldMode", "chapters") == "chapters":
+            self._chapterFoldOpen = False
+        else:
+            self._foldMode = "chapters"
+            self._chapterFoldOpen = True
             self._chapterFoldIndex = self._currentAudioChapterIndex()
         self._controlFocusRender()
+
+    def _loadRelatedAudio(self):
+        # EMBYFLOW_AUDIO_RELATED_V1
+        related = []
+        try:
+            server, token, user_id = get_emby_auth()
+            iid = str(self.item.get("Id") or self.item.get("id") or "").strip()
+            if not (server and token and user_id and iid):
+                return []
+            response = embyflow_http_get(
+                server.rstrip("/") + "/Items/%s/Similar" % iid,
+                headers={"X-Emby-Token": token, "X-Emby-Authorization": AUTH_HEADER},
+                params={
+                    "UserId": user_id,
+                    "Limit": 24,
+                    "Fields": "Artists,Album,AlbumArtist,RunTimeTicks,MediaSources,Container,UserData"
+                },
+                timeout=8, verify=True
+            )
+            if int(getattr(response, "status_code", 0) or 0) != 200:
+                return []
+            data = response.json() or {}
+            candidates = data.get("Items") if isinstance(data, dict) else data
+            for candidate in (candidates or []):
+                if not isinstance(candidate, dict):
+                    continue
+                cid = str(candidate.get("Id") or candidate.get("id") or "").strip()
+                if not cid or cid == iid:
+                    continue
+                related.append(candidate)
+        except Exception:
+            return []
+        return related
+
+    def openRelatedOverlay(self):
+        # MENU: Emby Similar Items, ohne Änderungen an Kapitel-/Playback-Logik.
+        if self._chapterFoldOpen and getattr(self, "_foldMode", "chapters") == "related":
+            self._chapterFoldOpen = False
+            self._controlFocusRender()
+            return
+        self._relatedItems = self._loadRelatedAudio()
+        self._relatedIndex = 0
+        self._foldMode = "related"
+        self._chapterFoldOpen = True
+        self._controlFocusRender()
+
+    def _relatedSelect(self):
+        items = self._relatedItems or []
+        if not items:
+            return
+        try:
+            selected = items[self._relatedIndex]
+            resolved = embyflow_resolve_audio_item(selected) or selected
+            iid = str(resolved.get("Id") or resolved.get("id") or "").strip()
+            if not iid:
+                return
+            # aktuellen Stand sichern, dann innerhalb desselben Audio-Players wechseln
+            try:
+                pos_pts, total_pts = self._positionLength()
+                self._saveAudioResume(pos_pts, total_pts, report=False)
+                self._reportAudioPlayback("Stopped", int(pos_pts or 0) * 1000 // 9)
+            except Exception:
+                pass
+            try:
+                self.session.nav.stopService()
+            except Exception:
+                pass
+            self.item = dict(resolved)
+            self.item_id = iid
+            self.title_text = str(resolved.get("Name") or "Hörbuch")
+            self.resume_start_ticks = int(((resolved.get("UserData") or {}).get("PlaybackPositionTicks")) or 0)
+            self.resume_seek_pending = bool(self.resume_start_ticks > 0)
+            self.candidate_index = 0
+            self.candidates = []
+            self.started = False
+            self.fallback_used = False
+            self.chapters = []
+            self._chapterFoldOpen = False
+            self._foldMode = "chapters"
+            self._foldShow(False)
+            self._loadFullInfo()
+            self._buildCandidates()
+            self._playCandidate()
+        except Exception:
+            return
 
     def previousChapter(self):
         idx=self._chapterIndex()
@@ -82459,7 +82596,7 @@ _embyflow_chapter_start_prewarm_v17_5_3 = _embyflow_v11_7_9_start_prewarm
 # ============================================================================
 
 EMBYFLOW_UPDATE_MANIFEST_MAX_BYTES = 131072
-EMBYFLOW_UPDATE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024
+EMBYFLOW_UPDATE_ARTIFACT_MAX_BYTES = 16 * 1024 * 1024
 EMBYFLOW_UPDATE_TIMEOUT_SECONDS = 20
 EMBYFLOW_UPDATE_ALLOWED_INITIAL_HOSTS = (
     "raw.githubusercontent.com",
@@ -82654,17 +82791,23 @@ def _embyflow_update_normalize_manifest(raw):
         changelog = []
     changelog = [str(item).strip() for item in changelog if str(item).strip()]
 
-    # Phase 1 deliberately installs only a direct Python plugin payload.
-    # The current harmless .txt GitHub test therefore remains checkable but
-    # cannot overwrite plugin.py.
+    # V2 accepts either the legacy single plugin.py payload or a tightly
+    # validated EmbyFlow tar.gz bundle. Bundles may contain only plugin.py and
+    # the two audio-control PNG assets required by the tested audiobook UI.
     clean_download = download.split("?", 1)[0].lower()
     target = str(manifest.get("target") or "plugin.py").strip()
     artifact_type = str(manifest.get("artifact_type") or "").strip().lower()
-    installable = bool(
+    legacy_plugin = bool(
         clean_download.endswith(".py")
         and target == "plugin.py"
         and artifact_type in ("", "plugin_py", "plugin.py")
     )
+    bundle_tar_gz = bool(
+        (clean_download.endswith(".tar.gz") or clean_download.endswith(".tgz"))
+        and target in ("EmbyFlowE2", "bundle")
+        and artifact_type in ("bundle_tar_gz", "tar.gz", "tgz")
+    )
+    installable = bool(legacy_plugin or bundle_tar_gz)
 
     return {
         "version": version,
@@ -82676,6 +82819,7 @@ def _embyflow_update_normalize_manifest(raw):
         "target": target,
         "artifact_type": artifact_type,
         "installable": installable,
+        "bundle_tar_gz": bundle_tar_gz,
     }
 
 
@@ -82758,12 +82902,13 @@ def _embyflow_update_install_plugin(manifest):
     import py_compile
     import shutil
     import stat
+    import tempfile
 
     download_url = str(manifest.get("download") or "")
     expected_sha = str(manifest.get("sha256") or "").upper()
 
     if not bool(manifest.get("installable")):
-        raise RuntimeError("Dieses Manifest enthält kein installierbares plugin.py")
+        raise RuntimeError("Dieses Manifest enthält kein installierbares Update")
 
     data = _embyflow_update_read_url(
         download_url,
@@ -82778,104 +82923,189 @@ def _embyflow_update_install_plugin(manifest):
             % (expected_sha, actual_sha)
         )
 
-    if not _embyflow_update_payload_identity_ok(data):
-        raise RuntimeError("Payload ist keine erkennbare EmbyFlow plugin.py")
-
     target_dir = os.path.realpath(str(PLUGIN_PATH))
     target_path = os.path.join(target_dir, "plugin.py")
-    target_real_parent = os.path.realpath(os.path.dirname(target_path))
-    if target_real_parent != target_dir:
+    if os.path.realpath(os.path.dirname(target_path)) != target_dir:
         raise RuntimeError("Ungültiges Plugin-Ziel")
     if os.path.islink(target_path):
         raise RuntimeError("plugin.py ist ein Symlink; Update abgebrochen")
     if not os.path.isfile(target_path):
         raise RuntimeError("Installierte plugin.py wurde nicht gefunden")
 
-    stage_path = "/tmp/embyflow_update_stage_plugin.py"
-    backup_path = "/tmp/embyflow_update_backup_plugin.py"
-    target_tmp = os.path.join(target_dir, ".plugin.py.embyflow-update.tmp")
-    rollback_tmp = os.path.join(target_dir, ".plugin.py.embyflow-rollback.tmp")
+    # Keep the proven V1 single-file updater path fully compatible.
+    if not bool(manifest.get("bundle_tar_gz")):
+        if not _embyflow_update_payload_identity_ok(data):
+            raise RuntimeError("Payload ist keine erkennbare EmbyFlow plugin.py")
 
-    replaced = False
-    rollback_done = False
+        stage_path = "/tmp/embyflow_update_stage_plugin.py"
+        backup_path = "/tmp/embyflow_update_backup_plugin.py"
+        target_tmp = os.path.join(target_dir, ".plugin.py.embyflow-update.tmp")
+        rollback_tmp = os.path.join(target_dir, ".plugin.py.embyflow-rollback.tmp")
+        replaced = False
+        rollback_done = False
+        original_mode = stat.S_IMODE(os.stat(target_path).st_mode)
+        try:
+            with open(stage_path, "wb") as handle:
+                handle.write(data)
+                handle.flush()
+                try:
+                    os.fsync(handle.fileno())
+                except Exception:
+                    pass
+            py_compile.compile(stage_path, doraise=True)
+            shutil.copy2(target_path, backup_path)
+            with open(target_tmp, "wb") as handle:
+                handle.write(data)
+                handle.flush()
+                try:
+                    os.fsync(handle.fileno())
+                except Exception:
+                    pass
+            os.chmod(target_tmp, original_mode)
+            os.replace(target_tmp, target_path)
+            replaced = True
+            py_compile.compile(target_path, doraise=True)
+            _embyflow_update_mark_installed(str(manifest.get("version") or ""), int(manifest.get("build") or 0))
+            return {"ok": True, "version": str(manifest.get("version") or ""), "build": int(manifest.get("build") or 0), "sha256": actual_sha, "backup": backup_path, "rollback": False}
+        except Exception as error:
+            if replaced and os.path.isfile(backup_path):
+                try:
+                    shutil.copy2(backup_path, rollback_tmp)
+                    os.chmod(rollback_tmp, original_mode)
+                    os.replace(rollback_tmp, target_path)
+                    py_compile.compile(target_path, doraise=True)
+                    rollback_done = True
+                except Exception as rollback_error:
+                    raise RuntimeError("Update fehlgeschlagen: %s; Rollback fehlgeschlagen: %s" % (str(error), str(rollback_error)))
+            raise RuntimeError("%s%s" % (str(error), "; vorherige Version wiederhergestellt" if rollback_done else ""))
+        finally:
+            for cleanup_path in (stage_path, target_tmp, rollback_tmp):
+                try:
+                    if os.path.exists(cleanup_path):
+                        os.remove(cleanup_path)
+                except Exception:
+                    pass
 
-    # Preserve original mode before any replacement.
-    original_mode = stat.S_IMODE(os.stat(target_path).st_mode)
+    # V2 bundle path: extract nothing blindly. Read exactly three approved files
+    # from the tarball, validate them in a private staging directory, then
+    # replace the live files with per-file backups and full rollback on failure.
+    import io
+    import tarfile
 
+    allowed = {
+        "EmbyFlowE2/plugin.py": "plugin.py",
+        "EmbyFlowE2/images/audio_controls/ring.png": "images/audio_controls/ring.png",
+        "EmbyFlowE2/images/audio_controls/ring_focus.png": "images/audio_controls/ring_focus.png",
+    }
+    staged = {}
+    stage_dir = tempfile.mkdtemp(prefix="embyflow_update_v2_")
+    backup_dir = "/tmp/embyflow_update_v2_backup"
+    replaced = []
     try:
-        with open(stage_path, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            try:
-                os.fsync(handle.fileno())
-            except Exception:
-                pass
+        archive = tarfile.open(fileobj=io.BytesIO(data), mode="r:gz")
+        try:
+            for member in archive.getmembers():
+                name = str(member.name or "").replace("\\", "/").lstrip("./")
+                if member.isdir():
+                    continue
+                if not member.isfile() or name not in allowed:
+                    raise RuntimeError("Update-Paket enthält eine nicht erlaubte Datei: %s" % name)
+                source = archive.extractfile(member)
+                if source is None:
+                    raise RuntimeError("Update-Datei kann nicht gelesen werden: %s" % name)
+                payload = source.read()
+                if name in staged:
+                    raise RuntimeError("Doppelte Datei im Update-Paket: %s" % name)
+                staged[name] = payload
+        finally:
+            archive.close()
 
-        # Syntax validation BEFORE touching the installed file.
-        py_compile.compile(stage_path, doraise=True)
+        if set(staged.keys()) != set(allowed.keys()):
+            raise RuntimeError("Update-Paket ist unvollständig")
+        plugin_data = staged["EmbyFlowE2/plugin.py"]
+        if not _embyflow_update_payload_identity_ok(plugin_data):
+            raise RuntimeError("Paket enthält keine erkennbare EmbyFlow plugin.py")
+        for png_name in ("EmbyFlowE2/images/audio_controls/ring.png", "EmbyFlowE2/images/audio_controls/ring_focus.png"):
+            png = staged[png_name]
+            if len(png) < 32 or not png.startswith(b"\x89PNG\r\n\x1a\n"):
+                raise RuntimeError("Ungültige PNG-Datei im Update-Paket")
 
-        # Backup only plugin.py. /etc/enigma2 is never touched.
-        shutil.copy2(target_path, backup_path)
+        stage_plugin = os.path.join(stage_dir, "plugin.py")
+        with open(stage_plugin, "wb") as handle:
+            handle.write(plugin_data)
+        py_compile.compile(stage_plugin, doraise=True)
 
-        # Write candidate on the same filesystem as plugin.py, then atomically swap.
-        with open(target_tmp, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            try:
-                os.fsync(handle.fileno())
-            except Exception:
-                pass
-        os.chmod(target_tmp, original_mode)
-        os.replace(target_tmp, target_path)
-        replaced = True
+        if os.path.isdir(backup_dir):
+            shutil.rmtree(backup_dir)
+        os.makedirs(backup_dir)
 
-        # Validate the active path once more after atomic replacement.
+        # Back up all existing targets before replacing the first byte live.
+        for archive_name, relative in allowed.items():
+            live = os.path.realpath(os.path.join(target_dir, relative))
+            if not (live == target_dir or live.startswith(target_dir + os.sep)):
+                raise RuntimeError("Ungültiges Paket-Ziel")
+            if os.path.islink(live):
+                raise RuntimeError("Symlink-Ziel im Update abgelehnt: %s" % relative)
+            backup = os.path.join(backup_dir, relative)
+            if os.path.isfile(live):
+                parent = os.path.dirname(backup)
+                if not os.path.isdir(parent):
+                    os.makedirs(parent)
+                shutil.copy2(live, backup)
+
+        # Activate each staged payload via same-filesystem os.replace.
+        for archive_name, relative in allowed.items():
+            live = os.path.join(target_dir, relative)
+            parent = os.path.dirname(live)
+            if not os.path.isdir(parent):
+                os.makedirs(parent)
+            tmp = live + ".embyflow-update.tmp"
+            with open(tmp, "wb") as handle:
+                handle.write(staged[archive_name])
+                handle.flush()
+                try:
+                    os.fsync(handle.fileno())
+                except Exception:
+                    pass
+            if relative == "plugin.py":
+                os.chmod(tmp, stat.S_IMODE(os.stat(target_path).st_mode))
+            os.replace(tmp, live)
+            replaced.append(relative)
+
         py_compile.compile(target_path, doraise=True)
-
-        # Persist the exact successful install time before returning to the UI.
-        _embyflow_update_mark_installed(
-            str(manifest.get("version") or ""),
-            int(manifest.get("build") or 0),
-        )
-
-        return {
-            "ok": True,
-            "version": str(manifest.get("version") or ""),
-            "build": int(manifest.get("build") or 0),
-            "sha256": actual_sha,
-            "backup": backup_path,
-            "rollback": False,
-        }
+        _embyflow_update_mark_installed(str(manifest.get("version") or ""), int(manifest.get("build") or 0))
+        return {"ok": True, "version": str(manifest.get("version") or ""), "build": int(manifest.get("build") or 0), "sha256": actual_sha, "backup": backup_dir, "rollback": False}
 
     except Exception as error:
-        if replaced and os.path.isfile(backup_path):
+        rollback_errors = []
+        for relative in reversed(replaced):
+            live = os.path.join(target_dir, relative)
+            backup = os.path.join(backup_dir, relative)
             try:
-                shutil.copy2(backup_path, rollback_tmp)
-                os.chmod(rollback_tmp, original_mode)
-                os.replace(rollback_tmp, target_path)
-                py_compile.compile(target_path, doraise=True)
-                rollback_done = True
+                if os.path.isfile(backup):
+                    tmp = live + ".embyflow-rollback.tmp"
+                    shutil.copy2(backup, tmp)
+                    os.replace(tmp, live)
+                elif os.path.exists(live):
+                    os.remove(live)
             except Exception as rollback_error:
-                raise RuntimeError(
-                    "Update fehlgeschlagen: %s; Rollback fehlgeschlagen: %s"
-                    % (str(error), str(rollback_error))
-                )
-
-        raise RuntimeError(
-            "%s%s"
-            % (
-                str(error),
-                "; vorherige Version wiederhergestellt" if rollback_done else "",
-            )
-        )
-
+                rollback_errors.append("%s: %s" % (relative, str(rollback_error)))
+        if rollback_errors:
+            raise RuntimeError("Update fehlgeschlagen: %s; Rollback-Fehler: %s" % (str(error), "; ".join(rollback_errors)))
+        raise RuntimeError("%s%s" % (str(error), "; vorherige Version wiederhergestellt" if replaced else ""))
     finally:
-        for cleanup_path in (stage_path, target_tmp, rollback_tmp):
-            try:
-                if os.path.exists(cleanup_path):
-                    os.remove(cleanup_path)
-            except Exception:
-                pass
+        try:
+            shutil.rmtree(stage_dir)
+        except Exception:
+            pass
+        for relative in allowed.values():
+            for suffix in (".embyflow-update.tmp", ".embyflow-rollback.tmp"):
+                try:
+                    tmp = os.path.join(target_dir, relative) + suffix
+                    if os.path.exists(tmp):
+                        os.remove(tmp)
+                except Exception:
+                    pass
 
 
 def _embyflow_update_display_version(value):
@@ -83409,6 +83639,7 @@ class EmbyFlowUpdateScreen(Screen):
 # Update transport, SHA256, compile, backup, rollback and install policy unchanged.
 # Update transport, SHA256, compile, backup, rollback and install policy unchanged.
 # EMBYFLOW_GITHUB_UPDATER_V1_RELEASE
+# EMBYFLOW_GITHUB_UPDATER_V2_BUNDLE_RELEASE
 # EMBYFLOW_GITHUB_UPDATER_V1_END
 
 
