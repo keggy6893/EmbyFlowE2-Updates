@@ -1,8 +1,8 @@
 {
   "protocol": "embyflow-box-bridge-v1",
-  "id": "audio-player-source-chunks-20260919-02",
+  "id": "audio-player-source-chunks-20260919-03",
   "action": "pull",
   "mode": "read-only",
   "created_by": "ChatGPT",
-  "note": "Refresh exact production source and publish readable chunks for isolated audio-player development."
+  "note": "Refresh exact production source and publish 3000-line chunks using FIX9 for isolated audio-player development."
 }
