@@ -4,7 +4,7 @@
     "action":  "pull",
     "mode":  "read-only",
     "host":  "HUMMEL",
-    "finished_at":  "2026-09-19T07:40:18.4782323Z",
+    "finished_at":  "2026-09-19T07:44:29.3334611Z",
     "exit_code":  1,
     "ok":  false,
     "output":  "gh: Not Found (HTTP 404)"
