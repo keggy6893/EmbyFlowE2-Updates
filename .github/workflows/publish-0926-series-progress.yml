@@ -1,0 +1,81 @@
+name: Publish EmbyFlow Serienstand 2026-09-26
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-0926-series-progress.yml'
+      - 'release_inputs/embyflow-0926-series-progress.py.xz.b64'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-0926-navigation-search
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate and publish the complete plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import json
+          import lzma
+          import py_compile
+
+          payload = Path('release_inputs/embyflow-0926-series-progress.py.xz.b64')
+          source = lzma.decompress(base64.b64decode(payload.read_bytes(), validate=True))
+          digest = hashlib.sha256(source).hexdigest()
+          expected = 'dcaeaaf5930c21c598cc8d39848f974a7df39cc25f2fc3e71c403f6daaec2651'
+          if digest != expected:
+              raise SystemExit('Release SHA256 mismatch')
+          text = source.decode('utf-8')
+          for required in ('PLUGIN_UPDATE_BUILD = 2026092602',
+                           'EMBYFLOW_SEASON_EPISODE_NUMBER_JUMP_V1_START',
+                           'NUMBER_KEYS = list("0123456789")'):
+              if required not in text:
+                  raise SystemExit('Missing feature: ' + required)
+          for forbidden in ('Skyfall-Theme-Stereo-Test.ts',
+                            'EMBYFLOW_HOME_LOCAL_THEME_TEST_V2_START'):
+              if forbidden in text:
+                  raise SystemExit('Local sound fix present: ' + forbidden)
+          release = Path('EmbyFlowE2_2026-09-26_Serienstand_ohne_Soundfix.py')
+          release.write_bytes(source)
+          Path('EmbyFlowE2_CURRENT_plugin.py').write_bytes(source)
+          py_compile.compile(str(release), doraise=True)
+
+          manifest_file = Path('update.json')
+          manifest = json.loads(manifest_file.read_text(encoding='utf-8'))
+          if int(manifest['build']) > 2026092602:
+              raise SystemExit('A newer update is already published')
+          manifest.update(
+              version='2026-RCDEV19-SERIENSTAND-20260926',
+              build=2026092602,
+              download='https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/' + release.name,
+              sha256=digest,
+              target='plugin.py',
+              artifact_type='plugin_py',
+              changelog=[
+                  'Serienstand: zuletzt gesehene und naechste Folge ueber alle Staffeln',
+                  'Staffeln: Folgen mit Ziffern direkt auswaehlen, auch mehrstellig',
+                  'Suche: 123 zeigt die Ziffern 0-9; ABC schaltet zurueck',
+                  'Lokaler Skyfall-Soundtest nicht enthalten',
+              ],
+          )
+          manifest_file.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add EmbyFlowE2_CURRENT_plugin.py EmbyFlowE2_2026-09-26_Serienstand_ohne_Soundfix.py update.json
+          git commit -m "Publish tested series progress without local sound test"
+          git push origin HEAD:main
