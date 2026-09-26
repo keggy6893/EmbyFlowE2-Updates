@@ -1,12 +1,9 @@
-# EmbyFlowE2 ThemeMedia Test12
+# EmbyFlowE2 ThemeMedia Test12 – Tester
 
-Testpaket für Theme-Songs auf Basis von WatchParty QR Test11. Nicht über den automatischen Updater verteilen; Box-Laufzeittest steht aus.
+**[Fertiges Tester-ZIP herunterladen](EmbyFlowE2_ThemeMedia_Test12_Tester.zip)** (enthält Plugin-ZIP, `Install-Test12.ps1` und `TESTEN.md`). Entpacken und die Anleitung lesen.
 
-- Emby ThemeSongs zuerst; ThemerrDB nur ohne Server-Theme und mit TMDB-ID sowie `yt-dlp`.
-- Die Abfrage läuft im vorhandenen Hintergrund-Worker der Poster-Auswahl.
-- Trailer-Zugriff ist im Manager vorbereitet, ohne Schaltfläche im Plugin.
-- Die bestehende WatchParty aus Test11 bleibt im Paket.
+Nur für Boxen mit exakt WatchParty QR Test11. Das Paket ist noch nicht auf einer realen Box getestet und ersetzt nicht die Version des automatischen Updaters.
 
-ZIP SHA256: `cabb7fbf95885e419b8db335400f07603274d4226ae80e8a6f2d2e58441ff399`
+Tester-ZIP SHA256: `bfbb49a947300bc5d0eccd33ea287192a1d7efd8945ec867cffe1c22489011f8`
 
-Installation nur nach Prüfung des vorhandenen `plugin.py` SHA256 `362a4131f5fad14991a670f086c16010fef550e6e6d3bb697a31a63f2944dab9`. Vor Austausch eine Sicherung erstellen und beide Python-Dateien mit `python3 -m py_compile` prüfen.
+Plugin-ZIP SHA256: `cabb7fbf95885e419b8db335400f07603274d4226ae80e8a6f2d2e58441ff399`
