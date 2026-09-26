@@ -1,15 +1,15 @@
 {
-  "version": "2026-RCDEV-TEST13-THEME-MEDIA-20260926",
-  "build": 2026092610,
+  "version": "2026-RCDEV19-SERIENSTAND-20260926",
+  "build": 2026092602,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeMedia_Updater_Test13.py",
-  "sha256": "41a938649b5d6a432a156a05f37b573f893e1c2c1d9929e641c0d8834fa8b896",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026-09-26_Serienstand_ohne_Soundfix.py",
+  "sha256": "dcaeaaf5930c21c598cc8d39848f974a7df39cc25f2fc3e71c403f6daaec2651",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Teststand: Emby Theme-Songs im Hintergrund laden",
-    "ThemerrDB-Fallback bei fehlendem Emby-Theme und vorhandener TMDB-ID; benoetigt yt-dlp",
-    "Watch Party aus Test11 enthalten",
-    "Trailer-Schaltflaeche noch nicht enthalten"
+    "Serienstand: zuletzt gesehene und naechste Folge ueber alle Staffeln",
+    "Staffeln: Folgen mit Ziffern direkt auswaehlen, auch mehrstellig",
+    "Suche: 123 zeigt die Ziffern 0-9; ABC schaltet zurueck",
+    "Lokaler Skyfall-Soundtest nicht enthalten"
   ]
 }
