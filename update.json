@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV18-NAV-20260926",
-  "build": 2026092601,
+  "version": "2026-RCDEV19-SERIENSTAND-20260926",
+  "build": 2026092602,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026-09-26_Navigation_Suche_ohne_Soundfix.py",
-  "sha256": "14d090541c7b76ae72bc0db954c0687dbad5270bd74b3d29a5f9e397ae05a5e3",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026-09-26_Serienstand_ohne_Soundfix.py",
+  "sha256": "dcaeaaf5930c21c598cc8d39848f974a7df39cc25f2fc3e71c403f6daaec2651",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
+    "Serienstand: zuletzt gesehene und naechste Folge ueber alle Staffeln",
     "Staffeln: Folgen mit Ziffern direkt auswaehlen, auch mehrstellig",
     "Suche: 123 zeigt die Ziffern 0-9; ABC schaltet zurueck",
     "Lokaler Skyfall-Soundtest nicht enthalten"
