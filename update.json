@@ -1,14 +1,14 @@
 {
-  "version": "2026-RCDEV17-UPDATER-V2-BOOTSTRAP",
-  "build": 2026091903,
+  "version": "2026-RCDEV18-NAV-20260926",
+  "build": 2026092601,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BOOTSTRAP_V2_20260919.py",
-  "sha256": "5927f059cbc18b841f1aa755ab7413076452e7e4e9dc594843d99346779669c1",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026-09-26_Navigation_Suche_ohne_Soundfix.py",
+  "sha256": "14d090541c7b76ae72bc0db954c0687dbad5270bd74b3d29a5f9e397ae05a5e3",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Kompatibilitätsupdate für ältere EmbyFlow-E2-Installationen",
-    "Aktualisiert den integrierten Updater auf V2",
-    "Vorbereitung für den AUDIO-Release"
+    "Staffeln: Folgen mit Ziffern direkt auswaehlen, auch mehrstellig",
+    "Suche: 123 zeigt die Ziffern 0-9; ABC schaltet zurueck",
+    "Lokaler Skyfall-Soundtest nicht enthalten"
   ]
 }
