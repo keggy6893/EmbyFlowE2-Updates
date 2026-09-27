@@ -1,14 +1,13 @@
 {
-  "version": "2026-RCDEV-TEST14-CAST-CREW-20260927",
-  "build": 2026092701,
+  "version": "2026-RCDEV-TEST15-NO-CAST-NO-PARTY-20260927",
+  "build": 2026092702,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_CastCrew_Test14.py",
-  "sha256": "05f9a5139415ba5acdcd81e067dc765c8b98e0650c6fc26e0f742ec7a0dff279",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeMedia_Clean_Test15.py",
+  "sha256": "c491923649de2743ce6565243e6de81e84918bda227f1cb0db19d94052a6e24e",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Cast & Crew: blaue Taste in der Detailansicht",
-    "Namen, Rollen und Figuren aus Emby; Navigation mit Pfeiltasten",
-    "Test13: Theme Media und Watch Party weiterhin enthalten"
+    "Cast & Crew und Watch Party entfernt",
+    "Theme Media aus Test13 erhalten"
   ]
 }
