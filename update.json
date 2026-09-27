@@ -1,13 +1,14 @@
 {
-  "version": "2026-RCDEV-TEST15-NO-CAST-NO-PARTY-20260927",
-  "build": 2026092702,
+  "version": "2026-RCDEV-PLAYER-CAST-20260927",
+  "build": 2026092703,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeMedia_Clean_Test15.py",
-  "sha256": "c491923649de2743ce6565243e6de81e84918bda227f1cb0db19d94052a6e24e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_PlayerCast_20260927_2703.py",
+  "sha256": "00b5c3b39a5eaf042dc05865f7bcb07ed5e75891a1ee797a338b0f9a1fd91540",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Cast & Crew und Watch Party entfernt",
-    "Theme Media aus Test13 erhalten"
+    "Player-Cast: Besetzung im Player mit Pfeil runter anzeigen",
+    "Theme Media und bisherige Navigation erhalten",
+    "Watchparty ist nicht enthalten"
   ]
 }
