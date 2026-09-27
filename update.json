@@ -1,15 +1,14 @@
 {
-  "version": "2026-RCDEV-TEST13-THEME-MEDIA-20260926",
-  "build": 2026092610,
+  "version": "2026-RCDEV-TEST14-CAST-CREW-20260927",
+  "build": 2026092701,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeMedia_Updater_Test13.py",
-  "sha256": "41a938649b5d6a432a156a05f37b573f893e1c2c1d9929e641c0d8834fa8b896",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_CastCrew_Test14.py",
+  "sha256": "05f9a5139415ba5acdcd81e067dc765c8b98e0650c6fc26e0f742ec7a0dff279",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Teststand: Emby Theme-Songs im Hintergrund laden",
-    "ThemerrDB-Fallback bei fehlendem Emby-Theme und vorhandener TMDB-ID; benoetigt yt-dlp",
-    "Watch Party aus Test11 enthalten",
-    "Trailer-Schaltflaeche noch nicht enthalten"
+    "Cast & Crew: blaue Taste in der Detailansicht",
+    "Namen, Rollen und Figuren aus Emby; Navigation mit Pfeiltasten",
+    "Test13: Theme Media und Watch Party weiterhin enthalten"
   ]
 }
