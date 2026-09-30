@@ -1,14 +1,15 @@
 {
-  "version": "2026-RCDEV-THEMEVIDEOS-TEST8-20260930",
-  "build": 2026093001,
+  "version": "2026-RCDEV-FTP-ACCOUNTS10-20260930",
+  "build": 2026093002,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeVideos_Test8_20260930_3001.py",
-  "sha256": "be6270af49c299b30708871b81d247d5d97da9f0813b146ec7c8f4516e31199e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_FTP_Accounts10_20260930_3002.py",
+  "sha256": "abaa53a3ef40a072f14440545d65dcd1a463513db61d925ab70b81e73b1b7b10",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "ThemeVideos Test8: Emby-ThemeVideo passend zur Film-ID in der Detailansicht",
-    "Ohne ThemeVideo: Ansicht mit Poster und Hintergrund",
-    "Praxistest mit lokalem Emby-Server noch offen"
+    "Bis zu 10 Accounts per FTP in /etc/enigma2/embyflow_login.ini eintragen",
+    "Account-Auswahl bei jedem Start mit größerer Schrift und neuem Design",
+    "ROT / EXIT: Mit bisherigen Zugangsdaten weiter; leere Accounts ausgeblendet",
+    "ThemeVideos Test8 enthalten; Praxistest mit lokalem Emby-Server noch offen"
   ]
 }
