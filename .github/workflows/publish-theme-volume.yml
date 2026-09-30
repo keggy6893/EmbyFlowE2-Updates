@@ -1,0 +1,43 @@
+name: Publish background theme volume control
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/theme-volume/**
+      - .github/workflows/publish-theme-volume.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: publish-theme-volume
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify base and build
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('update.json').read_text())
+          if manifest['build'] != 2026093002:
+              raise SystemExit('Update manifest moved; review required before publishing')
+          PY
+          cp EmbyFlowE2_FTP_Accounts10_20260930_3002.py tools/theme-volume/base.py
+          python3 tools/theme-volume/test_theme_volume.py
+          python3 tools/theme-volume/build_theme_volume.py tools/theme-volume/base.py tools/theme-volume/theme_volume_layer.py .
+          python3 -m py_compile EmbyFlowE2_ThemeVolume_20260930_3003.py
+      - name: Publish tested payload and manifest together
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_ThemeVolume_20260930_3003.py update.json
+          git commit -m 'Release configurable background theme volume cap (build 2026093003)'
+          git push origin HEAD:main
