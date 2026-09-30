@@ -1,15 +1,15 @@
 {
-  "version": "2026-RCDEV-FTP-ACCOUNTS10-20260930",
-  "build": 2026093002,
+  "version": "2026-RCDEV-THEMEVOLUME-20260930",
+  "build": 2026093003,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_FTP_Accounts10_20260930_3002.py",
-  "sha256": "abaa53a3ef40a072f14440545d65dcd1a463513db61d925ab70b81e73b1b7b10",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeVolume_20260930_3003.py",
+  "sha256": "0ea10a000c9ff5427fda1bfe1fc4107d29f252947b87e380fb9b321502309064",
   "changelog": [
-    "Bis zu 10 Accounts per FTP in /etc/enigma2/embyflow_login.ini eintragen",
-    "Account-Auswahl bei jedem Start mit größerer Schrift und neuem Design",
-    "ROT / EXIT: Mit bisherigen Zugangsdaten weiter; leere Accounts ausgeblendet",
-    "ThemeVideos Test8 enthalten; Praxistest mit lokalem Emby-Server noch offen"
+    "Hintergrundmusik und ThemeVideos: einstellbare Lautstärkeobergrenze, Vorgabe 20 %",
+    "Erweiterte Einstellungen: BLAU Musik; 0-100 % in 5-%-Schritten",
+    "Normale Lautstärke bei Filmstart und Rückkehr zum TV wiederhergestellt",
+    "10 FTP-Accounts und ThemeVideos Test8 weiterhin enthalten"
   ]
 }
