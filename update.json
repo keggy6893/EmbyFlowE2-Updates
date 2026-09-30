@@ -1,14 +1,14 @@
 {
-  "version": "2026-RCDEV-PLAYER-CAST-20260927",
-  "build": 2026092703,
+  "version": "2026-RCDEV-THEMEVIDEOS-TEST8-20260930",
+  "build": 2026093001,
   "channel": "rcdev",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_PlayerCast_20260927_2703.py",
-  "sha256": "00b5c3b39a5eaf042dc05865f7bcb07ed5e75891a1ee797a338b0f9a1fd91540",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeVideos_Test8_20260930_3001.py",
+  "sha256": "be6270af49c299b30708871b81d247d5d97da9f0813b146ec7c8f4516e31199e",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "changelog": [
-    "Player-Cast: Besetzung im Player mit Pfeil runter anzeigen",
-    "Theme Media und bisherige Navigation erhalten",
-    "Watchparty ist nicht enthalten"
+    "ThemeVideos Test8: Emby-ThemeVideo passend zur Film-ID in der Detailansicht",
+    "Ohne ThemeVideo: Ansicht mit Poster und Hintergrund",
+    "Praxistest mit lokalem Emby-Server noch offen"
   ]
 }
