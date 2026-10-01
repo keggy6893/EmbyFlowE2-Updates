@@ -17,7 +17,9 @@ class BlueTests(unittest.TestCase):
   after=ET.fromstring(self.ns['_embyflow_blue_detail_skin'](skin,1920,1080,'96,80','1728,920'))
   self.assertEqual(before,[n.attrib for n in after if n.get('text') is not None])
   self.assertFalse(any(n.tag=='eLabel' and n.get('size') in ('1920,1080','1728,920') for n in after))
-  self.assertTrue(any(n.get('name')=='detail_blue_gradient' for n in after))
+  background=next(n for n in after if n.get('name')=='detail_blue_background')
+  self.assertEqual(background.get('backgroundColor'),'#0C1827')
+  self.assertEqual(background.get('transparent'),'0')
  def test_poster_is_preserved(self):
   s='<screen><widget name="skyfall_theme_poster" position="1490,560" size="270,405" zPosition="36" /></screen>'
   r=ET.fromstring(self.ns['_embyflow_blue_detail_skin'](s,1920,1080,'96,80','1728,920'))
@@ -25,7 +27,7 @@ class BlueTests(unittest.TestCase):
  def test_video_revealed(self):
   hidden=[]
   class Screen(dict):pass
-  s=Screen(detail_blue_gradient=N(hide=lambda:hidden.append(True)))
+  s=Screen(detail_blue_background=N(hide=lambda:hidden.append(True)))
   s._fallback_result={'video':'url'};s._fallback_theme_active=True
   self.ns['_embyflow_blue_detail_poll'](s)
   self.assertEqual(hidden,[True]);self.assertEqual(self.called,[])
@@ -41,7 +43,7 @@ class BlueTests(unittest.TestCase):
    screen.skin='<screen><widget name="skyfall_theme_poster" position="1490,560" size="270,405" /></screen>'
    screen.onLayoutFinish=[]
    screen._skyfall_local_theme_enabled=bool(data.get('video'))
-  ns=dict(_BLUE_DETAIL_INIT=base_init,sx=lambda x:x,sy=lambda x:x,Pixmap=lambda:None)
+  ns=dict(_BLUE_DETAIL_INIT=base_init,sx=lambda x:x,sy=lambda x:x,Label=lambda text:None)
   exec(compile(ast.Module(body=funcs,type_ignores=[]),'blue','exec'),ns)
   Screen._blue_detail_apply=ns['_embyflow_blue_detail_apply']
   Screen._blue_detail_hide=ns.get('_embyflow_blue_detail_hide',lambda self:None)
