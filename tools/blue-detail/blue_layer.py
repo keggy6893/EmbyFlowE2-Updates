@@ -36,6 +36,7 @@ def _embyflow_blue_detail_init(self, session, data):
         '%d,%d' % (sx(96), sy(80)), '%d,%d' % (sx(1728), sy(920)))
     self['detail_blue_background'] = Label('')
     self.onLayoutFinish.insert(0, self._blue_detail_apply)
+    self.onShow.append(self._blue_detail_return)
     if getattr(self, '_skyfall_local_theme_enabled', False):
         self.onLayoutFinish.append(self._blue_detail_hide)
 
@@ -51,6 +52,13 @@ def _embyflow_blue_detail_poll(self):
 def _embyflow_blue_detail_hide(self):
     self['detail_blue_background'].hide()
 
+def _embyflow_blue_detail_return(self):
+    # onLayoutFinish runs only once; onShow also runs after the movie closes.
+    if not (getattr(self, '_skyfall_local_theme_active', False) or
+            getattr(self, '_fallback_theme_active', False)):
+        self._blue_detail_apply()
+
+EmbyFlowDetailScreen._blue_detail_return = _embyflow_blue_detail_return
 EmbyFlowDetailScreen._blue_detail_apply = _embyflow_blue_detail_apply
 EmbyFlowDetailScreen._blue_detail_hide = _embyflow_blue_detail_hide
 EmbyFlowDetailScreen.__init__ = _embyflow_blue_detail_init

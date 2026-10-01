@@ -42,10 +42,12 @@ class BlueTests(unittest.TestCase):
   def base_init(screen,session,data):
    screen.skin='<screen><widget name="skyfall_theme_poster" position="1490,560" size="270,405" /></screen>'
    screen.onLayoutFinish=[]
+   screen.onShow=[]
    screen._skyfall_local_theme_enabled=bool(data.get('video'))
   ns=dict(_BLUE_DETAIL_INIT=base_init,sx=lambda x:x,sy=lambda x:x,Label=lambda text:None)
   exec(compile(ast.Module(body=funcs,type_ignores=[]),'blue','exec'),ns)
   Screen._blue_detail_apply=ns['_embyflow_blue_detail_apply']
+  Screen._blue_detail_return=ns['_embyflow_blue_detail_return']
   Screen._blue_detail_hide=ns.get('_embyflow_blue_detail_hide',lambda self:None)
   for video in (False,True):
    screen=Screen();ns['_embyflow_blue_detail_init'](screen,None,{'video':video})
@@ -54,6 +56,15 @@ class BlueTests(unittest.TestCase):
     # Mirrors openATV Screen.createGUIScreen's distinction: other types
     # are passed to exec(), which rejects anonymous function objects.
     self.assertIsInstance(callback,type(screen.close))
+ def test_return_restores_blue_only_when_theme_is_stopped(self):
+  tree=ast.parse(Path(sys.argv[1]).read_text())
+  f=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_embyflow_blue_detail_return')
+  ns={};exec(compile(ast.Module(body=[f],type_ignores=[]),'return','exec'),ns)
+  for local,remote,expected in ((False,False,1),(True,False,0),(False,True,0)):
+   calls=[]
+   screen=N(_skyfall_local_theme_active=local,_fallback_theme_active=remote,_blue_detail_apply=lambda:calls.append(True))
+   ns['_embyflow_blue_detail_return'](screen)
+   self.assertEqual(len(calls),expected)
 class ExitTests(unittest.TestCase):
  def test_exit_bypasses_cast_panel_and_retains_stop_actions(self):
   from build_blue import build
