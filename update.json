@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV-ORIGINALBLUE-20261001",
-  "build": 2026100104,
+  "version": "2026-RCDEV-DIRECTEXIT-20261001",
+  "build": 2026100105,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0104.py",
-  "sha256": "8f8a6b00f97b762f117a735f7a57d45d56d3f53855c9c307693b0494dad0a605",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0105.py",
+  "sha256": "4a8dc0f3fcb4312ebd8f6e909fc6acec4afea89163d818d6aed921ec64201d95",
   "changelog": [
+    "EXIT und ROT beenden den Player wieder direkt wie in der älteren funktionierenden PY",
     "Detailseite exakt wie bestätigte Vorschau: einfarbig #0C1827, ohne Verlauf",
     "Poster unten rechts bleibt erhalten",
     "ThemeVideos, Musik-Test und Lautstärkegrenze weiterhin enthalten"
