@@ -1,0 +1,38 @@
+name: Publish blue detail background
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/blue-detail/**
+      - .github/workflows/publish-blue-detail.yml
+permissions:
+  contents: write
+concurrency:
+  group: publish-blue-detail
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify base, test and build
+        run: |
+          python3 - <<'PY'
+          import json
+          assert json.load(open('update.json'))['build'] == 2026100101, 'Manifest moved'
+          PY
+          cp EmbyFlowE2_FTP_Accounts10_20260930_3002.py tools/theme-volume/base.py
+          python3 tools/theme-volume/test_theme_volume.py
+          python3 tools/blue-detail/test_blue.py tools/blue-detail/blue_layer.py EmbyFlowE2_ThemeStream_20261001_0101.py
+          python3 tools/blue-detail/build_blue.py EmbyFlowE2_ThemeStream_20261001_0101.py tools/blue-detail/blue_layer.py .
+          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0102.py
+      - name: Publish payload and manifest
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_BlueDetail_20261001_0102.py update.json
+          git commit -m 'Restore vivid blue detail background with bottom-right poster (build 2026100102)'
+          git push origin HEAD:main
