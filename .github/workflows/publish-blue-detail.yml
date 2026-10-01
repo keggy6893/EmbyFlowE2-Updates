@@ -22,7 +22,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          assert json.load(open('update.json'))['build'] == 2026100108, 'Manifest moved'
+          assert json.load(open('update.json'))['build'] == 2026100109, 'Manifest moved'
           PY
           cp EmbyFlowE2_FTP_Accounts10_20260930_3002.py tools/theme-volume/base.py
           python3 tools/theme-volume/test_theme_volume.py
@@ -36,5 +36,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add EmbyFlowE2_BlueDetail_20261001_0109.py update.json
-          git commit -m 'Keep entry TV muted across internal theme return transitions (build 2026100109)'
+          git commit -m 'Add user TV sound choice below poster cache (build 2026100110)'
           git push origin HEAD:main
