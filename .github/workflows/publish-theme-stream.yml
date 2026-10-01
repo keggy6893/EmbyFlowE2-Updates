@@ -1,0 +1,38 @@
+name: Publish theme stream comparison test
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/theme-stream/**
+      - .github/workflows/publish-theme-stream.yml
+permissions:
+  contents: write
+concurrency:
+  group: publish-theme-stream
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify base, test and build
+        run: |
+          python3 - <<'PY'
+          import json
+          assert json.load(open('update.json'))['build'] == 2026093003, 'Manifest moved'
+          PY
+          cp EmbyFlowE2_FTP_Accounts10_20260930_3002.py tools/theme-volume/base.py
+          python3 tools/theme-volume/test_theme_volume.py
+          python3 tools/theme-stream/test_theme_stream.py EmbyFlowE2_ThemeVolume_20260930_3003.py
+          python3 tools/theme-stream/build_theme_stream.py EmbyFlowE2_ThemeVolume_20260930_3003.py .
+          python3 -m py_compile EmbyFlowE2_ThemeStream_20261001_0101.py
+      - name: Publish payload and manifest
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_ThemeStream_20261001_0101.py update.json
+          git commit -m 'Release Murxer theme stream comparison test (build 2026100101)'
+          git push origin HEAD:main
