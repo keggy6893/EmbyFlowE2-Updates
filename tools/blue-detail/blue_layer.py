@@ -43,9 +43,9 @@ def _embyflow_blue_detail_init(self, session, data):
     self.skin = _embyflow_blue_detail_skin(self.skin, sx(1920), sy(1080),
         '%d,%d' % (sx(96), sy(80)), '%d,%d' % (sx(1728), sy(920)))
     self['detail_blue_gradient'] = Pixmap()
-    self.onLayoutFinish.insert(0, lambda: _embyflow_blue_detail_apply(self))
+    self.onLayoutFinish.insert(0, self._blue_detail_apply)
     if getattr(self, '_skyfall_local_theme_enabled', False):
-        self.onLayoutFinish.append(lambda: self['detail_blue_gradient'].hide())
+        self.onLayoutFinish.append(self._blue_detail_hide)
 
 def _embyflow_blue_detail_poll(self):
     result = getattr(self, '_fallback_result', None)
@@ -56,6 +56,11 @@ def _embyflow_blue_detail_poll(self):
         else:
             _embyflow_blue_detail_apply(self)
 
+def _embyflow_blue_detail_hide(self):
+    self['detail_blue_gradient'].hide()
+
+EmbyFlowDetailScreen._blue_detail_apply = _embyflow_blue_detail_apply
+EmbyFlowDetailScreen._blue_detail_hide = _embyflow_blue_detail_hide
 EmbyFlowDetailScreen.__init__ = _embyflow_blue_detail_init
 EmbyFlowDetailScreen._fallback_detail_poll = _embyflow_blue_detail_poll
 

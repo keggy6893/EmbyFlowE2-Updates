@@ -32,4 +32,24 @@ class BlueTests(unittest.TestCase):
  def test_song_keeps_blue(self):
   s=N(_fallback_result={'song':'url'},_fallback_theme_active=True)
   self.ns['_embyflow_blue_detail_poll'](s);self.assertEqual(self.called,['blue'])
+ def test_openatv_layout_callbacks_are_bound_methods(self):
+  tree=ast.parse(Path(sys.argv[1]).read_text())
+  funcs=[n for n in tree.body if isinstance(n,ast.FunctionDef)]
+  class Screen(dict):
+   def close(self): pass
+  def base_init(screen,session,data):
+   screen.skin='<screen><widget name="skyfall_theme_poster" position="1490,560" size="270,405" /></screen>'
+   screen.onLayoutFinish=[]
+   screen._skyfall_local_theme_enabled=bool(data.get('video'))
+  ns=dict(_BLUE_DETAIL_INIT=base_init,sx=lambda x:x,sy=lambda x:x,Pixmap=lambda:None)
+  exec(compile(ast.Module(body=funcs,type_ignores=[]),'blue','exec'),ns)
+  Screen._blue_detail_apply=ns['_embyflow_blue_detail_apply']
+  Screen._blue_detail_hide=ns.get('_embyflow_blue_detail_hide',lambda self:None)
+  for video in (False,True):
+   screen=Screen();ns['_embyflow_blue_detail_init'](screen,None,{'video':video})
+   self.assertTrue(screen.onLayoutFinish)
+   for callback in screen.onLayoutFinish:
+    # Mirrors openATV Screen.createGUIScreen's distinction: other types
+    # are passed to exec(), which rejects anonymous function objects.
+    self.assertIsInstance(callback,type(screen.close))
 if __name__=='__main__':unittest.main(argv=[sys.argv[0]])
