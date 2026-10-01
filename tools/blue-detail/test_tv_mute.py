@@ -13,7 +13,7 @@ class Tests(unittest.TestCase):
  def setup(self,muted=False):
   self.c=Control(muted)
   sys.modules['enigma']=types.SimpleNamespace(eDVBVolumecontrol=types.SimpleNamespace(getInstance=lambda:self.c))
-  self.session=types.SimpleNamespace(dialog_stack=[],current_dialog=None)
+  self.session=types.SimpleNamespace(dialog_stack=[],current_dialog=None,nav=types.SimpleNamespace(getCurrentlyPlayingServiceReference=lambda:None,playService=lambda *a,**kw:None))
   self.ns=dict(__name__='plugin_under_test',eTimer=Timer,main=lambda s:None,_embyflow_theme_volume_play=lambda s,r:None,_open_embyflow_player_now=lambda s,*a:None)
   exec(Path(sys.argv[1]).read_text(),self.ns)
   self.screen=type('EmbyFlowScreen',(),{'__module__':'plugin_under_test'})()

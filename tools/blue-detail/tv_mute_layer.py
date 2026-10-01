@@ -78,3 +78,47 @@ def _embyflow_local_tv_mute_open_player(session, *args, **kwargs):
 main = _embyflow_local_tv_mute_main
 _embyflow_theme_volume_play = _embyflow_local_tv_mute_theme_play
 _open_embyflow_player_now = _embyflow_local_tv_mute_open_player
+
+
+# EMBYFLOW_TV_MUTE_LOCALTEST2
+# Also protect internal returns from themes/movies to the entry TV service.
+class _EmbyFlowLocalTvMute(_EmbyFlowLocalTvMute):
+    def __init__(self, session):
+        self.tv_ref = session.nav.getCurrentlyPlayingServiceReference()
+        super().__init__(session)
+        self.original_play_service = session.nav.playService
+        session.nav.playService = self.play_service
+
+    def is_tv(self, ref):
+        return (self.tv_ref is not None and ref is not None and
+                ref.toString() == self.tv_ref.toString())
+
+    def plugin_open(self):
+        dialogs = [getattr(self.session, 'current_dialog', None)]
+        dialogs += [x[0] if isinstance(x, (tuple, list)) else x
+                    for x in getattr(self.session, 'dialog_stack', [])]
+        return any(x is not None and type(x).__module__ == __name__ for x in dialogs)
+
+    def play_service(self, ref, *args, **kwargs):
+        if not self.finished and self.is_tv(ref) and self.plugin_open():
+            self.control.volumeMute()
+        return self.original_play_service(ref, *args, **kwargs)
+
+    def release_for_media(self):
+        current = self.session.nav.getCurrentlyPlayingServiceReference()
+        if self.is_tv(current):
+            self.control.volumeMute()
+        else:
+            super().release_for_media()
+
+    def check(self):
+        if not self.finished and self.plugin_open():
+            current = self.session.nav.getCurrentlyPlayingServiceReference()
+            if self.is_tv(current):
+                self.control.volumeMute()
+        super().check()
+
+    def finish(self):
+        if getattr(self.session.nav, 'playService', None) == self.play_service:
+            self.session.nav.playService = self.original_play_service
+        super().finish()
