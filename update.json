@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV-DETAILRETURN-20261001",
-  "build": 2026100106,
+  "version": "2026-RCDEV-TVRETURN-20261001",
+  "build": 2026100107,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0106.py",
-  "sha256": "670a6c8264ce4ae80c3d54671c4eb8ca99cd44f4240620f30834ac74a65387b6",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0107.py",
+  "sha256": "65707a46031dba5d6ddd6afe2e2ed5855d900ece25780f39e8cdf69e71bb4c5f",
   "changelog": [
+    "TV-Sender vor Pluginstart speichern und beim Verlassen wiederherstellen",
     "Blauen Detailhintergrund nach Filmende wieder einblenden",
     "EXIT und ROT beenden den Player wieder direkt wie in der älteren funktionierenden PY",
     "Detailseite exakt wie bestätigte Vorschau: einfarbig #0C1827, ohne Verlauf",
