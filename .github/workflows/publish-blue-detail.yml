@@ -22,17 +22,18 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          assert json.load(open('update.json'))['build'] == 2026100106, 'Manifest moved'
+          assert json.load(open('update.json'))['build'] == 2026100107, 'Manifest moved'
           PY
           cp EmbyFlowE2_FTP_Accounts10_20260930_3002.py tools/theme-volume/base.py
           python3 tools/theme-volume/test_theme_volume.py
           python3 tools/blue-detail/test_blue.py tools/blue-detail/blue_layer.py EmbyFlowE2_ThemeStream_20261001_0101.py
+          python3 tools/blue-detail/test_tv_mute.py tools/blue-detail/tv_mute_layer.py
           python3 tools/blue-detail/build_blue.py EmbyFlowE2_ThemeStream_20261001_0101.py tools/blue-detail/blue_layer.py .
-          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0107.py
+          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0108.py
       - name: Publish payload and manifest
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add EmbyFlowE2_BlueDetail_20261001_0107.py update.json
-          git commit -m 'Restore entry TV service after leaving plugin (build 2026100107)'
+          git add EmbyFlowE2_BlueDetail_20261001_0108.py update.json
+          git commit -m 'Mute TV immediately on plugin entry and restore prior mute state (build 2026100108)'
           git push origin HEAD:main
