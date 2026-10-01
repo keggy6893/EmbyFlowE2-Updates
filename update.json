@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV-TVRETURN-20261001",
-  "build": 2026100107,
+  "version": "2026-RCDEV-TVMUTE-20261001",
+  "build": 2026100108,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0107.py",
-  "sha256": "65707a46031dba5d6ddd6afe2e2ed5855d900ece25780f39e8cdf69e71bb4c5f",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0108.py",
+  "sha256": "cc8c5f7c20a9052ed5fdbc785de5c5582c304066ff19347c951418f7682c2aff",
   "changelog": [
+    "Bestätigt: TV-Ton beim Pluginstart sofort stumm; Theme-Musik und Filme hörbar; vorherigen Stummzustand beim Verlassen wiederherstellen",
     "TV-Sender vor Pluginstart speichern und beim Verlassen wiederherstellen",
     "Blauen Detailhintergrund nach Filmende wieder einblenden",
     "EXIT und ROT beenden den Player wieder direkt wie in der älteren funktionierenden PY",
