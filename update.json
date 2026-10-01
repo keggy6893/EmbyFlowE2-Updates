@@ -1,14 +1,14 @@
 {
-  "version": "2026-RCDEV-THEMESTREAM-20261001",
-  "build": 2026100101,
+  "version": "2026-RCDEV-BLUEDETAIL-20261001",
+  "build": 2026100102,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeStream_20261001_0101.py",
-  "sha256": "9d0e194291abd8c29e4a58ed2d65fa39993467971df8ba1a857c1abe5eec0f5d",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0102.py",
+  "sha256": "9a8ce2771425eb00284663cbabb22ce002ecbcfd9aa0f6ce73432ab10d74115e",
   "changelog": [
-    "TEST: Hintergrundmusik über Videos/static wie im Murxer-Vergleichslog",
-    "Theme-Log ergänzt um Service, Streamroute und Lautstärkegrenze",
-    "Lautstärkeobergrenze und 10 FTP-Accounts weiterhin enthalten"
+    "Detailseite: kräftiger blauer Verlauf nach Bildvorlage",
+    "Poster unten rechts bleibt erhalten",
+    "ThemeVideos, Musik-Test und Lautstärkegrenze weiterhin enthalten"
   ]
 }
