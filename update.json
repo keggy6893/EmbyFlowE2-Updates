@@ -1,13 +1,13 @@
 {
-  "version": "2026-RCDEV-BLUEDETAIL-20261001",
-  "build": 2026100103,
+  "version": "2026-RCDEV-ORIGINALBLUE-20261001",
+  "build": 2026100104,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0103.py",
-  "sha256": "9e2bb54b3648ff51aea5c7e511f89c24df65e1d9f35025554a549bad824f797e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0104.py",
+  "sha256": "8f8a6b00f97b762f117a735f7a57d45d56d3f53855c9c307693b0494dad0a605",
   "changelog": [
-    "Crashfix openATV 8.0: Detailseite nutzt gebundene Layout-Callbacks",
+    "Detailseite exakt wie bestätigte Vorschau: einfarbig #0C1827, ohne Verlauf",
     "Poster unten rechts bleibt erhalten",
     "ThemeVideos, Musik-Test und Lautstärkegrenze weiterhin enthalten"
   ]
