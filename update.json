@@ -1,12 +1,14 @@
 {
-  "version": "2026-RCDEV-TVMUTE2-20261001",
-  "build": 2026100109,
+  "version": "2026-RCDEV-TVCHOICE-20261001",
+  "build": 2026100110,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0109.py",
-  "sha256": "f63e0150f6af1d09d5c4e3a8152c3e7ad91d167ca30486c835d9a103d9642011",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0110.py",
+  "sha256": "91006fe0410811f29d330a3e9a8de23c0323a72561e2f2ffd2750e858648e447",
   "changelog": [
+    "TV-Ton im Plugin frei wählbar: AN/AUS; mit Grün speichern; ab nächstem Pluginstart",
+    "TV-Ton-Auswahl links direkt unter Poster-Cache; passende Navigation",
     "TV auch bei internen Rückkehrwechseln nach Theme-Wiedergabe stummschalten",
     "Bestätigt: TV-Ton beim Pluginstart sofort stumm; Theme-Musik und Filme hörbar; vorherigen Stummzustand beim Verlassen wiederherstellen",
     "TV-Sender vor Pluginstart speichern und beim Verlassen wiederherstellen",
