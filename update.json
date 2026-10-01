@@ -1,15 +1,14 @@
 {
-  "version": "2026-RCDEV-THEMEVOLUME-20260930",
-  "build": 2026093003,
+  "version": "2026-RCDEV-THEMESTREAM-20261001",
+  "build": 2026100101,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeVolume_20260930_3003.py",
-  "sha256": "0ea10a000c9ff5427fda1bfe1fc4107d29f252947b87e380fb9b321502309064",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ThemeStream_20261001_0101.py",
+  "sha256": "9d0e194291abd8c29e4a58ed2d65fa39993467971df8ba1a857c1abe5eec0f5d",
   "changelog": [
-    "Hintergrundmusik und ThemeVideos: einstellbare Lautstärkeobergrenze, Vorgabe 20 %",
-    "Erweiterte Einstellungen: BLAU Musik; 0-100 % in 5-%-Schritten",
-    "Normale Lautstärke bei Filmstart und Rückkehr zum TV wiederhergestellt",
-    "10 FTP-Accounts und ThemeVideos Test8 weiterhin enthalten"
+    "TEST: Hintergrundmusik über Videos/static wie im Murxer-Vergleichslog",
+    "Theme-Log ergänzt um Service, Streamroute und Lautstärkegrenze",
+    "Lautstärkeobergrenze und 10 FTP-Accounts weiterhin enthalten"
   ]
 }
