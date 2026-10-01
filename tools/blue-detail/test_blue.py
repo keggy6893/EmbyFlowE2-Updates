@@ -106,7 +106,7 @@ class ExitTests(unittest.TestCase):
  def test_exit_bypasses_cast_panel_and_retains_stop_actions(self):
   from build_blue import build
   source=Path(sys.argv[2]).read_bytes()
-  result=build(source,Path(sys.argv[1]).read_text()).decode()
+  result=build(source,Path(sys.argv[1]).read_text()+'\n\n'+Path(__file__).with_name('tv_mute_layer.py').read_text()).decode()
   tree=ast.parse(result)
   player=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='EmbyFlowMoviePlayer')
   init=next(n for n in player.body if isinstance(n,ast.FunctionDef) and n.name=='__init__')

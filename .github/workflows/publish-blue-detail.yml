@@ -30,11 +30,12 @@ jobs:
           python3 tools/blue-detail/test_tv_mute.py tools/blue-detail/tv_mute_layer.py
           python3 tools/blue-detail/test_tv_returns.py tools/blue-detail/tv_mute_layer.py
           python3 tools/blue-detail/build_blue.py EmbyFlowE2_ThemeStream_20261001_0101.py tools/blue-detail/blue_layer.py .
-          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0109.py
+          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0110.py
+          python3 tools/blue-detail/test_tv_choice.py EmbyFlowE2_BlueDetail_20261001_0110.py
       - name: Publish payload and manifest
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add EmbyFlowE2_BlueDetail_20261001_0109.py update.json
+          git add EmbyFlowE2_BlueDetail_20261001_0110.py update.json
           git commit -m 'Add user TV sound choice below poster cache (build 2026100110)'
           git push origin HEAD:main
