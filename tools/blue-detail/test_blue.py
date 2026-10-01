@@ -65,6 +65,43 @@ class BlueTests(unittest.TestCase):
    screen=N(_skyfall_local_theme_active=local,_fallback_theme_active=remote,_blue_detail_apply=lambda:calls.append(True))
    ns['_embyflow_blue_detail_return'](screen)
    self.assertEqual(len(calls),expected)
+class TvReturnTests(unittest.TestCase):
+ def setUp(self):
+  tree=ast.parse(Path(sys.argv[1]).read_text())
+  funcs=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name.startswith('_embyflow_tv_return')]
+  self.timers=[];self.logs=[]
+  owner=self
+  class Timer:
+   def __init__(self): self.callback=[];owner.timers.append(self)
+   def start(self,ms,once): self.delay=ms
+  self.ns=dict(eTimer=Timer,_TV_RETURN_TIMERS=[],_TV_RETURN_MAIN=lambda session,**kw:None,_TV_RETURN_ROOT_INIT=lambda self,session,*a,**kw:None)
+  exec(compile(ast.Module(body=funcs,type_ignores=[]),'tvreturn','exec'),self.ns)
+  self.ns['_embyflow_tv_return_log']=self.logs.append
+ def test_captures_before_main_and_restores_only_when_stopped(self):
+  for current in (None,'another-service'):
+   played=[];state=['original-tv']
+   session=N(nav=N(getCurrentlyPlayingServiceReference=lambda:state[0],playService=played.append))
+   self.ns['_embyflow_tv_return_main'](session)
+   self.assertEqual(session._embyflow_entry_service,'original-tv')
+   root=N(session=session,_embyflow_entry_service=session._embyflow_entry_service)
+   state[0]=current
+   self.ns['_embyflow_tv_return_close'](root)
+   self.assertEqual(self.timers[-1].delay,350)
+   self.assertEqual(played,[])
+   self.timers[-1].callback[0]()
+   self.assertEqual(played,['original-tv'] if current is None else [])
+   self.assertEqual(self.ns['_TV_RETURN_TIMERS'],[])
+ def test_no_previous_service_does_not_start_arbitrary_channel(self):
+  self.ns['_embyflow_tv_return_close'](N(session=N(),_embyflow_entry_service=None))
+  self.assertEqual(self.timers,[])
+ def test_root_close_hook_is_bound_method(self):
+  class Root:
+   def close(self):pass
+  Root._tv_return_close=self.ns['_embyflow_tv_return_close']
+  root=Root();root.onClose=[]
+  self.ns['_embyflow_tv_return_root_init'](root,N(_embyflow_entry_service='tv'))
+  self.assertIsInstance(root.onClose[0],type(root.close))
+  self.assertEqual(root._embyflow_entry_service,'tv')
 class ExitTests(unittest.TestCase):
  def test_exit_bypasses_cast_panel_and_retains_stop_actions(self):
   from build_blue import build

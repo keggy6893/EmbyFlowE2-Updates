@@ -63,3 +63,58 @@ EmbyFlowDetailScreen._blue_detail_apply = _embyflow_blue_detail_apply
 EmbyFlowDetailScreen._blue_detail_hide = _embyflow_blue_detail_hide
 EmbyFlowDetailScreen.__init__ = _embyflow_blue_detail_init
 EmbyFlowDetailScreen._fallback_detail_poll = _embyflow_blue_detail_poll
+
+# Capture before themes/detail screens can stop or replace the TV service.
+_TV_RETURN_MAIN = main
+_TV_RETURN_ROOT_INIT = EmbyFlowE2Screen.__init__
+_TV_RETURN_TIMERS = []
+
+def _embyflow_tv_return_log(message):
+    try:
+        with open('/tmp/embyflow_tv_return.log', 'a') as handle:
+            handle.write('%s | %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S'), message))
+    except Exception:
+        pass
+
+def _embyflow_tv_return_main(session, **kwargs):
+    try:
+        session._embyflow_entry_service = session.nav.getCurrentlyPlayingServiceReference()
+    except Exception:
+        session._embyflow_entry_service = None
+    _embyflow_tv_return_log('ENTRY saved=%d' % int(session._embyflow_entry_service is not None))
+    return _TV_RETURN_MAIN(session, **kwargs)
+
+def _embyflow_tv_return_close(self):
+    session = self.session
+    previous = self._embyflow_entry_service
+    if previous is None:
+        _embyflow_tv_return_log('SKIP no_entry_service')
+        return
+    timer = eTimer()
+    def restore():
+        try:
+            current = session.nav.getCurrentlyPlayingServiceReference()
+            # Never replace a service that another screen or user has started.
+            if current is None:
+                session.nav.playService(previous)
+                _embyflow_tv_return_log('RESTORED')
+            else:
+                _embyflow_tv_return_log('SKIP active_service')
+        except Exception as error:
+            _embyflow_tv_return_log('ERROR %s' % error)
+        finally:
+            try: _TV_RETURN_TIMERS.remove(timer)
+            except ValueError: pass
+    timer.callback.append(restore)
+    _TV_RETURN_TIMERS.append(timer)
+    # Run after the player's 120 ms stop timer.
+    timer.start(350, True)
+
+def _embyflow_tv_return_root_init(self, session, *args, **kwargs):
+    _TV_RETURN_ROOT_INIT(self, session, *args, **kwargs)
+    self._embyflow_entry_service = getattr(session, '_embyflow_entry_service', None)
+    self.onClose.append(self._tv_return_close)
+
+EmbyFlowE2Screen._tv_return_close = _embyflow_tv_return_close
+EmbyFlowE2Screen.__init__ = _embyflow_tv_return_root_init
+main = _embyflow_tv_return_main
