@@ -54,4 +54,18 @@ class BlueTests(unittest.TestCase):
     # Mirrors openATV Screen.createGUIScreen's distinction: other types
     # are passed to exec(), which rejects anonymous function objects.
     self.assertIsInstance(callback,type(screen.close))
+class ExitTests(unittest.TestCase):
+ def test_exit_bypasses_cast_panel_and_retains_stop_actions(self):
+  from build_blue import build
+  source=Path(sys.argv[2]).read_bytes()
+  result=build(source,Path(sys.argv[1]).read_text()).decode()
+  tree=ast.parse(result)
+  player=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='EmbyFlowMoviePlayer')
+  init=next(n for n in player.body if isinstance(n,ast.FunctionDef) and n.name=='__init__')
+  mappings=[n for n in ast.walk(init) if isinstance(n,ast.Dict)]
+  actions=next(n for n in mappings if any(isinstance(k,ast.Constant) and k.value=='leavePlayer' for k in n.keys))
+  values={k.value:v for k,v in zip(actions.keys,actions.values) if isinstance(k,ast.Constant)}
+  for key in ('cancel','red','stop','leavePlayer'):
+   self.assertIsInstance(values[key],ast.Attribute)
+   self.assertEqual(values[key].attr,'leave_player')
 if __name__=='__main__':unittest.main(argv=[sys.argv[0]])

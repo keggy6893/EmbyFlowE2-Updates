@@ -22,17 +22,17 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          assert json.load(open('update.json'))['build'] == 2026100103, 'Manifest moved'
+          assert json.load(open('update.json'))['build'] == 2026100104, 'Manifest moved'
           PY
           cp EmbyFlowE2_FTP_Accounts10_20260930_3002.py tools/theme-volume/base.py
           python3 tools/theme-volume/test_theme_volume.py
           python3 tools/blue-detail/test_blue.py tools/blue-detail/blue_layer.py EmbyFlowE2_ThemeStream_20261001_0101.py
           python3 tools/blue-detail/build_blue.py EmbyFlowE2_ThemeStream_20261001_0101.py tools/blue-detail/blue_layer.py .
-          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0104.py
+          python3 -m py_compile EmbyFlowE2_BlueDetail_20261001_0105.py
       - name: Publish payload and manifest
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add EmbyFlowE2_BlueDetail_20261001_0104.py update.json
-          git commit -m 'Restore approved original solid blue detail background (build 2026100104)'
+          git add EmbyFlowE2_BlueDetail_20261001_0105.py update.json
+          git commit -m 'Restore direct player EXIT from working older PY (build 2026100105)'
           git push origin HEAD:main
