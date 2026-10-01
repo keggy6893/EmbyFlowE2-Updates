@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV-DIRECTEXIT-20261001",
-  "build": 2026100105,
+  "version": "2026-RCDEV-DETAILRETURN-20261001",
+  "build": 2026100106,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0105.py",
-  "sha256": "4a8dc0f3fcb4312ebd8f6e909fc6acec4afea89163d818d6aed921ec64201d95",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0106.py",
+  "sha256": "670a6c8264ce4ae80c3d54671c4eb8ca99cd44f4240620f30834ac74a65387b6",
   "changelog": [
+    "Blauen Detailhintergrund nach Filmende wieder einblenden",
     "EXIT und ROT beenden den Player wieder direkt wie in der älteren funktionierenden PY",
     "Detailseite exakt wie bestätigte Vorschau: einfarbig #0C1827, ohne Verlauf",
     "Poster unten rechts bleibt erhalten",
