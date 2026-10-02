@@ -1,21 +1,17 @@
 {
-  "version": "2026-RCDEV-TVCHOICE-20261001",
-  "build": 2026100110,
+  "version": "2026-RCDEV-TRAILERS-20261002",
+  "build": 2026100201,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_BlueDetail_20261001_0110.py",
-  "sha256": "91006fe0410811f29d330a3e9a8de23c0323a72561e2f2ffd2750e858648e447",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Trailers_20261002_0201.py",
+  "sha256": "dd2af2f992fd1c819b2c3719974017cd8d25781d0ecb537bb1619178836a45fa",
   "changelog": [
-    "TV-Ton im Plugin frei wählbar: AN/AUS; mit Grün speichern; ab nächstem Pluginstart",
-    "TV-Ton-Auswahl links direkt unter Poster-Cache; passende Navigation",
-    "TV auch bei internen Rückkehrwechseln nach Theme-Wiedergabe stummschalten",
-    "Bestätigt: TV-Ton beim Pluginstart sofort stumm; Theme-Musik und Filme hörbar; vorherigen Stummzustand beim Verlassen wiederherstellen",
-    "TV-Sender vor Pluginstart speichern und beim Verlassen wiederherstellen",
-    "Blauen Detailhintergrund nach Filmende wieder einblenden",
-    "EXIT und ROT beenden den Player wieder direkt wie in der älteren funktionierenden PY",
-    "Detailseite exakt wie bestätigte Vorschau: einfarbig #0C1827, ohne Verlauf",
-    "Poster unten rechts bleibt erhalten",
-    "ThemeVideos, Musik-Test und Lautstärkegrenze weiterhin enthalten"
+    "Trailer-Button fuer Filme und Serien; OK oder Taste 9 startet den bei Emby hinterlegten YouTube-Trailer",
+    "Bei Staffeln und Episoden den Trailer der zugehoerigen Serie verwenden",
+    "Trailer-Komponente beim ersten Bedarf direkt von GitHub laden und SHA256 pruefen; kein Image-Feed",
+    "H.264 bis 720p mit Ton; STOP/EXIT kehrt zur Detailseite zurueck",
+    "Bestaetigtes Layout: drei gleich grosse Buttons, gleiche Abstaende, Poster unten rechts",
+    "TV-Ton-Auswahl und bestehende Player-Exit-Korrekturen bleiben enthalten"
   ]
 }
