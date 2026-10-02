@@ -20,7 +20,7 @@ jobs:
           for n in t.body:
               if isinstance(n,ast.ClassDef) and any(x in n.name.lower() for x in ('client','api')):
                   print('CLASS',n.name,[x.name for x in n.body if isinstance(x,ast.FunctionDef)])
-              if isinstance(n,ast.FunctionDef) and (n.name in ('emby_enrich_detail_data','_embyflow_theme_stop_v1','_skyfall_local_theme_stop','_embyflow_theme_volume_release') or 'trailer' in n.name.lower()):
+              if isinstance(n,ast.FunctionDef) and (n.name in ('emby_enrich_detail_data','_embyflow_theme_stop_v1','_skyfall_local_theme_stop','_embyflow_theme_volume_release') or 'trailer' in n.name.lower() or ('fallback' in n.name.lower() and any(k in n.name.lower() for k in ('stop','poll','close')))):
                   print(ast.get_source_segment(s,n))
               if isinstance(n,ast.ClassDef) and n.name=='EmbyFlowDetailScreen':
                   for f in n.body:
