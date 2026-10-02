@@ -193,6 +193,8 @@ class EmbyFlowTrailerPlayer(Screen):
                     self._trailer_control.volumeUnMute()
 
     def leave(self):
+        if self._trailer_finished:
+            return
         self.cleanup()
         self.close()
 
