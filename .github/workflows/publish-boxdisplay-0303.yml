@@ -1,0 +1,43 @@
+name: Publish optional boxdisplay 0303
+on:
+  push:
+    branches: [main]
+    paths:
+      - release_tools/build_boxdisplay_0303.py
+      - release_tools/boxdisplay_0303.inc.py
+      - release_tools/boxdisplay_settings_0303.inc.py
+      - release_tools/test_boxdisplay_0303.py
+      - .github/workflows/publish-boxdisplay-0303.yml
+permissions:
+  contents: write
+concurrency:
+  group: publish-trailers
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and test
+        run: |
+          python3 release_tools/build_boxdisplay_0303.py
+          python3 release_tools/test_boxdisplay_0303.py
+          python3 tools/trailers/test_trailers.py
+          python3 tools/blue-detail/test_tv_choice.py EmbyFlowE2_Boxdisplay_20261003_0303.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Check Python 3.14
+        run: |
+          python3 -m py_compile EmbyFlowE2_Boxdisplay_20261003_0303.py
+          python3 release_tools/test_boxdisplay_0303.py
+      - name: Publish update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_Boxdisplay_20261003_0303.py update.json
+          git commit -m 'Publish optional boxdisplay build 2026100303'
+          git push origin HEAD:main
