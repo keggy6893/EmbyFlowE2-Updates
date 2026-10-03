@@ -1,17 +1,17 @@
 {
-  "version": "2026-RCDEV-TRAILERQUELLEN-20261003",
-  "build": 2026100302,
+  "version": "2026-RCDEV-BOXDISPLAY-20261003",
+  "build": 2026100303,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_TrailerQuellen_20261003_0302.py",
-  "sha256": "eaaa904a3de7bb4c311a3037b5fde67323ab07748f2ac306181beec74d2f3df7",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Boxdisplay_20261003_0303.py",
+  "sha256": "02e85e184426d490f73e7622fb41f8c1c497d9b9944b4c1f027db84f733933c1",
   "changelog": [
-    "Trailer-Suche ohne API-Schluessel: KinoCheck, Rotten Tomatoes/Movieclips, FILMSTARTS, Movie Trailers Source und ONE Media bevorzugt",
-    "Titel und Originaltitel mit Jahr suchen; bis zu 20 Treffer je Anfrage pruefen statt zehn einzelner Kanalsuchen",
-    "Passende weitere Kanaele als Ersatz erlaubt; Titel, Jahr und Trailermerkmale pruefen, Fanvideos aussortieren",
-    "Fehlgeschlagene Aufloesungen 90 Sekunden speichern: keine doppelte Suche nach Vorbereitung und Tastendruck",
-    "Vorladender Resolver, erfolgreicher Streamcache und bestaetigter Player-Timerfix bleiben enthalten",
-    "Lokal auf openATV 8.0 bestaetigt: Invisible ueber Ersatzquelle abspielbar; Sprache weiterer Quellen kann abweichen"
+    "Optionales Boxdisplay: Erweiterte Einstellungen > Wiedergabe & Diagnose > Boxdisplay; standardmaessig aus, mit Gruen speichern",
+    "Filmtitel weiss, 2 Pixel groesser und mit kraeftiger Schriftkontur",
+    "Wiedergabe/Pause, schmaler Fortschrittsbalken, vergangene Zeit/Gesamtlaufzeit und Restzeit",
+    "Lokal auf VU+ Duo 4K SE mit openATV 8.0 getestet; Rueckkehr zur TV-Anzeige bestaetigt",
+    "Darstellung auf weiteren Boxen noch zu testen; keine LCD4linux-Anbindung enthalten",
+    "Trailer-Suche, Ersatzquellen, Vorladen und Fehlercache aus Build 2026100302 bleiben enthalten"
   ]
 }
