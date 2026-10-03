@@ -1,17 +1,17 @@
 {
-  "version": "2026-RCDEV-TRAILERS-20261002",
-  "build": 2026100201,
+  "version": "2026-RCDEV-KINOCHECK-20261003",
+  "build": 2026100301,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Trailers_20261002_0201.py",
-  "sha256": "dd2af2f992fd1c819b2c3719974017cd8d25781d0ecb537bb1619178836a45fa",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_KinoCheck_20261003_0301.py",
+  "sha256": "01ea0a92517036b0b93047b09442034a9288d3a951877860707d605ff99028ef",
   "changelog": [
-    "Trailer-Button fuer Filme und Serien; OK oder Taste 9 startet den bei Emby hinterlegten YouTube-Trailer",
-    "Bei Staffeln und Episoden den Trailer der zugehoerigen Serie verwenden",
-    "Trailer-Komponente beim ersten Bedarf direkt von GitHub laden und SHA256 pruefen; kein Image-Feed",
-    "H.264 bis 720p mit Ton; STOP/EXIT kehrt zur Detailseite zurueck",
-    "Bestaetigtes Layout: drei gleich grosse Buttons, gleiche Abstaende, Poster unten rechts",
-    "TV-Ton-Auswahl und bestehende Player-Exit-Korrekturen bleiben enthalten"
+    "Testupdate: KinoCheck-Trailersuche fuer Filme und Serien, Deutsch oder Englisch",
+    "Vorhandene YouTube-Links pruefen; bei Fehlern KinoCheck mit Titel, Originaltitel und Jahr durchsuchen",
+    "Resolver im Hintergrund vorladen und erfolgreiche Aufloesungen kurz zwischenspeichern",
+    "Playerstart korrigiert: fehlender Hintergrund-Timer blockiert Trailer nicht mehr",
+    "Getestet auf openATV 8.0: Fallout-Serie, Schumacher und KinoCheck-Suche fuer Mission: Impossible - Fallout",
+    "Nicht fuer jeden Titel ist ein passender, abspielbarer Trailer verfuegbar"
   ]
 }
