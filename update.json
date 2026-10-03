@@ -1,17 +1,17 @@
 {
-  "version": "2026-RCDEV-KINOCHECK-20261003",
-  "build": 2026100301,
+  "version": "2026-RCDEV-TRAILERQUELLEN-20261003",
+  "build": 2026100302,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_KinoCheck_20261003_0301.py",
-  "sha256": "01ea0a92517036b0b93047b09442034a9288d3a951877860707d605ff99028ef",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_TrailerQuellen_20261003_0302.py",
+  "sha256": "eaaa904a3de7bb4c311a3037b5fde67323ab07748f2ac306181beec74d2f3df7",
   "changelog": [
-    "Testupdate: KinoCheck-Trailersuche fuer Filme und Serien, Deutsch oder Englisch",
-    "Vorhandene YouTube-Links pruefen; bei Fehlern KinoCheck mit Titel, Originaltitel und Jahr durchsuchen",
-    "Resolver im Hintergrund vorladen und erfolgreiche Aufloesungen kurz zwischenspeichern",
-    "Playerstart korrigiert: fehlender Hintergrund-Timer blockiert Trailer nicht mehr",
-    "Getestet auf openATV 8.0: Fallout-Serie, Schumacher und KinoCheck-Suche fuer Mission: Impossible - Fallout",
-    "Nicht fuer jeden Titel ist ein passender, abspielbarer Trailer verfuegbar"
+    "Trailer-Suche ohne API-Schluessel: KinoCheck, Rotten Tomatoes/Movieclips, FILMSTARTS, Movie Trailers Source und ONE Media bevorzugt",
+    "Titel und Originaltitel mit Jahr suchen; bis zu 20 Treffer je Anfrage pruefen statt zehn einzelner Kanalsuchen",
+    "Passende weitere Kanaele als Ersatz erlaubt; Titel, Jahr und Trailermerkmale pruefen, Fanvideos aussortieren",
+    "Fehlgeschlagene Aufloesungen 90 Sekunden speichern: keine doppelte Suche nach Vorbereitung und Tastendruck",
+    "Vorladender Resolver, erfolgreicher Streamcache und bestaetigter Player-Timerfix bleiben enthalten",
+    "Lokal auf openATV 8.0 bestaetigt: Invisible ueber Ersatzquelle abspielbar; Sprache weiterer Quellen kann abweichen"
   ]
 }
