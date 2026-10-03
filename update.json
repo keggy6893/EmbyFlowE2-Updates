@@ -1,17 +1,15 @@
 {
-  "version": "2026-RCDEV-BOXDISPLAY-20261003",
-  "build": 2026100303,
+  "version": "2026-RCDEV-LESBARKEIT-20261003",
+  "build": 2026100304,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Boxdisplay_20261003_0303.py",
-  "sha256": "02e85e184426d490f73e7622fb41f8c1c497d9b9944b4c1f027db84f733933c1",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_GroessereSchrift_20261003_0304.py",
+  "sha256": "37c9b9e2d16aff75aff93b947d8d2068df66a5fe17c89352704ba32f435cee4a",
   "changelog": [
-    "Optionales Boxdisplay: Erweiterte Einstellungen > Wiedergabe & Diagnose > Boxdisplay; standardmaessig aus, mit Gruen speichern",
-    "Filmtitel weiss, 2 Pixel groesser und mit kraeftiger Schriftkontur",
-    "Wiedergabe/Pause, schmaler Fortschrittsbalken, vergangene Zeit/Gesamtlaufzeit und Restzeit",
-    "Lokal auf VU+ Duo 4K SE mit openATV 8.0 getestet; Rueckkehr zur TV-Anzeige bestaetigt",
-    "Darstellung auf weiteren Boxen noch zu testen; keine LCD4linux-Anbindung enthalten",
-    "Trailer-Suche, Ersatzquellen, Vorladen und Fehlercache aus Build 2026100302 bleiben enthalten"
+    "Groessere Schrift im linken Menue, in der Titelbeschreibung und unter den Postern",
+    "Postertitel mit Platz fuer zwei Zeilen; Metadaten darunter kompakt und einzeilig",
+    "Layout lokal auf VU+ Duo 4K SE getestet (Test2)",
+    "Optionales Boxdisplay und Trailer-Funktionen aus Build 2026100303 enthalten"
   ]
 }
