@@ -1,0 +1,37 @@
+name: Publish KinoCheck trailer test 0301
+on:
+  push:
+    branches: [main]
+    paths:
+      - release_tools/build_kinocheck_0301.py
+      - .github/workflows/publish-kinocheck-0301.yml
+permissions:
+  contents: write
+concurrency:
+  group: publish-trailers
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and verify checksums and Python syntax
+        run: |
+          python3 release_tools/build_kinocheck_0301.py
+          python3 tools/trailers/test_trailers.py
+          python3 tools/blue-detail/test_tv_choice.py EmbyFlowE2_KinoCheck_20261003_0301.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Verify Python 3.14 syntax
+        run: python3 -m py_compile EmbyFlowE2_KinoCheck_20261003_0301.py
+      - name: Publish tested update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_KinoCheck_20261003_0301.py update.json
+          git commit -m 'Publish KinoCheck trailers test build 2026100301'
+          git push origin HEAD:main
