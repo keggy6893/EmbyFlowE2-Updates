@@ -1,0 +1,37 @@
+name: Publish trailer sources test 0302
+on:
+  push:
+    branches: [main]
+    paths:
+      - release_tools/build_trailerquellen_0302.py
+      - .github/workflows/publish-trailerquellen-0302.yml
+permissions:
+  contents: write
+concurrency:
+  group: publish-trailers
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and verify checksums and Python syntax
+        run: |
+          python3 release_tools/build_trailerquellen_0302.py
+          python3 tools/trailers/test_trailers.py
+          python3 tools/blue-detail/test_tv_choice.py EmbyFlowE2_TrailerQuellen_20261003_0302.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Verify Python 3.14 syntax
+        run: python3 -m py_compile EmbyFlowE2_TrailerQuellen_20261003_0302.py
+      - name: Publish tested update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_TrailerQuellen_20261003_0302.py update.json
+          git commit -m 'Publish trailer sources test build 2026100302'
+          git push origin HEAD:main
