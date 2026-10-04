@@ -1,14 +1,15 @@
 {
-  "version": "2026-RCDEV-MENU-20261004",
-  "build": 2026100405,
+  "version": "2026-RCDEV-SEGMENTDISPLAY-20261004",
+  "build": 2026100406,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Menu_20261004_0405.py",
-  "sha256": "45ed397f77f4349ac5ae16f9d4e8e5253244c97226b67d2ab92706158f3038d1",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Segmentdisplay_20261004_0406.py",
+  "sha256": "1c921ae631c82619116310c5867d6621866068709b19164d5287376c9245e2d2",
   "changelog": [
-    "Menue: einzeilige Kategorien verhindern abgeschnittene Zeichen einer zweiten Zeile",
-    "Science Fiction & Fantasy wird im Menue als Sci-Fi & Fantasy angezeigt; Bibliotheksname und ID bleiben erhalten",
-    "LCD-Fanart und Resolver-Fixes aus 0404 enthalten"
+    "Optionales Boxdisplay: eigene einzeilige Restzeitanzeige HHMM fuer von openATV erkannte 7-Segment-Displays",
+    "Kein direkter Geraetezugriff; normale Enigma2-Summary und Timer-Aufraeumung",
+    "Grafikdisplays behalten ihre bisherige Anzeige; unbekannte Laufzeit zeigt ----",
+    "Alle Aenderungen aus 0405 enthalten; automatische Tests bestanden, SF8008-Hardwaretest steht aus"
   ]
 }
