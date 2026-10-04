@@ -1,0 +1,46 @@
+name: Publish isolated Dreambox resolver 0403
+on:
+  push:
+    branches: [main]
+    paths:
+      - release_tools/build_isolated_resolver_0403.py
+      - release_tools/isolated_resolver_0403.inc.py
+      - release_tools/test_isolated_resolver_0403.py
+      - .github/workflows/publish-isolated-resolver-0403.yml
+permissions:
+  contents: write
+concurrency:
+  group: publish-trailers
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and test
+        run: |
+          python3 release_tools/build_isolated_resolver_0403.py
+          python3 release_tools/test_isolated_resolver_0403.py
+          python3 release_tools/test_current_images_0401.py
+          python3 release_tools/test_detail_cleanup_0401.py
+          python3 tools/trailers/test_trailers.py
+          python3 tools/blue-detail/test_tv_choice.py EmbyFlowE2_Resolver_Dreambox_20261004_0403.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Check Python 3.14
+        run: |
+          python3 -m py_compile EmbyFlowE2_Resolver_Dreambox_20261004_0403.py
+          python3 release_tools/test_isolated_resolver_0403.py
+          python3 release_tools/test_current_images_0401.py
+          python3 release_tools/test_detail_cleanup_0401.py
+      - name: Publish update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EmbyFlowE2_Resolver_Dreambox_20261004_0403.py update.json
+          git commit -m 'Publish Dreambox resolver fix build 2026100403'
+          git push origin HEAD:main
