@@ -1,17 +1,15 @@
 {
-  "version": "2026-RCDEV-RESOLVER-20261004",
-  "build": 2026100403,
+  "version": "2026-RCDEV-LCD-FANART-20261004",
+  "build": 2026100404,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Resolver_Dreambox_20261004_0403.py",
-  "sha256": "af3851c39eb9a256dc2da4682a2697735a66b40260c940e3812efb93ef4880e8",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_LCD_Fanart_20261004_0404.py",
+  "sha256": "f80f6c2c2cd0deb322847f744daf255d44c8b079791e42677fddf194379d3f39",
   "changelog": [
-    "Bei bereits geladenem fremden yt-dlp: eigene gepruefte Version im separaten Prozess mit vollstaendigem Suchkontext",
-    "Auch im Prozess-Fallback: weitere Links und passende Trailer-Suche statt nur des ersten Links",
-    "Hintergrundmusik im isolierten Prozess; kein Importkonflikt mit anderen Plugins",
-    "Fehlerprotokoll fuer Hintergrundvideo und Musik: /tmp/embyflow_background_debug.log",
-    "Keine Deinstallation oder Aenderung des yt-dlp anderer Plugins; wiederholte erfolglose Import-Vorladung entfällt",
-    "Funktionen aus 0402 enthalten; automatisiert getestet, Dreambox-Test steht aus"
+    "LCD: ungedunkeltes Emby-Backdrop statt dunklem TV-Cachebild",
+    "Exportnamen Poster.jpg und Backdrop.jpg unveraendert",
+    "Bilder nur waehrend Wiedergabe; spaete Antworten nach Filmende verworfen",
+    "0403 Resolver-Fixes enthalten; automatisiert getestet, Box-Test steht aus"
   ]
 }
