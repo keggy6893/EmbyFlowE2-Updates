@@ -1,18 +1,17 @@
 {
-  "version": "2026-RCDEV-DETAIL-HINTERGRUND-20261004",
-  "build": 2026100402,
+  "version": "2026-RCDEV-RESOLVER-20261004",
+  "build": 2026100403,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Detail_Hintergrund_20261004_0402.py",
-  "sha256": "d495d9dcb0736bf98af078ce21c2b7904c7e45e518f109295c5add0b74240e2b",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Resolver_Dreambox_20261004_0403.py",
+  "sha256": "af3851c39eb9a256dc2da4682a2697735a66b40260c940e3812efb93ef4880e8",
   "changelog": [
-    "Hintergrundmedien nur auf der Detailseite; Posteruebersicht startet keine Musik oder Videos",
-    "Erweiterte Einstellungen > Blau/Musik: Hoch/Runter waehlt Video mit Musik-Fallback, Musik und Backdrop oder Aus; Gruen speichert",
-    "Video nutzt die vorhandene Online-Trailersuche ohne eigenen API-Key und unabhaengig von ThemeVideos beim Anbieter",
-    "Ohne Video: ThemerrDB-Musik anhand vorhandener TMDB-Metadaten, sofern verfuegbar; sonst nur Backdrop",
-    "Abbruch bei Filmstart und Verlassen; spaete Hintergrund-Ergebnisse starten keine Wiedergabe",
-    "Bilder-Export, Bereinigung, Posterstrich, Schrift und optionales Boxdisplay aus 0401 bleiben enthalten",
-    "Automatisierte Pruefung; neue Hintergrundfunktion noch nicht auf Receiver getestet"
+    "Bei bereits geladenem fremden yt-dlp: eigene gepruefte Version im separaten Prozess mit vollstaendigem Suchkontext",
+    "Auch im Prozess-Fallback: weitere Links und passende Trailer-Suche statt nur des ersten Links",
+    "Hintergrundmusik im isolierten Prozess; kein Importkonflikt mit anderen Plugins",
+    "Fehlerprotokoll fuer Hintergrundvideo und Musik: /tmp/embyflow_background_debug.log",
+    "Keine Deinstallation oder Aenderung des yt-dlp anderer Plugins; wiederholte erfolglose Import-Vorladung entfällt",
+    "Funktionen aus 0402 enthalten; automatisiert getestet, Dreambox-Test steht aus"
   ]
 }
