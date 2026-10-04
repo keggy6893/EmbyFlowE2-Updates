@@ -1,17 +1,18 @@
 {
-  "version": "2026-RCDEV-BILDER-20261004",
-  "build": 2026100401,
+  "version": "2026-RCDEV-DETAIL-HINTERGRUND-20261004",
+  "build": 2026100402,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Bilder_Aufraeumen_20261004_0401.py",
-  "sha256": "5d4a270712f97acdacd78df9d057d720d89761feeb12caab5efadaf1184c517c",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Detail_Hintergrund_20261004_0402.py",
+  "sha256": "d495d9dcb0736bf98af078ce21c2b7904c7e45e518f109295c5add0b74240e2b",
   "changelog": [
-    "Waehrend der Wiedergabe: vorhandene JPEG-Bilder unter /tmp/EmbyFlow/Poster.jpg und /tmp/EmbyFlow/Backdrop.jpg; beim Stoppen automatisch entfernt",
-    "Temporaere Detailposter und Backdrops werden nach Schliessen der Detailseite aufgeraeumt; Bilder des laufenden Films bleiben geschuetzt",
-    "Keine neuen Bilddownloads fuer den Export; dauerhafter Poster-Cache bleibt erhalten",
-    "Gelber Auswahlstrich auf der Startseite liegt unter dem Poster statt im Filmtitel",
-    "Bildwechsel Skyfall/Fallout, Filmstart, Stoppen und Aufraeumen lokal auf VU+ Duo 4K SE mit openATV 8.0 getestet",
-    "Groessere Schrift, optionales Boxdisplay und Trailer-Funktionen aus Build 2026100304 enthalten"
+    "Hintergrundmedien nur auf der Detailseite; Posteruebersicht startet keine Musik oder Videos",
+    "Erweiterte Einstellungen > Blau/Musik: Hoch/Runter waehlt Video mit Musik-Fallback, Musik und Backdrop oder Aus; Gruen speichert",
+    "Video nutzt die vorhandene Online-Trailersuche ohne eigenen API-Key und unabhaengig von ThemeVideos beim Anbieter",
+    "Ohne Video: ThemerrDB-Musik anhand vorhandener TMDB-Metadaten, sofern verfuegbar; sonst nur Backdrop",
+    "Abbruch bei Filmstart und Verlassen; spaete Hintergrund-Ergebnisse starten keine Wiedergabe",
+    "Bilder-Export, Bereinigung, Posterstrich, Schrift und optionales Boxdisplay aus 0401 bleiben enthalten",
+    "Automatisierte Pruefung; neue Hintergrundfunktion noch nicht auf Receiver getestet"
   ]
 }
