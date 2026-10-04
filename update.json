@@ -1,15 +1,14 @@
 {
-  "version": "2026-RCDEV-LCD-FANART-20261004",
-  "build": 2026100404,
+  "version": "2026-RCDEV-MENU-20261004",
+  "build": 2026100405,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_LCD_Fanart_20261004_0404.py",
-  "sha256": "f80f6c2c2cd0deb322847f744daf255d44c8b079791e42677fddf194379d3f39",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Menu_20261004_0405.py",
+  "sha256": "45ed397f77f4349ac5ae16f9d4e8e5253244c97226b67d2ab92706158f3038d1",
   "changelog": [
-    "LCD: ungedunkeltes Emby-Backdrop statt dunklem TV-Cachebild",
-    "Exportnamen Poster.jpg und Backdrop.jpg unveraendert",
-    "Bilder nur waehrend Wiedergabe; spaete Antworten nach Filmende verworfen",
-    "0403 Resolver-Fixes enthalten; automatisiert getestet, Box-Test steht aus"
+    "Menue: einzeilige Kategorien verhindern abgeschnittene Zeichen einer zweiten Zeile",
+    "Science Fiction & Fantasy wird im Menue als Sci-Fi & Fantasy angezeigt; Bibliotheksname und ID bleiben erhalten",
+    "LCD-Fanart und Resolver-Fixes aus 0404 enthalten"
   ]
 }
