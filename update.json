@@ -1,15 +1,15 @@
 {
-  "version": "2026-RCDEV-SEGMENTDISPLAY-20261004",
-  "build": 2026100406,
+  "version": "2026-RCDEV-ANBIETERLINKS-20261005",
+  "build": 2026100501,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Segmentdisplay_20261004_0406.py",
-  "sha256": "1c921ae631c82619116310c5867d6621866068709b19164d5287376c9245e2d2",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Anbieterlinks_20261005_0501.py",
+  "sha256": "f9ad84e08f1f34f7ca2317b4cdadde57cedb69499ab388dbfe9f315a262ef778",
   "changelog": [
-    "Optionales Boxdisplay: eigene einzeilige Restzeitanzeige HHMM fuer von openATV erkannte 7-Segment-Displays",
-    "Kein direkter Geraetezugriff; normale Enigma2-Summary und Timer-Aufraeumung",
-    "Grafikdisplays behalten ihre bisherige Anzeige; unbekannte Laufzeit zeigt ----",
-    "Alle Aenderungen aus 0405 enthalten; automatische Tests bestanden, SF8008-Hardwaretest steht aus"
+    "Hochgeladenen lokalen Stand vom 05.10.2026 uebernommen: alle Anbieter-Trailerlinks werden beruecksichtigt",
+    "Neuheiten-Ansicht mit Postern und Informationen; Poster-Fallbacks und Layout-Anpassungen enthalten",
+    "Deutsche Trailer werden bevorzugt; YouTube-Resolver mit Node/EJS-Konfiguration",
+    "Syntax geprueft; Trailer-Wiedergabe und neue Ansicht auf der Box nicht bestaetigt"
   ]
 }
