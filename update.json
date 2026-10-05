@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV-SERVERGUARD-20261005",
-  "build": 2026100502,
+  "version": "2026-RCDEV-SERVERGUARD404-20261005",
+  "build": 2026100503,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ServerGuard_20261005_0502.py",
-  "sha256": "c6c8c22f1a9b3d7cdfc3ee96e5fef4aa9058947f8b1cc788c2dc4bf6d4b9f057",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ServerGuard_20261005_0503.py",
+  "sha256": "5d8d02161b3627727c747fdd4773d9f2e95c688322f721069ff019322c4284a2",
   "changelog": [
+    "404/5xx/Redirect/Transportfehler zaehlen nicht als Login-Fehlversuch; Backoff nur bei 401/403/429 oder 200 ohne gueltiges Token",
     "HTTP 403/429: mindestens 5 Minuten Host-Pause, Retry-After beachten, Bildschirmmeldung",
     "Login: Lock und Backoff 60/120/240/480/900 Sekunden; ein Passwortversuch pro Klick ohne URL-Fallback oder Redirect",
     "Startup nutzt den Token-Cache; NAS-Suche weiterhin nur per Klick, jetzt maximal 8 Threads",
