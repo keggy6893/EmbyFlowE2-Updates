@@ -1,15 +1,15 @@
 {
-  "version": "2026-RCDEV-ANBIETERLINKS-20261005",
-  "build": 2026100501,
+  "version": "2026-RCDEV-SERVERGUARD-20261005",
+  "build": 2026100502,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Anbieterlinks_20261005_0501.py",
-  "sha256": "f9ad84e08f1f34f7ca2317b4cdadde57cedb69499ab388dbfe9f315a262ef778",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ServerGuard_20261005_0502.py",
+  "sha256": "c6c8c22f1a9b3d7cdfc3ee96e5fef4aa9058947f8b1cc788c2dc4bf6d4b9f057",
   "changelog": [
-    "Hochgeladenen lokalen Stand vom 05.10.2026 uebernommen: alle Anbieter-Trailerlinks werden beruecksichtigt",
-    "Neuheiten-Ansicht mit Postern und Informationen; Poster-Fallbacks und Layout-Anpassungen enthalten",
-    "Deutsche Trailer werden bevorzugt; YouTube-Resolver mit Node/EJS-Konfiguration",
-    "Syntax geprueft; Trailer-Wiedergabe und neue Ansicht auf der Box nicht bestaetigt"
+    "HTTP 403/429: mindestens 5 Minuten Host-Pause, Retry-After beachten, Bildschirmmeldung",
+    "Login: Lock und Backoff 60/120/240/480/900 Sekunden; ein Passwortversuch pro Klick ohne URL-Fallback oder Redirect",
+    "Startup nutzt den Token-Cache; NAS-Suche weiterhin nur per Klick, jetzt maximal 8 Threads",
+    "Neuheiten und Anbieterlinks aus 0501 enthalten; lokal mit simulierten Antworten getestet, kein Test auf Bennies Server"
   ]
 }
