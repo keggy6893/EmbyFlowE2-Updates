@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-SERVERGUARD404-20261005",
-  "build": 2026100503,
+  "version": "2026-RCDEV-PLAYERGUARD-20261005",
+  "build": 2026100504,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_ServerGuard_20261005_0503.py",
-  "sha256": "5d8d02161b3627727c747fdd4773d9f2e95c688322f721069ff019322c4284a2",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_PlayerGuard_20261005_0504.py",
+  "sha256": "eae52c0f4c18504e25b24a26c799896d4f1b9690e1c22d7b7e0cca0ea77b123c",
   "changelog": [
-    "404/5xx/Redirect/Transportfehler zaehlen nicht als Login-Fehlversuch; Backoff nur bei 401/403/429 oder 200 ohne gueltiges Token",
-    "HTTP 403/429: mindestens 5 Minuten Host-Pause, Retry-After beachten, Bildschirmmeldung",
-    "Login: Lock und Backoff 60/120/240/480/900 Sekunden; ein Passwortversuch pro Klick ohne URL-Fallback oder Redirect",
-    "Startup nutzt den Token-Cache; NAS-Suche weiterhin nur per Klick, jetzt maximal 8 Threads",
-    "Neuheiten und Anbieterlinks aus 0501 enthalten; lokal mit simulierten Antworten getestet, kein Test auf Bennies Server"
+    "Securitycheck by Paul",
+    "Alle vom Plugin ausgeloesten Streamstarts/-neustarts beachten die Host-Pause",
+    "Laufenden Stream bei erkannter Host-Sperre stoppen; native Startfehler und vorzeitiges EOF mit bekannter Laufzeit loesen 5 Minuten Pause aus",
+    "Native HTTP-Statuscodes/interne Reconnects nicht vollstaendig sichtbar oder kontrollierbar; keine zusaetzlichen Testanfragen an den Server",
+    "404-Login-Fix, Neuheiten und Anbieterlinks enthalten; lokale Tests, kein Zugriff auf Bennies Server"
   ]
 }
