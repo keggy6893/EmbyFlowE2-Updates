@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-SOFTSTREAM-20261005",
-  "build": 2026100505,
+  "version": "2026-RCDEV-SECURITY-20261005",
+  "build": 2026100506,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Softstream_20261005_0505.py",
-  "sha256": "6b4714a36cf15c22e1204702d63f3207d3ce2432e39c10c31129a2558695f7ee",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Security_20261005_1907.py",
+  "sha256": "63812e2c910e7d34ab80fabd81fa4d3642c78fd97ab7765c97183724f0b8b7a0",
   "changelog": [
     "Securitycheck by Paul",
-    "Native Streamfehler pausieren nur weitere Streamstarts; Browsen und Poster bleiben verfuegbar",
-    "Erster Streamfehler ohne Pause, zweiter innerhalb 120 Sekunden mit 60 Sekunden Pause, dritter mit 300 Sekunden Pause",
-    "HTTP 403/429 pausiert weiterhin alle Anfragen an den Host; 404-Login-Fix und Neuheiten enthalten",
-    "Lokal getestet; native HTTP-Statuscodes und interne Reconnects weiterhin nicht vollstaendig kontrollierbar"
+    "Geschuetzte und zentral bereinigte Logs; 49 direkte Log-Schreibstellen abgesichert",
+    "Atomare JSON-Dateien mit Rechten 600; TLS-Pruefungs-Bypass abgewiesen",
+    "HD-Layout und Schaltflaechenkorrekturen enthalten",
+    "Zugangsdaten weiterhin unverschluesselt; Wiedergabeabsturz nicht behoben; kein Hardwaretest"
   ]
 }
