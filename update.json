@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-PLAYERGUARD-20261005",
-  "build": 2026100504,
+  "version": "2026-RCDEV-SOFTSTREAM-20261005",
+  "build": 2026100505,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_PlayerGuard_20261005_0504.py",
-  "sha256": "eae52c0f4c18504e25b24a26c799896d4f1b9690e1c22d7b7e0cca0ea77b123c",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Softstream_20261005_0505.py",
+  "sha256": "6b4714a36cf15c22e1204702d63f3207d3ce2432e39c10c31129a2558695f7ee",
   "changelog": [
     "Securitycheck by Paul",
-    "Alle vom Plugin ausgeloesten Streamstarts/-neustarts beachten die Host-Pause",
-    "Laufenden Stream bei erkannter Host-Sperre stoppen; native Startfehler und vorzeitiges EOF mit bekannter Laufzeit loesen 5 Minuten Pause aus",
-    "Native HTTP-Statuscodes/interne Reconnects nicht vollstaendig sichtbar oder kontrollierbar; keine zusaetzlichen Testanfragen an den Server",
-    "404-Login-Fix, Neuheiten und Anbieterlinks enthalten; lokale Tests, kein Zugriff auf Bennies Server"
+    "Native Streamfehler pausieren nur weitere Streamstarts; Browsen und Poster bleiben verfuegbar",
+    "Erster Streamfehler ohne Pause, zweiter innerhalb 120 Sekunden mit 60 Sekunden Pause, dritter mit 300 Sekunden Pause",
+    "HTTP 403/429 pausiert weiterhin alle Anfragen an den Host; 404-Login-Fix und Neuheiten enthalten",
+    "Lokal getestet; native HTTP-Statuscodes und interne Reconnects weiterhin nicht vollstaendig kontrollierbar"
   ]
 }
