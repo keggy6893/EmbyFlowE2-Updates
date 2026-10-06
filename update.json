@@ -1,16 +1,17 @@
 {
   "version": "2026-RCDEV-SECURITY-20261005",
-  "build": 2026100506,
+  "build": 2026100605,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_Security_20261005_1907.py",
-  "sha256": "63812e2c910e7d34ab80fabd81fa4d3642c78fd97ab7765c97183724f0b8b7a0",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026100605.py",
+  "sha256": "93e6f747d420ac91ab5593de7692472b11dedf6f52dddc8e33a4c5e25d50a939",
   "changelog": [
-    "Securitycheck by Paul",
-    "Geschuetzte und zentral bereinigte Logs; 49 direkte Log-Schreibstellen abgesichert",
-    "Atomare JSON-Dateien mit Rechten 600; TLS-Pruefungs-Bypass abgewiesen",
-    "HD-Layout und Schaltflaechenkorrekturen enthalten",
-    "Zugangsdaten weiterhin unverschluesselt; Wiedergabeabsturz nicht behoben; kein Hardwaretest"
+    "Trailer optional und standardmaessig AUS",
+    "Erweiterte Einstellungen: Trailer aktivieren (Erprobung)",
+    "Keine Trailer-Suche und kein Resolver-Vorladen bei AUS; Trailerknopf ausgeblendet",
+    "Trailer in Erprobung: Zuordnung und Startzeiten noch nicht zuverlaessig",
+    "Syntax und Schalterlogik geprueft; Hardwaretest dieser Einstellung ausstehend",
+    "Bestehende Sicherheits- und HD-Layoutkorrekturen bleiben erhalten"
   ]
 }
