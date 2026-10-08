@@ -1,17 +1,18 @@
 {
-  "version": "2026-RCDEV-SECURITY-20261005",
-  "build": 2026100605,
+  "version": "2026-RCDEV-NEUHEITEN-20261008",
+  "build": 2026100801,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026100605.py",
-  "sha256": "93e6f747d420ac91ab5593de7692472b11dedf6f52dddc8e33a4c5e25d50a939",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026100801.py",
+  "sha256": "51840adf518765f1db315a42b73d32edea9bf354c352e68d823932be0a49d16d",
   "changelog": [
-    "Trailer optional und standardmaessig AUS",
-    "Erweiterte Einstellungen: Trailer aktivieren (Erprobung)",
-    "Keine Trailer-Suche und kein Resolver-Vorladen bei AUS; Trailerknopf ausgeblendet",
-    "Trailer in Erprobung: Zuordnung und Startzeiten noch nicht zuverlaessig",
-    "Syntax und Schalterlogik geprueft; Hardwaretest dieser Einstellung ausstehend",
-    "Bestehende Sicherheits- und HD-Layoutkorrekturen bleiben erhalten"
+    "Einheitliche marineblaue Hintergrundflaechen #0C1827; Detailseite bleibt deckend",
+    "Neuheiten: 6 Spalten, 12 Poster pro Seite; rechte Vorschau entfernt",
+    "Titelarten Film, Serie, Doku und Doku-Serie; Doku-Erkennung anhand Emby-Genres",
+    "Breitere Titel mit zwei Zeilen; zusaetzlichen automatischen Umbruch verhindert",
+    "Gemeinsamer System-yt-dlp-Resolver, KinoCheck Trailer/Teaser und gepruefte YouTube-Ersatzsuche",
+    "Trailer weiterhin optional und standardmaessig AUS; Startzeit von vier Sekunden nicht zugesichert",
+    "Syntax und lokale Layout-/Navigationstests bestanden; Benutzer bestaetigt Layout auf VU+ Duo 4K SE"
   ]
 }
