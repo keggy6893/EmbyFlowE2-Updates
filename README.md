@@ -18,3 +18,9 @@ Auf der VU+ Duo 4K SE scheiterte ein gültiger YouTube-Trailer durch den zuvor e
 Python-Syntax, Skin-XML, 6×2-Layout, Navigation und Titelart-Zuordnung wurden lokal mit simulierten Enigma2-Komponenten geprüft. Der Benutzer bestätigte Marineblau, die Posterübersicht und den Schriftfix auf seiner Box. Andere Receiver und sämtliche Wiedergabeszenarien sind damit nicht geprüft.
 
 Die hochgeladene Box-PY vom 8. Oktober und die anschließend bestätigten Änderungen bilden die Grundlage dieses Builds. Bestehende Sicherheitskorrekturen bleiben enthalten.
+
+## Entwicklungsstand vom 14.10.2026
+
+[Receiver-Checkpoint mit PY, Grafiken und Original-ZIP](checkpoints/20261014_083450/) · [Gesammelte Änderungen und Einschränkungen](checkpoints/20261014_083450/CHANGELOG.md)
+
+Der Export enthält lokale Theme-Tests und USB-Pfade. Er ist als Entwicklungsstand gesichert; der Auto-Update-Kanal bleibt beim bisherigen Build.
