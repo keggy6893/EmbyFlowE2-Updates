@@ -24,3 +24,9 @@ Die hochgeladene Box-PY vom 8. Oktober und die anschließend bestätigten Änder
 [Receiver-Checkpoint mit PY, Grafiken und Original-ZIP](checkpoints/20261014_083450/) · [Gesammelte Änderungen und Einschränkungen](checkpoints/20261014_083450/CHANGELOG.md)
 
 Der Export enthält lokale Theme-Tests und USB-Pfade. Er ist als Entwicklungsstand gesichert; der Auto-Update-Kanal bleibt beim bisherigen Build.
+
+## Getesteter E2-Pufferstand vom 16.10.2026
+
+[Zusammengeführte vollständige PY, benötigte Hilfsdatei und Prüfbericht](checkpoints/20261016_1545_buffer_v4/) · [Community-Text](checkpoints/20261016_1545_buffer_v4/COMMUNITY.md)
+
+Optionaler RAM-Puffer für statische Direktstreams, scrollbare mittlere Einstellungsspalte, dauerhafte Testvormerkung und Pufferstatus direkt im Player. Auf der VU+ Duo 4K SE wurde der 15-Sekunden-Puffertest mit durchgehendem Bild und Ton bestätigt. Für weitere Receiver und echte Verbindungsabbrüche liegt keine Bestätigung vor. Der bestehende Auto-Update-Kanal wird mit diesem Checkpoint nicht umgestellt.
