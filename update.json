@@ -1,17 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261014",
-  "build": 2026101401,
+  "version": "2026-RCDEV-TEST-20261016-BUFFER-V4",
+  "build": 2026101601,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101401.py",
-  "sha256": "9f6cf0333a182d4be428d35f24f0d2d363c3339866c1c796f39be5ab3dbce835",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101601.py",
+  "sha256": "900d45fa8e6476eac9483a8528861c437a20eda64565c6983d000a3de296779d",
   "changelog": [
-    "Freiwilliger Teststand 14.10.2026: Darstellung, Bedienung und Server-Themes noch nicht abschliessend praktisch bestaetigt",
-    "Sechs UI-Grafiken werden beim GUI-Neustart im Plugin-Ordner assets bereitgestellt; keine USB-Abhaengigkeit",
-    "Marineblauer Favoriten-Qualitaetsdialog mit tuerkiser Auswahl, Videoaufloesungen und Metadaten-Nachladen im Hintergrund",
-    "Lokale Bond-Theme-Tests standardmaessig AUS; optional ENABLE_LOCAL_THEME_TESTS",
-    "Bitte Favoriten-Auswahl, OK/EXIT sowie MP3/MP4/Fanart vom eigenen Emby-Server testen",
-    "Bekannt: Titel/Jahr-Gruppierung heuristisch; Favorit entfernen betrifft ersten Gruppeneintrag; Aufloesung zeigt hoechste MediaSource"
+    "E2 Puffer V4: optionaler Stabilitaetsmodus fuer statische Direktstreams",
+    "Scrollbare mittlere Einstellungsspalte und dauerhaft vorgemerkter einmaliger Puffertest",
+    "RAM-Anzeige unter Qualitaet & Stats; 15-Sekunden-Test auf VU+ Duo 4K SE mit Bild und Ton bestaetigt",
+    "Benoetigte Puffer-Hilfsdatei eingebettet; wird beim GUI-Neustart lokal mit SHA256-Pruefung bereitgestellt",
+    "Kurzer Startspinner moeglich; echte Verbindungsabbrueche und Wiederverbindung weiterhin ungeprueft"
   ]
 }

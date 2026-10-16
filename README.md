@@ -30,3 +30,7 @@ Der Export enthält lokale Theme-Tests und USB-Pfade. Er ist als Entwicklungssta
 [Zusammengeführte vollständige PY, benötigte Hilfsdatei und Prüfbericht](checkpoints/20261016_1545_buffer_v4/) · [Community-Text](checkpoints/20261016_1545_buffer_v4/COMMUNITY.md)
 
 Optionaler RAM-Puffer für statische Direktstreams, scrollbare mittlere Einstellungsspalte, dauerhafte Testvormerkung und Pufferstatus direkt im Player. Auf der VU+ Duo 4K SE wurde der 15-Sekunden-Puffertest mit durchgehendem Bild und Ton bestätigt. Für weitere Receiver und echte Verbindungsabbrüche liegt keine Bestätigung vor. Der bestehende Auto-Update-Kanal wird mit diesem Checkpoint nicht umgestellt.
+
+## Auto-Update 2026101601
+
+Der rcdev-Updatekanal stellt jetzt den E2-Pufferstand V4 bereit. Die Update-PY enthaelt die unveraenderte Hilfsdatei aus dem Checkpoint und stellt sie beim GUI-Neustart mit SHA256-Pruefung und atomarem Dateiaustausch neben plugin.py bereit. Bestehende Einstellungen bleiben erhalten; ohne gespeicherte Aktivierung ist der Stabilitaetsmodus aus. Keine neue IPK. Echte Verbindungsabbrueche und Wiederverbindung sind weiterhin ungeprueft.
