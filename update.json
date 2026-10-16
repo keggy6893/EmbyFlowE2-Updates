@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261016-BUFFER-V4",
-  "build": 2026101601,
+  "version": "2026-RCDEV-TEST-20261016-SEEK-FIX1",
+  "build": 2026101602,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101601.py",
-  "sha256": "900d45fa8e6476eac9483a8528861c437a20eda64565c6983d000a3de296779d",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101602.py",
+  "sha256": "dcc7a0d2f0f2f09802bb500060da32f303b4d3e161dcfda4555fe2d370373f82",
   "changelog": [
-    "E2 Puffer V4: optionaler Stabilitaetsmodus fuer statische Direktstreams",
-    "Scrollbare mittlere Einstellungsspalte und dauerhaft vorgemerkter einmaliger Puffertest",
-    "RAM-Anzeige unter Qualitaet & Stats; 15-Sekunden-Test auf VU+ Duo 4K SE mit Bild und Ton bestaetigt",
-    "Benoetigte Puffer-Hilfsdatei eingebettet; wird beim GUI-Neustart lokal mit SHA256-Pruefung bereitgestellt",
-    "Kurzer Startspinner moeglich; echte Verbindungsabbrueche und Wiederverbindung weiterhin ungeprueft"
+    "Spul-Hotfix: kein alter Stream-Neustart nach abgelehntem sicheren Spulversuch",
+    "Mehrere Zifferntasten werden gesammelt; weitere Spruenge warten mindestens drei Sekunden",
+    "Nicht seekbare Backends erhalten keinen nativen seekTo-Aufruf",
+    "RAM-Puffer V4 und eingebettete Hilfsdatei bleiben enthalten",
+    "Lokale Regressionstests bestanden; Praxistest auf Receiver steht aus. Manche Direktstreams bleiben ohne passenden Player nicht spulbar."
   ]
 }
