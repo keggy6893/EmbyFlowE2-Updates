@@ -1,16 +1,15 @@
 {
-  "version": "2026-RCDEV-TEST-20261016-SEEK-FIX1",
-  "build": 2026101602,
+  "version": "2026-RCDEV-TEST-20261016-KEY9-5MIN",
+  "build": 2026101603,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101602.py",
-  "sha256": "dcc7a0d2f0f2f09802bb500060da32f303b4d3e161dcfda4555fe2d370373f82",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101603.py",
+  "sha256": "40b53b4d88a0a9734f83cbc8e425c2ae4c4175298c8d216a7724c6cf40dca5e7",
   "changelog": [
-    "Spul-Hotfix: kein alter Stream-Neustart nach abgelehntem sicheren Spulversuch",
-    "Mehrere Zifferntasten werden gesammelt; weitere Spruenge warten mindestens drei Sekunden",
-    "Nicht seekbare Backends erhalten keinen nativen seekTo-Aufruf",
-    "RAM-Puffer V4 und eingebettete Hilfsdatei bleiben enthalten",
-    "Lokale Regressionstests bestanden; Praxistest auf Receiver steht aus. Manche Direktstreams bleiben ohne passenden Player nicht spulbar."
+    "Taste 9 springt jetzt 5 Minuten vorwaerts statt 60 Sekunden.",
+    "Tastenhinweis an die neue Belegung angepasst.",
+    "Auf VU+ Duo 4K SE mit openATV 8.0.1 lokal bestaetigt.",
+    "Keine weiteren Aenderungen an Spullogik oder Dreambox-Tonspurwechsel."
   ]
 }
