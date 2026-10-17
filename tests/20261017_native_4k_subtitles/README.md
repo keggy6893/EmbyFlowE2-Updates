@@ -1,0 +1,11 @@
+# Isolated native 4K embedded forced-text subtitle test
+
+Receiver results: correct German forced SRT is selected, but EmbyFlow's HTTP subtitle downloads time out. Manual selection also does not become active. The user wants automatic foreign-dialog subtitles as with HD. This tests a different playback path instead of another HTTP request variant.
+
+Scope: only direct HTTP(S) static MKV/MP4/TS streams with 3840+ width or 2160+ height, explicit embedded (`IsExternal=false`) German forced text subtitles. A native subtitle tuple is selected only if the embedded Emby subtitle inventory and native inventory have identical lengths and the selected tuple reports German or unknown language. Emby stream indices and native tuple positions are kept distinct. The existing SubtitleDisplay getter is used. No server subtitle request is needed when native activation succeeds. Up to eight attempts allow the native list to initialize; failure delegates to the previous download path. The same interception covers automatic and manual text selection. Cancel/off/close stop the pending timer and disable the native renderer.
+
+This is a receiver test, not a confirmed solution. HD, external subtitles, HLS/transcoding, non-forced or non-German tracks retain the previous download path. Unknown/mismatched inventories never guess. No new PGS support or all-film guarantee. Existing serverguard/TLS behavior is not modified. No video restart or audio change is performed.
+
+Thirteen local tests validate native activation without HTTP, HD/external/transcode/full-track delegation, backend initialization delay, inventory/language mismatch refusal, cancellation, disable/close delegation, and full plugin compilation. Full installation and exact backup were separately checked. These mocks do not prove the receiver decoder renders the actual 4K file.
+
+Installer requires V2/V3 and preserves later V4 request testing and runtime diagnostics if present. It backs up and atomically replaces plugin.py. Restart GUI and reopen the affected 4K film without manual selection. Success should show the active track in the menu and actual dialogue subtitles. To remove this test restore the exact `plugin.py.vor-native-4k-<timestamp>` printed backup and restart GUI. Auto-update remains unchanged pending receiver validation.
