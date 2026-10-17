@@ -10,4 +10,4 @@ Six tests cover empty-then-success, bounded empty retries, TLS/auth/rate-limit h
 
 The installer requires V2, backs up plugin.py and replaces it atomically. Existing layout changes are preserved. Restart the GUI and reopen the film after installation. Diagnostic `/tmp/embyflow_ut_v3.jsonl` contains only time, attempt number, status, byte count and result kind; it excludes URLs, hostnames, IDs, subtitle text and credentials.
 
-The rcdev auto-update channel remains on build 2026101702 while this receiver test is pending.
+At the user's explicit request, the rcdev auto-update channel now supplies V3 as build 2026101703. Receiver validation remains pending; publication is not a claim that the reported server-side behavior is resolved.

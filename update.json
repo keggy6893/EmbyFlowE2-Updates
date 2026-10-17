@@ -1,16 +1,17 @@
 {
-  "version": "2026-RCDEV-TEST-20261017-FORCED-UT-V2",
-  "build": 2026101702,
+  "version": "2026-RCDEV-TEST-20261017-FORCED-UT-V3",
+  "build": 2026101703,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101702.py",
-  "sha256": "8d221050705560bb74f5da9cd8bcd3b7069ade27a02cb46c603ac37fc307c118",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101703.py",
+  "sha256": "014f92c6b40cce5719d962f7d1a2efceeff98479d46388919217bf2b6036a087",
   "changelog": [
-    "Untertitel-Automatik und Textrenderer verwenden jetzt die aktive Filmversion statt der ersten MediaSource.",
-    "Deutsche Sprachcodes wie de-DE und de_AT werden erkannt; fehlende Untertitelmetadaten werden bis zu viermal zeitversetzt erneut geprueft.",
-    "Standardindex 0 und manuelle Auswahl bleiben erhalten; Aktivieren und Ausschalten aktualisieren die aktive Filmversion.",
-    "Der bisherige einmalige Download-Neuversuch nach Verbindungsabbruch bleibt enthalten; TLS-Pruefung und Serverguard bleiben aktiv.",
-    "Der Benutzer zeigt nach dem V2-Test deutsche Untertitel in einer weiteren Filmszene auf VU+ Ultimo 4K mit openATV 8.0.1. Automatische Auswahl auf der Box nicht separat bestaetigt; keine Zusage fuer alle Filme oder PGS-Bilduntertitel."
+    "Untertitel-V3: Downloads verwenden frische geschuetzte Verbindungen statt des Metadaten-Pools und -Caches.",
+    "Nach einer leeren HTTP-200-Antwort oder einem Verbindungsabbruch erfolgt hoechstens ein weiterer Versuch je Download-Pfad.",
+    "Bei erfolglosen Items-Pfaden werden Videos-Pfade fuer dieselbe Filmversion und Untertitelspur versucht. Kein Wechsel auf eine andere Spur.",
+    "V2-Auswahl der aktiven Filmversion bleibt enthalten. TLS-Pruefung und Serverguard bleiben aktiv.",
+    "Sechs lokale V3-Tests bestanden. Receiver-Test auf VU+ Ultimo 4K / openATV 8.0.1 steht aus; keine Bestaetigung einer Loesung fuer alle Filme.",
+    "Diagnose /tmp/embyflow_ut_v3.jsonl protokolliert nur Zeit, Versuch, Status und Datenmenge; keine URLs oder Zugangsdaten."
   ]
 }

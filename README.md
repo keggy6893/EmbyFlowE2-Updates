@@ -52,3 +52,11 @@ Automatik und Textrenderer verwenden die aktive MediaSource gemeinsam. Die bishe
 Neun V2-Prüfungen umfassen die mit V1 reproduzierte Quellenverwechslung, HTTP-Download/Parsing/Aktivierung/Ausschalten mit originalen Player-Funktionen und mehrere Filmversionen. Die V1-Suite umfasst weitere elf Prüfungen. Nach dem V2-Test schickte der Benutzer einen Screenshot mit deutschem Untertitel in einer weiteren Filmszene auf VU+ Ultimo 4K mit openATV 8.0.1. Ob dieser automatisch oder manuell aktiviert wurde, wurde nicht separat bestätigt. Keine Zusage für sämtliche Filme, PGS-Bilduntertitel oder andere Receiver.
 
 Der Auto-Update-Kanal enthält V1 und V2 vollständig; die manuellen Testinstaller sind dafür nicht zusätzlich erforderlich.
+
+## Auto-Update 2026101703 – Untertitel V3, leere Downloads
+
+Nach dem gemeldeten Fehler „Leere Untertiteldatei“ mit installiertem V2 verwendet V3 für Untertiteldateien frische geschützte Requests-Verbindungen statt des Metadaten-Pools/-Caches und normale Kompressionsaushandlung. Eine leere HTTP-200-Antwort oder ein Verbindungsabbruch erlaubt höchstens einen weiteren Versuch pro Pfad. Danach können die bereits im Repository verwendeten Videos-Pfade für denselben Film, dieselbe Filmversion und dieselbe Spur verwendet werden. Es wird keine andere oder vollständige Untertitelspur ersatzweise eingeschaltet. Liefert der Server auf allen Pfaden keine Daten, bleibt der Fehler sichtbar.
+
+Die V2-Auswahl und der vorhandene SRT-Renderer bleiben enthalten. Zertifikatsfehler sowie HTTP-Zugriffs-/Rate-Limit-Antworten werden vom Download-Helfer nicht erneut versucht; TLS-Prüfung und Serverguard bleiben aktiv. Die Diagnose `/tmp/embyflow_ut_v3.jsonl` enthält nur Zeit, Versuchsnummer, HTTP-Status, Datenmenge und Ergebnistyp, keine URLs oder Zugangsdaten.
+
+Sechs lokale V3-Tests decken leere Antworten, begrenzte Versuche, Zertifikats-/Zugriffsfehler und den originalen Download-Worker mit echtem lokalen HTTP ab. V1 und V2 haben zusätzlich elf beziehungsweise neun Prüfungen. V3 wird auf ausdrücklichen Wunsch im rcdev-Kanal bereitgestellt; der Receiver-Test auf der Ultimo 4K / openATV 8.0.1 steht noch aus. Keine Zusage für sämtliche Filme oder PGS-Bilduntertitel.
