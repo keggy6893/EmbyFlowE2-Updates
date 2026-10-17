@@ -34,3 +34,13 @@ Optionaler RAM-Puffer für statische Direktstreams, scrollbare mittlere Einstell
 ## Auto-Update 2026101601
 
 Der rcdev-Updatekanal stellt jetzt den E2-Pufferstand V4 bereit. Die Update-PY enthaelt die unveraenderte Hilfsdatei aus dem Checkpoint und stellt sie beim GUI-Neustart mit SHA256-Pruefung und atomarem Dateiaustausch neben plugin.py bereit. Bestehende Einstellungen bleiben erhalten; ohne gespeicherte Aktivierung ist der Stabilitaetsmodus aus. Keine neue IPK. Echte Verbindungsabbrueche und Wiederverbindung sind weiterhin ungeprueft.
+
+## Auto-Update 2026101701 – deutsche Forced-Textuntertitel
+
+Auf Basis von Build 2026101603: Ohne gesetzten Untertitel-Standard wird eine deutsche, als Forced/erzwungen gekennzeichnete Textspur automatisch gestartet. Eine vorhandene Serverauswahl bleibt erhalten. Manuelle Auswahl einschließlich „Untertitel aus“ verhindert eine erneute automatische Auswahl während dieses Players. Ein vom Server gesetzter Aus-Index (-1) schließt diese Forced-Automatik nicht aus.
+
+Nach einem Verbindungsabbruch beim Untertitel-Download erfolgt einmalig ein Versuch über eine frische Verbindung. Serverguard und TLS-Zertifikatsprüfung bleiben aktiv; Zertifikatsfehler werden nicht wiederholt.
+
+Der Benutzer bestätigte deutsche Untertitel in der gezeigten fremdsprachigen Szene von „Mayday“ auf VU+ Ultimo 4K mit openATV 8.0.1. Das bestätigt weder sämtliche Filmszenen noch PGS-Bilduntertitel oder andere Receiver. Elf lokale Prüfungen decken Auswahl, Ausschalten, Download-Abbruch, SRT-Verarbeitung und Aktivierung mit den originalen Player-Funktionen ab.
+
+Der optionale manuelle Installer und die Tests stehen unter `tests/20261017_forced_subtitles/`. Das automatische Update enthält den Fix bereits; der Installer ist dafür nicht zusätzlich nötig.

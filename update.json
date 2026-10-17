@@ -1,15 +1,15 @@
 {
-  "version": "2026-RCDEV-TEST-20261016-KEY9-5MIN",
-  "build": 2026101603,
+  "version": "2026-RCDEV-TEST-20261017-FORCED-UT",
+  "build": 2026101701,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101603.py",
-  "sha256": "40b53b4d88a0a9734f83cbc8e425c2ae4c4175298c8d216a7724c6cf40dca5e7",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101701.py",
+  "sha256": "349f9edc9dc226030099fff6d72bd1b34d09a06607fc3da39d70af9efc89781e",
   "changelog": [
-    "Taste 9 springt jetzt 5 Minuten vorwaerts statt 60 Sekunden.",
-    "Tastenhinweis an die neue Belegung angepasst.",
-    "Auf VU+ Duo 4K SE mit openATV 8.0.1 lokal bestaetigt.",
-    "Keine weiteren Aenderungen an Spullogik oder Dreambox-Tonspurwechsel."
+    "Deutsche Forced-Textuntertitel werden automatisch gewaehlt, wenn kein Untertitel-Standard gesetzt ist.",
+    "Untertitel-Downloads erhalten nach einem Verbindungsabbruch einen einmaligen Versuch ueber eine frische Verbindung; TLS-Pruefung bleibt aktiv.",
+    "Vorhandene Serverauswahl und manuelle Untertitelauswahl bleiben wirksam.",
+    "Deutsche Untertitel in einer Mayday-Szene auf VU+ Ultimo 4K mit openATV 8.0.1 vom Benutzer bestaetigt. Keine neue Bestaetigung fuer PGS-Bilduntertitel oder andere Receiver."
   ]
 }
