@@ -80,8 +80,11 @@ def _efn4_start(self,stream,label,position,announce=True):
                 window=self.embyflow_get_subtitle_window()
                 widget=getattr(window,'instance',None)
                 if widget is None:raise RuntimeError('Kein Untertitelfenster')
+                # OpenATV may return success for the cached track without
+                # attaching this window. Reset it before changing the owner.
+                interface.disableSubtitles(widget)
                 result=interface.enableSubtitles(widget,entry)
-                if result is False:raise RuntimeError('Native Untertitel abgelehnt')
+                if result not in (None,0):raise RuntimeError('Native Untertitel abgelehnt')
                 self._efn4_active=(interface,widget)
                 window.show()
                 self.embyflow_selected_subtitle=entry

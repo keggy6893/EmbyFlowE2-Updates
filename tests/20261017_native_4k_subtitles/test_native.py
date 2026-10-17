@@ -76,7 +76,7 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(self.enabled)
     def test_stop_disables_native(self):
         self.start();self.ns['_embyflow_srt_v2_stop'](self.p,True)
-        self.assertEqual(len(self.disabled),1);self.assertIsNone(self.p._efn4_active)
+        self.assertEqual(len(self.disabled),2);self.assertIsNone(self.p._efn4_active)
     def test_stop_cancels_pending(self):
         self.entries=[];self.start();timer=self.p._efn4_timer
         self.ns['_embyflow_srt_v2_stop'](self.p,True)
@@ -84,7 +84,31 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(self.enabled);self.assertFalse(timer.running)
     def test_close_disables_and_delegates(self):
         self.start();self.p.embyflow_close_subtitle_window()
-        self.assertEqual(len(self.disabled),1);self.assertEqual(self.closed,[True])
+        self.assertEqual(len(self.disabled),2);self.assertEqual(self.closed,[True])
+    def test_cached_track_rebinds_window(self):
+        class Backend:
+            current=0
+            owner=None
+            def getSubtitleList(inner):return self.entries
+            def disableSubtitles(inner,widget):inner.current=-1;inner.owner=None
+            def enableSubtitles(inner,widget,entry):
+                # Actual early-return condition in openATV serviceMP3.
+                if inner.current==entry[1]:return 0
+                inner.current=entry[1];inner.owner=widget;return 0
+        backend=Backend()
+        # Previous test would accept return 0 while no display owner is attached.
+        self.assertEqual(backend.enableSubtitles(self.window.instance,self.entries[0]),0)
+        self.assertIsNone(backend.owner)
+        self.p.session.nav.getCurrentService=lambda:types.SimpleNamespace(subtitle=lambda:backend)
+        self.start()
+        self.assertIs(backend.owner,self.window.instance)
+        self.assertEqual(self.p.embyflow_active_subtitle_stream_index,3)
+    def test_backend_error_not_marked_active(self):
+        backend=types.SimpleNamespace(getSubtitleList=lambda:self.entries,
+            disableSubtitles=lambda widget:None,enableSubtitles=lambda *a:-1)
+        self.p.session.nav.getCurrentService=lambda:types.SimpleNamespace(subtitle=lambda:backend)
+        self.start();self.assertIsNone(self.p.embyflow_active_subtitle_index)
+        self.assertEqual(len(self.downloads),1)
     def test_full_compilation(self):
         root=pathlib.Path(__file__).resolve().parents[2]
         output=patched((root/'EmbyFlowE2_2026101703.py').read_text())
