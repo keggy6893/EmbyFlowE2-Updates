@@ -44,3 +44,11 @@ Nach einem Verbindungsabbruch beim Untertitel-Download erfolgt einmalig ein Vers
 Der Benutzer bestätigte deutsche Untertitel in der gezeigten fremdsprachigen Szene von „Mayday“ auf VU+ Ultimo 4K mit openATV 8.0.1. Das bestätigt weder sämtliche Filmszenen noch PGS-Bilduntertitel oder andere Receiver. Elf lokale Prüfungen decken Auswahl, Ausschalten, Download-Abbruch, SRT-Verarbeitung und Aktivierung mit den originalen Player-Funktionen ab.
 
 Der optionale manuelle Installer und die Tests stehen unter `tests/20261017_forced_subtitles/`. Das automatische Update enthält den Fix bereits; der Installer ist dafür nicht zusätzlich nötig.
+
+## Auto-Update 2026101702 – Untertitel V2, aktive Filmversion
+
+Automatik und Textrenderer verwenden die aktive MediaSource gemeinsam. Die bisherige Auswahl konnte Spuren der ersten Filmversion verwenden, obwohl das Menü die aktive Version zeigte. Aktivieren und Ausschalten schreiben den Standardindex der aktiven Version. Deutsche Sprachvarianten wie de-DE/de_AT werden erkannt; fehlende Metadaten werden mit höchstens vier verzögerten Timeraufrufen erneut geprüft. Ein vorhandener Standardindex einschließlich 0 bleibt maßgeblich, manuelle Auswahl bleibt wirksam. Der Download-Neuversuch aus V1 bleibt erhalten.
+
+Neun V2-Prüfungen umfassen die mit V1 reproduzierte Quellenverwechslung, HTTP-Download/Parsing/Aktivierung/Ausschalten mit originalen Player-Funktionen und mehrere Filmversionen. Die V1-Suite umfasst weitere elf Prüfungen. Nach dem V2-Test schickte der Benutzer einen Screenshot mit deutschem Untertitel in einer weiteren Filmszene auf VU+ Ultimo 4K mit openATV 8.0.1. Ob dieser automatisch oder manuell aktiviert wurde, wurde nicht separat bestätigt. Keine Zusage für sämtliche Filme, PGS-Bilduntertitel oder andere Receiver.
+
+Der Auto-Update-Kanal enthält V1 und V2 vollständig; die manuellen Testinstaller sind dafür nicht zusätzlich erforderlich.

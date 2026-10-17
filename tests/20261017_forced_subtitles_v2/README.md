@@ -6,7 +6,7 @@ Code inspection found a reproducible mismatch: the selector lists the active Med
 
 The manual installer requires the first fix (or build 2026101701), validates and compiles the full source before writing, backs up plugin.py, uses atomic replacement, and rejects repeated installation. It preserves the existing download retry and unrelated layout changes.
 
-Validation: nine V2 tests include a regression that misses the active source with V1, multiple-source HTTP download/parse/activation/off tests using original player functions, language variants, default index zero, bounded delayed-metadata retries, manual off, and unsupported bitmap tracks. Full plugin compilation, backup integrity, and repeat refusal were also checked. Receiver confirmation of V2 is pending. The automatic update channel is unchanged.
+Validation: nine V2 tests include a regression that misses the active source with V1, multiple-source HTTP download/parse/activation/off tests using original player functions, language variants, default index zero, bounded delayed-metadata retries, manual off, and unsupported bitmap tracks. Full plugin compilation, backup integrity, and repeat refusal were also checked. The user subsequently supplied a screenshot showing German subtitles after the V2 test on VU+ Ultimo 4K / openATV 8.0.1. Automatic versus manual activation was not separately confirmed. Build 2026101702 now contains V2 in the rcdev automatic update channel; no manual installer is additionally needed for that build.
 
 Run from the repository root:
 

@@ -1,15 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261017-FORCED-UT",
-  "build": 2026101701,
+  "version": "2026-RCDEV-TEST-20261017-FORCED-UT-V2",
+  "build": 2026101702,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101701.py",
-  "sha256": "349f9edc9dc226030099fff6d72bd1b34d09a06607fc3da39d70af9efc89781e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101702.py",
+  "sha256": "8d221050705560bb74f5da9cd8bcd3b7069ade27a02cb46c603ac37fc307c118",
   "changelog": [
-    "Deutsche Forced-Textuntertitel werden automatisch gewaehlt, wenn kein Untertitel-Standard gesetzt ist.",
-    "Untertitel-Downloads erhalten nach einem Verbindungsabbruch einen einmaligen Versuch ueber eine frische Verbindung; TLS-Pruefung bleibt aktiv.",
-    "Vorhandene Serverauswahl und manuelle Untertitelauswahl bleiben wirksam.",
-    "Deutsche Untertitel in einer Mayday-Szene auf VU+ Ultimo 4K mit openATV 8.0.1 vom Benutzer bestaetigt. Keine neue Bestaetigung fuer PGS-Bilduntertitel oder andere Receiver."
+    "Untertitel-Automatik und Textrenderer verwenden jetzt die aktive Filmversion statt der ersten MediaSource.",
+    "Deutsche Sprachcodes wie de-DE und de_AT werden erkannt; fehlende Untertitelmetadaten werden bis zu viermal zeitversetzt erneut geprueft.",
+    "Standardindex 0 und manuelle Auswahl bleiben erhalten; Aktivieren und Ausschalten aktualisieren die aktive Filmversion.",
+    "Der bisherige einmalige Download-Neuversuch nach Verbindungsabbruch bleibt enthalten; TLS-Pruefung und Serverguard bleiben aktiv.",
+    "Der Benutzer zeigt nach dem V2-Test deutsche Untertitel in einer weiteren Filmszene auf VU+ Ultimo 4K mit openATV 8.0.1. Automatische Auswahl auf der Box nicht separat bestaetigt; keine Zusage fuer alle Filme oder PGS-Bilduntertitel."
   ]
 }
