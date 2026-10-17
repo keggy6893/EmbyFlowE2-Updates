@@ -1,17 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261017-FORCED-UT-V3",
-  "build": 2026101703,
+  "version": "2026-RCDEV-TEST-20261017-4K-UT-SEGMENTS",
+  "build": 2026101704,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101703.py",
-  "sha256": "014f92c6b40cce5719d962f7d1a2efceeff98479d46388919217bf2b6036a087",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101704.py",
+  "sha256": "f2bc5fb136ca340133178ca1467fc866a54e061ef08aa5656d629fbbc6d814c3",
   "changelog": [
-    "Untertitel-V3: Downloads verwenden frische geschuetzte Verbindungen statt des Metadaten-Pools und -Caches.",
-    "Nach einer leeren HTTP-200-Antwort oder einem Verbindungsabbruch erfolgt hoechstens ein weiterer Versuch je Download-Pfad.",
-    "Bei erfolglosen Items-Pfaden werden Videos-Pfade fuer dieselbe Filmversion und Untertitelspur versucht. Kein Wechsel auf eine andere Spur.",
-    "V2-Auswahl der aktiven Filmversion bleibt enthalten. TLS-Pruefung und Serverguard bleiben aktiv.",
-    "Sechs lokale V3-Tests bestanden. Receiver-Test auf VU+ Ultimo 4K / openATV 8.0.1 steht aus; keine Bestaetigung einer Loesung fuer alle Filme.",
-    "Diagnose /tmp/embyflow_ut_v3.jsonl protokolliert nur Zeit, Versuch, Status und Datenmenge; keine URLs oder Zugangsdaten."
+    "4K: Eingebettete deutsche Forced-Textuntertitel werden automatisch in 60-Sekunden-Abschnitten angefordert statt als komplette SRT-Datei.",
+    "Der bestehende Text-Renderer zeigt die Untertitel an. Naechste Abschnitte werden vorgeladen; Spulen, Ausschalten und Filmversionswechsel werden beruecksichtigt.",
+    "Kein Adminzugang und keine externe SRT erforderlich; HD, externe und nicht-erzwungene Untertitel verwenden den bisherigen Download-Weg.",
+    "VU+ Ultimo 4K / openATV 8.0.1: Mayday 4K automatisch und synchron, etwa 30 Sekunden Startverzoegerung; Tenzig 4K automatisch sofort und bei weiterem Abspielen synchron, vom Benutzer bestaetigt.",
+    "Vierzehn lokale Abschnittstests bestanden. Keine Zusage fuer alle Filme, Server, andere Receiver oder PGS-Bilduntertitel. TLS-Pruefung und Serverguard bleiben aktiv."
   ]
 }
