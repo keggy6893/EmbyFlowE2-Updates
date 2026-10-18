@@ -1,0 +1,20 @@
+{
+  "version": "2026-RCDEV-TEST-20261018-MOUNTS",
+  "build": 2026101804,
+  "channel": "rcdev",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/9607448b39bcba1710fca2ea885444b4c8f28383/EmbyFlowE2_2026101804.py",
+  "sha256": "03563012e4051ddb186f79e2035cbb90504fe94d1f2f757cc167a182c97223c6",
+  "changelog": [
+    "Downloadziele und lokale Downloads erkennen jetzt auch nummerierte Laufwerke wie /media/hdd2 und /media/usb2. Laufwerke erscheinen mit ihrem Einhaengenamen und ihrer Speicherkapazitaet. Nicht eingehaengte Verzeichnisse, interner Flash und doppelte Datentraeger werden ausgelassen.",
+    "Groessere SRT-Untertitel standardmaessig: Schriftgroesse 58 bei Full HD, automatisch 39 bei HD, mit schwarzer Kontur und mehr Platz fuer mehrere Zeilen. Darstellung am Receiver bestaetigt; kein Zusatzbefehl erforderlich.",
+    "Optionaler Film-/Folgen-Download: In den erweiterten Einstellungen in Spalte zwei einschalten und mit Gruen speichern; standardmaessig aus.",
+    "Sichtbarer Herunterladen-Button bei Filmen und einzelnen Serienfolgen. Vorher werden die Emby-Benutzerfreigabe und die gewaehlte Originaldatei geprueft. Nicht erlaubt oder nicht pruefbar sperrt den Download.",
+    "HDD-/USB-Auswahl mit freiem und gesamtem Speicher, Dateigroesse und 512 MiB Reserve. Ein Download gleichzeitig; Abbruch entfernt die Teildatei nach Ende des laufenden Lesevorgangs.",
+    "Gemeinsames Tageslimit: maximal fuenf Filme oder einzelne Folgen pro Receiver-Installation. Heute X von 5 und verbleibende Plaetze sind sichtbar; Neustart oder Benutzerwechsel setzt den Zaehler nicht zurueck.",
+    "Downloads erscheint unter Updates, wenn die Downloadfunktion aktiviert ist. Fertige lokale Dateien lassen sich dort mit OK ueber EmbyFlow/4097 abspielen; Wiedergabe verbraucht keinen Downloadplatz.",
+    "Bisherige PGS-/SRT-/4K-Untertitel bleiben enthalten. Downloadoberflaeche und Speicher-/Limiteranzeige wurden vom Nutzer bestaetigt; die neue lokale Uebersicht braucht weitere Receivertests.",
+    "Testgrenzen: kein Download-Fortsetzen, keine Warteschlange und keine externen Untertitel. Das Downloadfenster bleibt waehrend der Uebertragung offen. Separater Sprachtest und experimentelle ATV-7.6-Layoutaenderungen sind nicht enthalten."
+  ]
+}

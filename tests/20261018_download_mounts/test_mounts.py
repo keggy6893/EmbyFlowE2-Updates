@@ -68,7 +68,7 @@ class Release(unittest.TestCase):
     def test_reproducible_and_current_manifest_and_updater_install(self):
         module = load('mount_builder', ROOT / '.github/build_mounts_2026101804.py')
         data = (ROOT / module.ARTIFACT).read_bytes()
-        manifest_bytes = (ROOT / 'update.json').read_bytes()
+        manifest_bytes = Path(__file__).with_name('update_2026101804.json').read_bytes()
         manifest = json.loads(manifest_bytes)
         self.assertEqual(data, module.build_source().encode())
         self.assertEqual(hashlib.sha256(data).hexdigest(), manifest['sha256'])
