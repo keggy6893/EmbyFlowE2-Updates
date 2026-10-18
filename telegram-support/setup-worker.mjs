@@ -62,8 +62,9 @@ export async function handle(request, env, fetcher = fetch) {
   if (url.pathname !== '/groups' || request.method !== 'POST')
     return new Response('Nicht verfuegbar', { status: 404, headers: { 'Cache-Control': 'no-store' } });
   if (!token) return page('<h2>Bot-Token fehlt.</h2>');
-  const origin = request.headers.get('Origin');
-  if (origin && origin !== url.origin) return new Response('Nicht erlaubt', { status: 403 });
+  // Authenticate using the explicitly entered secret, not browser Origin.
+  // Some dashboard/privacy contexts send Origin: null. No cookies or ambient
+  // browser credentials are accepted, and the secret is never embedded in HTML.
   try {
     const input = new URLSearchParams(await boundedBody(request)).get('token') || '';
     if (!input || !await sameSecret(input, token))
@@ -78,13 +79,18 @@ export async function handle(request, env, fetcher = fetch) {
     const groups = new Map();
     for (const update of data.result) {
       const chat = (update.message || update.my_chat_member || {}).chat;
-      if (chat && ['group', 'supergroup'].includes(chat.type) && /^-\d+$/.test(String(chat.id)))
-        groups.set(String(chat.id), String(chat.title || 'Gruppe'));
+      if (chat && ['group', 'supergroup'].includes(chat.type) && /^-\d+$/.test(String(chat.id))) {
+        const thread = update.message?.message_thread_id;
+        const topic = Number.isSafeInteger(thread) && thread > 0 ? String(thread) : '';
+        groups.set(String(chat.id) + ':' + topic,
+          { id: String(chat.id), title: String(chat.title || 'Gruppe'), topic });
+      }
     }
     if (!groups.size) return page('<h2>Noch keine Gruppe gefunden.</h2>' +
       '<p>In der Gruppe /support@EmbyFlowSupport6893Bot senden und erneut versuchen.</p><a href="/">Zurueck</a>');
-    return page('<h2>Gefundene Gruppen</h2>' + Array.from(groups, ([id, title]) =>
-      '<h3>' + escape(title) + '</h3><p>Gruppen-ID:</p><pre>' + escape(id) + '</pre>').join('') +
+    return page('<h2>Gefundene Gruppen</h2>' + Array.from(groups.values(), ({ id, title, topic }) =>
+      '<h3>' + escape(title) + '</h3><p>Gruppen-ID:</p><pre>' + escape(id) + '</pre>' +
+      (topic ? '<p>Themen-ID:</p><pre>' + escape(topic) + '</pre>' : '')).join('') +
       '<p>Die Gruppen-ID benoetigen wir als naechsten Einrichtungsschritt.</p>');
   } catch {
     return page('<h2>Abfrage nicht moeglich.</h2><p>Bitte spaeter erneut versuchen.</p><a href="/">Zurueck</a>');

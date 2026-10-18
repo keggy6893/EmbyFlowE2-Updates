@@ -13,23 +13,37 @@ test('setup page never exposes configured token and uses password entry', async 
   assert(text.includes('type="password"'));
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
 });
-test('unauthenticated and cross-origin requests cannot access Telegram', async () => {
+test('unauthenticated requests cannot access Telegram regardless of Origin', async () => {
   const fetcher = () => assert.fail('must not contact Telegram');
   assert((await (await handle(post('wrong'), env, fetcher)).text()).includes('Token stimmt nicht'));
-  assert.equal((await handle(post(env.TELEGRAM_BOT_TOKEN, { Origin: 'https://other.example' }), env, fetcher)).status, 403);
+  for (const origin of ['null', 'https://other.example']) {
+    const response = await handle(post('wrong', { Origin: origin }), env, fetcher);
+    assert((await response.text()).includes('Token stimmt nicht'));
+  }
+});
+test('opaque browser Origin is accepted only with the entered valid secret', async () => {
+  let calls = 0;
+  const fetcher = async () => {
+    calls++;
+    return Response.json({ ok: true, result: [] });
+  };
+  const text = await (await handle(post(env.TELEGRAM_BOT_TOKEN, { Origin: 'null' }), env, fetcher)).text();
+  assert.equal(calls, 1);
+  assert(text.includes('Noch keine Gruppe gefunden'));
 });
 test('authenticated query returns only escaped group titles and IDs', async () => {
   const fetcher = async (address, options) => {
     assert(address.endsWith('/getUpdates'));
     assert.equal(options.method, 'POST');
     return Response.json({ ok: true, result: [
-      { message: { text: 'private message', from: { username: 'private-person' },
+      { message: { text: 'private message', message_thread_id: 456, from: { username: 'private-person' },
         chat: { id: -100123, type: 'supergroup', title: '<script>group</script>' } } },
       { message: { chat: { id: 123, type: 'private', first_name: 'private-name' } } },
     ] });
   };
   const text = await (await handle(post(), env, fetcher)).text();
   assert(text.includes('-100123'));
+  assert(text.includes('<pre>456</pre>'));
   assert(text.includes('&lt;script&gt;'));
   for (const secret of ['private message', 'private-person', 'private-name', env.TELEGRAM_BOT_TOKEN])
     assert(!text.includes(secret));
