@@ -4,7 +4,7 @@
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101801.py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/61b979e53453244d04f6cae9f7d24bb4d115acdf/EmbyFlowE2_2026101801.py",
   "sha256": "a9cf0bbda4eb1985221aefa9d111753e89cae52374538e8a893b979255a39633",
   "changelog": [
     "PGS-Test mit Player 4097: Eingebettete PGS-Bilduntertitel werden direkt im sichtbaren EmbyFlow-Playerfenster angezeigt.",
