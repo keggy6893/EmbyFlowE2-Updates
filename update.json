@@ -1,12 +1,13 @@
 {
-  "version": "2026-RCDEV-TEST-20261018-DOWNLOADS-LIMIT5",
-  "build": 2026101802,
+  "version": "2026-RCDEV-TEST-20261018-SRT58",
+  "build": 2026101803,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/12b4535ccef5ab7312dc9354048012266f14994b/EmbyFlowE2_2026101802.py",
-  "sha256": "be2a75f9be820ff34923f6760783f09b12ff3c1033ca86d72ce7e02eebf6ef60",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/e41f92ec45809cf69d3902640b28e36ec81400bf/EmbyFlowE2_2026101803.py",
+  "sha256": "4fcbe382ef9f0f9e3798a0f0dbd0533d3fb9798d9ac21796e3d24d65b249e7dc",
   "changelog": [
+    "Groessere SRT-Untertitel standardmaessig: Schriftgroesse 58 bei Full HD, automatisch 39 bei HD, mit schwarzer Kontur und mehr Platz fuer mehrere Zeilen. Darstellung am Receiver bestaetigt; kein Zusatzbefehl erforderlich.",
     "Optionaler Film-/Folgen-Download: In den erweiterten Einstellungen in Spalte zwei einschalten und mit Gruen speichern; standardmaessig aus.",
     "Sichtbarer Herunterladen-Button bei Filmen und einzelnen Serienfolgen. Vorher werden die Emby-Benutzerfreigabe und die gewaehlte Originaldatei geprueft. Nicht erlaubt oder nicht pruefbar sperrt den Download.",
     "HDD-/USB-Auswahl mit freiem und gesamtem Speicher, Dateigroesse und 512 MiB Reserve. Ein Download gleichzeitig; Abbruch entfernt die Teildatei nach Ende des laufenden Lesevorgangs.",
