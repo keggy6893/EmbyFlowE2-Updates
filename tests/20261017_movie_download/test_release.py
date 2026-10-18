@@ -17,7 +17,7 @@ class DownloadReleaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.data = (ROOT / 'EmbyFlowE2_2026101802.py').read_bytes()
-        cls.manifest = (ROOT / 'update.json').read_bytes()
+        cls.manifest = Path(__file__).with_name('update_2026101802.json').read_bytes()
         cls.release_tree = ast.parse(cls.data)
         cls.base_tree = ast.parse((ROOT / 'EmbyFlowE2_2026101704.py').read_text())
 

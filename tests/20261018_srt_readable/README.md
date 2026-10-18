@@ -18,6 +18,9 @@ retains existing local fixes. Replacement is atomic and repeat installation is
 a no-op. First successful installation restarts the receiver GUI.
 
 Run `python3 -m unittest discover -s tests/20261018_srt_readable -v`.
-Receiver acceptance: open Mayday, select the same German SRT track, compare
-readability and verify multiline cues are complete. Visual receiver confirmation
-is pending. Main release and update manifest are unchanged.
+Receiver acceptance: the user confirmed the Mayday screenshot with German SRT
+at size 58 and requested this appearance as the automatic default.
+Build 2026101803 includes this widget directly in the normal update payload;
+no installer command or separate setting is required after updating.
+The build is reproducible via `.github/build_srt_2026101803.py`. Release checks
+exercise the actual 2026101802 updater, including backup and hash rejection.
