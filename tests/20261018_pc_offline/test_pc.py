@@ -55,7 +55,7 @@ sys.exit(subprocess.call([%r] + sys.argv[1:]))
         wrapper.chmod(0o755)
         ssh = self.bin / 'ssh'
         ssh.write_text('''#!/usr/bin/env python3
-import base64, json, os, sys
+import base64, hashlib, json, os, sys
 from pathlib import Path
 code = sys.stdin.read().lstrip('\\ufeff')
 if code.startswith('record64 = '):
@@ -66,17 +66,23 @@ else:
     if os.path.lexists(destination):
         sys.exit(1)
     print(json.dumps({'path64':base64.b64encode(str(path).encode()).decode(),
-                      'size':path.stat().st_size, 'free':20*1024**3}))
+                      'size':path.stat().st_size, 'free':20*1024**3,
+                      'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}))
 ''')
         ssh.chmod(0o755)
         scp = self.bin / 'scp'
         scp.write_text('''#!/usr/bin/env python3
-import shutil, sys
+import os, shutil, sys
 args = sys.argv[1:]
 source, target = args[-2:]
+if source.startswith('root@') and '-T' not in args:
+    sys.exit('protocol error: filename does not match request')
 def path(value):
     return value.split(':',1)[1].strip("'") if value.startswith('root@') else value
 shutil.copyfile(path(source), path(target))
+if source.startswith('root@') and os.environ.get('PC_TEST_CORRUPT_COPY'):
+    with open(path(target),'r+b') as output:
+        output.write(b'wrong')
 ''')
         scp.chmod(0o755)
         self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ['PATH'],
@@ -111,12 +117,22 @@ shutil.copyfile(path(source), path(target))
 
     def test_existing_pc_movie_is_not_overwritten(self):
         self.work.mkdir()
-        existing = self.work / 'Wuestenratten-original.mkv'
+        ident = hashlib.sha256(self.movie.read_bytes()).hexdigest()[:12]
+        existing = self.work / ('Wuestenratten-original-' + ident + '.mkv')
         existing.write_bytes(b'personal existing file')
         result = self.run_script()
         self.assertEqual(1, result.returncode)
         self.assertEqual(b'personal existing file', existing.read_bytes())
         self.assertFalse((self.root / 'arguments.json').exists())
+
+    def test_wrong_download_is_rejected_before_encoding(self):
+        self.env['PC_TEST_CORRUPT_COPY'] = '1'
+        result = self.run_script()
+        self.assertEqual(1, result.returncode)
+        self.assertIn(b'stimmt nicht mit dem Original', result.stdout)
+        self.assertFalse((self.root / 'arguments.json').exists())
+        self.assertFalse(list(self.work.glob('*.part')))
+        self.assertEqual([self.movie], list(self.remote.iterdir()))
 
 
 if __name__ == '__main__':

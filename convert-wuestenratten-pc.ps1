@@ -47,9 +47,9 @@ try {
     if ($scpHelp -match '(?i)(unknown|illegal|invalid) option') { $scpMode = @() }
     New-Item -ItemType Directory -Force -Path $WorkDirectory | Out-Null
     $WorkDirectory = (Resolve-Path -LiteralPath $WorkDirectory).Path
-    Write-Host '1/5 Originaldatei auf der Box suchen. Box-Passwort eingeben.'
+    Write-Host '1/5 Originaldatei suchen und Pruefsumme lesen. Box-Passwort eingeben; danach kurz warten.'
     $discover = @'
-import base64, glob, json, os, shutil
+import base64, glob, hashlib, json, os, shutil
 paths = []
 for path in glob.glob('/media/*/movie/EmbyFlow/*_1731728_*.mkv'):
     root = os.path.dirname(os.path.dirname(os.path.dirname(path)))
@@ -63,7 +63,11 @@ path = paths[0]
 destination = os.path.splitext(path)[0] + '_H264_AAC.mp4'
 if os.path.lexists(destination):
     raise SystemExit('H264/AAC-Datei ist bereits auf der HDD vorhanden. Nichts ersetzt.')
-print(json.dumps({'path64':base64.b64encode(path.encode()).decode(), 'size':os.path.getsize(path),
+digest = hashlib.sha256()
+with open(path, 'rb') as source:
+    for block in iter(lambda:source.read(1024*1024), b''):
+        digest.update(block)
+print(json.dumps({'path64':base64.b64encode(path.encode()).decode(), 'size':os.path.getsize(path), 'sha256':digest.hexdigest(),
     'free':shutil.disk_usage(os.path.dirname(path)).free}))
 '@
     $source = Invoke-BoxPython $discover
@@ -100,21 +104,42 @@ print(json.dumps({'path64':base64.b64encode(path.encode()).decode(), 'size':os.p
     if (-not (Test-Path -LiteralPath $ffmpeg) -or -not (Test-Path -LiteralPath $ffprobe)) {
         throw 'FFmpeg/ffprobe nicht gefunden.'
     }
-    $inputFile = Join-Path $WorkDirectory 'Wuestenratten-original.mkv'
+    if ($source.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Original-Pruefsumme fehlt.' }
+    $inputFile = Join-Path $WorkDirectory ('Wuestenratten-original-' + $source.sha256.Substring(0,12) + '.mkv')
     $outputFile = Join-Path $WorkDirectory 'Wuestenratten-H264-AAC.mp4'
     if (Test-Path -LiteralPath $outputFile) {
         throw ('PC-Zieldatei existiert bereits: ' + $outputFile + '. Nichts ersetzt.')
     }
+    $reuseInput = $false
     if (Test-Path -LiteralPath $inputFile) {
-        throw ('PC-Original existiert bereits: ' + $inputFile + '. Nichts ersetzt.')
+        if ((Get-Item -LiteralPath $inputFile).Length -ne [long]$source.size -or
+            (Get-FileHash -LiteralPath $inputFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $source.sha256) {
+            throw ('Andere PC-Datei existiert bereits: ' + $inputFile + '. Nichts ersetzt.')
+        }
+        $reuseInput = $true
     }
-
-    Write-Host '3/5 Original von HDD auf PC kopieren. Box-Passwort eingeben.'
-    $scpSource = Remote-ScpPath $remoteSource
-    & scp @scpMode @sshOptions $scpSource $inputFile
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $inputFile) -or
-        (Get-Item -LiteralPath $inputFile).Length -ne [long]$source.size) {
-        throw 'Kopie unvollstaendig. Die Originaldatei auf der Box bleibt erhalten.'
+    if ($reuseInput) {
+        Write-Host '3/5 Vorhandene PC-Originalkopie per SHA256 bestaetigt.'
+    } else {
+        Write-Host '3/5 Original von HDD auf PC kopieren. Box-Passwort eingeben.'
+        $scpSource = Remote-ScpPath $remoteSource
+        $copyPartial = $inputFile + '.' + [Guid]::NewGuid().ToString('N') + '.part'
+        try {
+            # Legacy SCP may reject UTF-8 names returned by the receiver.
+            # Pin the receiver via SSH and verify the exact file's SHA256 instead.
+            & scp '-T' @scpMode @sshOptions $scpSource $copyPartial
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $copyPartial) -or
+                (Get-Item -LiteralPath $copyPartial).Length -ne [long]$source.size) {
+                throw 'Kopie unvollstaendig. Die Originaldatei auf der Box bleibt erhalten.'
+            }
+            Write-Host 'Kopie am PC per SHA256 pruefen ...'
+            if ((Get-FileHash -LiteralPath $copyPartial -Algorithm SHA256).Hash.ToLowerInvariant() -ne $source.sha256) {
+                throw 'PC-Kopie stimmt nicht mit dem Original auf HDD ueberein. Keine Umwandlung.'
+            }
+            Move-Item -LiteralPath $copyPartial -Destination $inputFile
+        } finally {
+            if (Test-Path -LiteralPath $copyPartial) { Remove-Item -LiteralPath $copyPartial }
+        }
     }
     $inputProbeText = & $ffprobe '-v' 'error' '-show_entries' 'format=duration:stream=index,codec_type:stream_tags=language:stream_disposition=default' '-of' 'json' $inputFile
     if ($LASTEXITCODE -ne 0) { throw 'PC-Kopie konnte nicht gelesen werden.' }

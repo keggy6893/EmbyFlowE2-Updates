@@ -5,6 +5,12 @@ client. It discovers the existing original MKV for item 1731728 on a mounted
 receiver disk, copies it to the PC, converts using PC FFmpeg and returns a
 separate H.264/AAC MP4. No Emby API, server transcode, plugin modification or
 quota reservation is involved. The original on the receiver is never modified.
+The receiver computes the original's SHA256 before copying. For Windows/receiver
+legacy-SCP UTF-8 filename-check incompatibility, the fetch uses `scp -T`; SSH host
+verification remains enabled and the exact received file must match the original
+SHA256 before encoding. The received name never controls the local destination.
+A unique partial path is cleaned on failure, and a verified original can be reused
+on retry. Older files from the first helper are left untouched.
 
 The script downloads the pinned Gyan FFmpeg 9.0.2 essentials Windows x64 ZIP
 (about 115 MB) only when needed, and verifies its SHA256 before extraction.
@@ -28,7 +34,9 @@ and available PC files intact. The script reports the stop reason.
 The tests run the actual PowerShell script and real AV1-to-H.264 conversion with
 mocked SSH/SCP into a temporary filesystem. They check the German second audio
 track is selected, original preservation, verified return-copy equality, failed
-conversion without upload and preservation of an existing PC movie. Set
+conversion without upload, rejection of a corrupted source copy before encoding,
+and preservation of an existing PC movie. The SCP test peer reproduces the
+reported filename-check error unless the transfer uses the fix. Set
 `EMBYFLOW_TEST_PWSH` to a portable PowerShell executable when pwsh is not on PATH.
 Linux PowerShell validation does not establish compatibility on the user's
 Windows installation or decoding performance on their receiver.
