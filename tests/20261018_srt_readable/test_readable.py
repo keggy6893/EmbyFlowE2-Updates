@@ -41,7 +41,9 @@ class Readability(unittest.TestCase):
             self.assertGreaterEqual(h, font * 3)
 
     def test_upgrade_from_52_retains_geometry_border_and_single_marker(self):
-        previous = helper.patched(SOURCE).replace('font="Regular;58"', 'font="Regular;52"')
+        previous = helper.WIDGET.sub(
+            lambda match: match.group().replace('font="Regular;58"', 'font="Regular;52"'),
+            helper.patched(SOURCE))
         upgraded = helper.patched(previous)
         self.assertEqual(upgraded, helper.patched(SOURCE))
         self.assertEqual(upgraded.count(helper.MARKER), 1)
