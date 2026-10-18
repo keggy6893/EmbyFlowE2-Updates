@@ -19,7 +19,7 @@ class Readability(unittest.TestCase):
                          helper.WIDGET.sub('SRT_WIDGET', SOURCE))
         compile(changed, 'plugin.py', 'exec')
         widget = ET.fromstring(helper.WIDGET.search(changed).group())
-        self.assertEqual(widget.get('font'), 'Regular;52')
+        self.assertEqual(widget.get('font'), 'Regular;58')
         self.assertEqual(widget.get('valign'), 'bottom')
         self.assertEqual(widget.get('borderColor'), '#000000')
         self.assertEqual(widget.get('borderWidth'), '3')
@@ -29,7 +29,7 @@ class Readability(unittest.TestCase):
         names = ('sx', 'sy', 'sf', 'scale_skin')
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names]
         code = compile(ast.Module(body=functions, type_ignores=[]), 'actual-scaler', 'exec')
-        for factor, width, height, font in [(1, 1920, 1080, 52), (2/3, 1280, 720, 35)]:
+        for factor, width, height, font in [(1, 1920, 1080, 58), (2/3, 1280, 720, 39)]:
             ns = {'SCALE_X': factor, 'SCALE_Y': factor, 'SCALE_FONT': factor, 'apply_embyflow_colors': lambda s: s}
             exec(code, ns)
             widget = ET.fromstring(ns['scale_skin'](helper.WIDGET.search(helper.patched(SOURCE)).group()))
@@ -39,6 +39,12 @@ class Readability(unittest.TestCase):
             self.assertLessEqual(x + w, width)
             self.assertLessEqual(y + h, height)
             self.assertGreaterEqual(h, font * 3)
+
+    def test_upgrade_from_52_retains_geometry_border_and_single_marker(self):
+        previous = helper.patched(SOURCE).replace('font="Regular;58"', 'font="Regular;52"')
+        upgraded = helper.patched(previous)
+        self.assertEqual(upgraded, helper.patched(SOURCE))
+        self.assertEqual(upgraded.count(helper.MARKER), 1)
 
     def test_backup_preserves_local_edits_and_repeat_install_is_noop(self):
         with tempfile.TemporaryDirectory() as directory:

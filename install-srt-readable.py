@@ -18,7 +18,7 @@ def patched(source):
     match = widgets[0]
     widget = match.group()
     values = {'position': '150,810', 'size': '1620,180',
-              'font': 'Regular;52', 'valign': 'bottom'}
+              'font': 'Regular;58', 'valign': 'bottom'}
     for attribute, value in values.items():
         pattern = r'\b' + attribute + r'="[^"]*"'
         if len(re.findall(pattern, widget)) != 1:
@@ -55,7 +55,7 @@ def install(path):
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
-    print('SRT-Schrift: 52 statt 25 (Full HD), automatische HD-Skalierung.', flush=True)
+    print('SRT-Schrift: 58 (Full HD), automatische HD-Skalierung.', flush=True)
     print('Sicherung:', backup, flush=True)
     return True
 
