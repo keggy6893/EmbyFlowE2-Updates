@@ -1,17 +1,18 @@
 {
-  "version": "2026-RCDEV-TEST-20261018-PGS-AUTO",
-  "build": 2026101801,
+  "version": "2026-RCDEV-TEST-20261018-DOWNLOADS-LIMIT5",
+  "build": 2026101802,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/61b979e53453244d04f6cae9f7d24bb4d115acdf/EmbyFlowE2_2026101801.py",
-  "sha256": "a9cf0bbda4eb1985221aefa9d111753e89cae52374538e8a893b979255a39633",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101802.py",
+  "sha256": "be2a75f9be820ff34923f6760783f09b12ff3c1033ca86d72ce7e02eebf6ef60",
   "changelog": [
-    "PGS-Test mit Player 4097: Eingebettete PGS-Bilduntertitel werden direkt im sichtbaren EmbyFlow-Playerfenster angezeigt.",
-    "Ohne Emby-Vorgabe wird eine deutsche erzwungene PGS-Spur automatisch gewaehlt, wenn keine passende erzwungene Textspur vorhanden ist. Eine vorhandene Emby-Spurauswahl hat Vorrang.",
-    "Manuelle Auswahl und Untertitel aus bleiben waehrend der Wiedergabe erhalten. Bisherige SRT- und 4K-Abschnittsuntertitel bleiben enthalten.",
-    "Bestaetigt auf Vu+ Duo4K SE mit openATV 8.0.1: deutsche volle und erzwungene PGS, Spulen/Fortsetzen im manuellen Test sowie Automatik bei 2012 in 4K.",
-    "Bekannt und offen: Bei einem SD-Film fehlt die automatische Auswahl; Spurliste und Forced-Metadaten stehen noch aus. Keine Zusage fuer alle Filme, Boxen, externe SUP-Dateien oder Transcoding.",
-    "Das separate Standbildproblem beim wiederholten Tonspurwechsel auf DM One ist damit nicht als behoben bestaetigt. Der lokale Filmdownload-Test ist kein Bestandteil dieses Updates."
+    "Optionaler Film-/Folgen-Download: In den erweiterten Einstellungen in Spalte zwei einschalten und mit Gruen speichern; standardmaessig aus.",
+    "Sichtbarer Herunterladen-Button bei Filmen und einzelnen Serienfolgen. Vorher werden die Emby-Benutzerfreigabe und die gewaehlte Originaldatei geprueft. Nicht erlaubt oder nicht pruefbar sperrt den Download.",
+    "HDD-/USB-Auswahl mit freiem und gesamtem Speicher, Dateigroesse und 512 MiB Reserve. Ein Download gleichzeitig; Abbruch entfernt die Teildatei nach Ende des laufenden Lesevorgangs.",
+    "Gemeinsames Tageslimit: maximal fuenf Filme oder einzelne Folgen pro Receiver-Installation. Heute X von 5 und verbleibende Plaetze sind sichtbar; Neustart oder Benutzerwechsel setzt den Zaehler nicht zurueck.",
+    "Downloads erscheint unter Updates, wenn die Downloadfunktion aktiviert ist. Fertige lokale Dateien lassen sich dort mit OK ueber EmbyFlow/4097 abspielen; Wiedergabe verbraucht keinen Downloadplatz.",
+    "Bisherige PGS-/SRT-/4K-Untertitel bleiben enthalten. Downloadoberflaeche und Speicher-/Limiteranzeige wurden vom Nutzer bestaetigt; die neue lokale Uebersicht braucht weitere Receivertests.",
+    "Testgrenzen: kein Download-Fortsetzen, keine Warteschlange und keine externen Untertitel. Das Downloadfenster bleibt waehrend der Uebertragung offen. Separater Sprachtest und experimentelle ATV-7.6-Layoutaenderungen sind nicht enthalten."
   ]
 }

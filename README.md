@@ -1,7 +1,35 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
-## Aktueller RCDEV-Test: Build 2026101801 – PGS automatisch mit 4097
+## Aktueller RCDEV-Test: Build 2026101802 – Downloads mit Tageslimit
+
+Der eingebaute Updater bietet diesen Test unter **Updates → Update pruefen** an.
+Nach Installation die GUI neu starten. Unter **Erweiterte Einstellungen →
+Wiedergabe & Diagnose → Film-/Folgen-Download (Test)** einschalten und mit Gruen
+speichern. Standard ist AUS. Bei Filmen und einzelnen Folgen erscheint dann
+**Herunterladen**. Der Anbieter muss Downloads fuer den Emby-Benutzer erlauben;
+bei Ablehnung oder unklarer Freigabe bleibt der Start gesperrt.
+
+Die Zielauswahl zeigt freien und gesamten HDD-/USB-Speicher sowie Dateigroesse
+und Reserve. Gemeinsam hoechstens **fuenf Filme oder einzelne Folgen pro Tag**
+und Receiver-Installation; der Zaehler ist in den Downloadfenstern sichtbar.
+Fertige Dateien stehen unter **Downloads**, direkt unter Updates. Der Eintrag
+erscheint nur bei aktivierter Downloadfunktion. OK spielt lokal mit 4097 ab.
+Lokale Wiedergabe verbraucht keinen Downloadplatz.
+
+Ein Download gleichzeitig; das Downloadfenster muss offen bleiben. Kein
+Download-Fortsetzen, keine Warteschlange und kein Download externer Untertitel.
+Anbieterpruefung, Platzkontrollen, Abbruch und Tageszaehler sind lokal getestet.
+Der Nutzer bestaetigte Downloadoberflaeche, Speicher- und Limiteranzeige;
+die neue Uebersicht benoetigt weitere Receivertests.
+[Code, Tests und technische Grenzen](tests/20261017_movie_download/).
+
+Die PGS-/SRT-/4K-Untertitelfunktionen aus Build 2026101801 sind enthalten.
+Dieses Update ersetzt die gesamte plugin.py mit Sicherung durch den Updater.
+Der separate lokale Sprachtest und die experimentellen ATV-7.6-Layoutversuche
+sind nicht enthalten und werden bei einem Update ersetzt.
+
+## Vorheriger RCDEV-Test: Build 2026101801 – PGS automatisch mit 4097
 
 Der eingebaute Updater bietet den PGS-Test ueber **Update pruefen** an. Nach der
 Installation die GUI neu starten und den Film frisch oeffnen. Ein zusaetzlicher
@@ -20,9 +48,7 @@ Spur-/Forced-Metadaten stehen noch aus. Keine Zusage fuer alle Filme oder Receiv
 Das Standbildproblem beim wiederholten Tonspurwechsel auf DM One ist damit nicht
 als behoben bestaetigt.
 
-Das Update ersetzt die vollstaendige plugin.py und sichert die vorherige Datei
-mit dem vorhandenen Updater. Der noch lokale Film-Download-Test ist in diesem
-RCDEV-Build nicht enthalten und wuerde beim normalen Update ersetzt.
+Dieser fruehere Build enthielt den Download-Test noch nicht.
 [PGS-Code, Tests und genaue Grenzen](tests/20261017_pgs_native/).
 
 ## Build 2026100801
