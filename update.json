@@ -4,7 +4,7 @@
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101802.py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/12b4535ccef5ab7312dc9354048012266f14994b/EmbyFlowE2_2026101802.py",
   "sha256": "be2a75f9be820ff34923f6760783f09b12ff3c1033ca86d72ce7e02eebf6ef60",
   "changelog": [
     "Optionaler Film-/Folgen-Download: In den erweiterten Einstellungen in Spalte zwei einschalten und mit Gruen speichern; standardmaessig aus.",
