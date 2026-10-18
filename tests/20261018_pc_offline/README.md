@@ -40,3 +40,20 @@ reported filename-check error unless the transfer uses the fix. Set
 `EMBYFLOW_TEST_PWSH` to a portable PowerShell executable when pwsh is not on PATH.
 Linux PowerShell validation does not establish compatibility on the user's
 Windows installation or decoding performance on their receiver.
+
+## Recover a failed return copy
+
+`copy-wuestenratten-to-box.ps1` only copies the existing completed PC MP4; it
+never invokes FFmpeg, downloads the original again, or calls Emby. It discovers
+the mounted receiver disk from the exact original item ID, uploads to an ASCII
+staging filename tied to the complete PC SHA256, and publishes the original
+Unicode target filename only after verifying size and hash. SSH keepalive is
+enabled. A repeated run accepts an already matching completed target; a different
+existing target is not overwritten. Failed transfer/verification keeps the PC
+movie and AV1 original. A staged partial can remain and will be overwritten by
+the next copy-only attempt; unrelated old partials are not removed.
+
+Three additional PowerShell tests exercise verified copy-only publication,
+rerunning without duplicate upload, dropped connection with PC-file preservation,
+and rejection of a damaged receiver copy. Transport is mocked; actual receiver
+SSH availability remains a prerequisite.
