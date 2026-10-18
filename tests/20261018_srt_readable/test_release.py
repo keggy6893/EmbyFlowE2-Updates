@@ -22,7 +22,7 @@ class SrtRelease(unittest.TestCase):
     def setUpClass(cls):
         cls.builder = load('srt_release_builder', ROOT / '.github/build_srt_2026101803.py')
         cls.data = (ROOT / cls.builder.ARTIFACT).read_bytes()
-        cls.manifest = (ROOT / 'update.json').read_bytes()
+        cls.manifest = Path(__file__).with_name('update_2026101803.json').read_bytes()
 
     def updater(self, directory):
         old = load('download_release_checks', ROOT / 'tests/20261017_movie_download/test_release.py')
