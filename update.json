@@ -1,16 +1,17 @@
 {
-  "version": "2026-RCDEV-TEST-20261017-4K-UT-SEGMENTS",
-  "build": 2026101704,
+  "version": "2026-RCDEV-TEST-20261018-PGS-AUTO",
+  "build": 2026101801,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101704.py",
-  "sha256": "f2bc5fb136ca340133178ca1467fc866a54e061ef08aa5656d629fbbc6d814c3",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026101801.py",
+  "sha256": "a9cf0bbda4eb1985221aefa9d111753e89cae52374538e8a893b979255a39633",
   "changelog": [
-    "4K: Eingebettete deutsche Forced-Textuntertitel werden automatisch in 60-Sekunden-Abschnitten angefordert statt als komplette SRT-Datei.",
-    "Der bestehende Text-Renderer zeigt die Untertitel an. Naechste Abschnitte werden vorgeladen; Spulen, Ausschalten und Filmversionswechsel werden beruecksichtigt.",
-    "Kein Adminzugang und keine externe SRT erforderlich; HD, externe und nicht-erzwungene Untertitel verwenden den bisherigen Download-Weg.",
-    "VU+ Ultimo 4K / openATV 8.0.1: Mayday 4K automatisch und synchron, etwa 30 Sekunden Startverzoegerung; Tenzig 4K automatisch sofort und bei weiterem Abspielen synchron, vom Benutzer bestaetigt.",
-    "Vierzehn lokale Abschnittstests bestanden. Keine Zusage fuer alle Filme, Server, andere Receiver oder PGS-Bilduntertitel. TLS-Pruefung und Serverguard bleiben aktiv."
+    "PGS-Test mit Player 4097: Eingebettete PGS-Bilduntertitel werden direkt im sichtbaren EmbyFlow-Playerfenster angezeigt.",
+    "Ohne Emby-Vorgabe wird eine deutsche erzwungene PGS-Spur automatisch gewaehlt, wenn keine passende erzwungene Textspur vorhanden ist. Eine vorhandene Emby-Spurauswahl hat Vorrang.",
+    "Manuelle Auswahl und Untertitel aus bleiben waehrend der Wiedergabe erhalten. Bisherige SRT- und 4K-Abschnittsuntertitel bleiben enthalten.",
+    "Bestaetigt auf Vu+ Duo4K SE mit openATV 8.0.1: deutsche volle und erzwungene PGS, Spulen/Fortsetzen im manuellen Test sowie Automatik bei 2012 in 4K.",
+    "Bekannt und offen: Bei einem SD-Film fehlt die automatische Auswahl; Spurliste und Forced-Metadaten stehen noch aus. Keine Zusage fuer alle Filme, Boxen, externe SUP-Dateien oder Transcoding.",
+    "Das separate Standbildproblem beim wiederholten Tonspurwechsel auf DM One ist damit nicht als behoben bestaetigt. Der lokale Filmdownload-Test ist kein Bestandteil dieses Updates."
   ]
 }

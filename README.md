@@ -1,6 +1,30 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
+## Aktueller RCDEV-Test: Build 2026101801 – PGS automatisch mit 4097
+
+Der eingebaute Updater bietet den PGS-Test ueber **Update pruefen** an. Nach der
+Installation die GUI neu starten und den Film frisch oeffnen. Ein zusaetzlicher
+manueller PGS-Installer ist nicht erforderlich.
+
+Eingebettete PGS-Bilduntertitel werden an das sichtbare EmbyFlow-Playerfenster
+gebunden. Ohne Emby-Vorgabe wird eine deutsche erzwungene PGS-Spur automatisch
+ausgewaehlt, sofern keine passende erzwungene Textspur vorhanden ist. Emby-Vorgabe,
+manuelle Spurwahl und manuelles Ausschalten haben Vorrang. Der bisherige SRT-
+und 4K-Abschnittscode bleibt enthalten. Der Player bleibt 4097.
+
+Auf Vu+ Duo4K SE mit openATV 8.0.1 wurden volle/erzwungene deutsche PGS,
+Spulen/Fortsetzen im manuellen Test sowie die Automatik bei **2012 in 4K** vom
+Nutzer bestaetigt. **Offen:** Bei einem SD-Film fehlt die automatische Auswahl;
+Spur-/Forced-Metadaten stehen noch aus. Keine Zusage fuer alle Filme oder Receiver.
+Das Standbildproblem beim wiederholten Tonspurwechsel auf DM One ist damit nicht
+als behoben bestaetigt.
+
+Das Update ersetzt die vollstaendige plugin.py und sichert die vorherige Datei
+mit dem vorhandenen Updater. Der noch lokale Film-Download-Test ist in diesem
+RCDEV-Build nicht enthalten und wuerde beim normalen Update ersetzt.
+[PGS-Code, Tests und genaue Grenzen](tests/20261017_pgs_native/).
+
 ## Build 2026100801
 
 Die Neuheitenübersicht zeigt sechs Spalten und zwölf Poster pro Seite. Die rechte Vorschau mit Bild und Beschreibung entfällt; die vollständige Detailseite öffnet sich mit OK. Unter den Postern stehen Jahr und Titelart: Film, Serie, Doku oder Doku-Serie. Die Doku-Zuordnung verwendet die Genres des Emby-Servers. Titel nutzen zwei Zeilen mit einer Kürzung bei längeren Namen; ein zusätzlicher automatischer Zeilenumbruch ist deaktiviert.

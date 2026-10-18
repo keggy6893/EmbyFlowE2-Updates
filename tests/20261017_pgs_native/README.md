@@ -43,9 +43,12 @@ auswaehlen. An einer bekannten fremdsprachigen Szene pruefen. Danach Off,
 manuelle Spurwahl, Spulen/Fortsetzen und bisherige SRT-Filme gegenpruefen.
 Fuer SD bitte Aufloesung, Codec und Forced-Kennzeichnung der Spurliste melden.
 
-Dieser Testzweig aendert weder das Update-Manifest noch den veroeffentlichten
-Build. Fuer diesen Teststand gelten weiterhin die Versionsangaben der Basis;
-der Installer meldet die PGS-Ergaenzung separat.
+Der urspruengliche Zweig `test/pgs-4097` enthaelt nur den manuellen Installer.
+Auf `main` ist derselbe Laufzeitcode jetzt als RCDEV-Build **2026101801** im
+eingebauten Updater verfuegbar. Fuer dieses Update ist kein zusaetzlicher
+PGS-Installer erforderlich. Anders als der ergaenzende Einzelinstaller ersetzt
+das regulaere Update die gesamte plugin.py; der lokale Filmdownload-Test ist
+im RCDEV-Build nicht enthalten.
 
 ## Technische Grenzen und Pruefung
 
