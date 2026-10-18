@@ -1,16 +1,23 @@
 """Read-only ThemerrDB and YouTube stream test; never starts receiver playback."""
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import subprocess
 import sys
+import os
+import signal
+import shutil
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
 SAMPLES = [('Skyfall', 'movies', '37724'), ('Interstellar', 'movies', '157336'),
            ('Game of Thrones', 'tv_shows', '1399'), ('Breaking Bad', 'tv_shows', '1396')]
+
+
+def progress(phase, **fields):
+    print(json.dumps(dict(phase=phase, **fields)), flush=True)
 
 
 def classify(message):
@@ -25,6 +32,7 @@ def classify(message):
 
 
 def resolve(url):
+    progress('resolver_import')
     try:
         # Use an already installed resolver; never install or upgrade on the box.
         import importlib.util
@@ -38,17 +46,30 @@ def resolve(url):
         from yt_dlp.version import __version__
     except ImportError:
         return {'stream_reachable': False, 'reason': 'yt_dlp_missing'}
+    progress('resolver_ready', resolver=__version__, node_available=bool(shutil.which('node')))
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != 'https' or parsed.hostname not in ('www.youtube.com', 'youtube.com', 'youtu.be'):
         return {'stream_reachable': False, 'reason': 'unexpected_theme_host'}
     class Logger:
-        def debug(self, message):pass
+        def __init__(self):self.last=None
+        def debug(self, message):
+            text=str(message).lower()
+            if not text.startswith('[youtube]'):return
+            phase = ('youtube_javascript' if 'challenge' in text or 'javascript' in text
+                     else 'youtube_player_api' if 'api json' in text
+                     else 'youtube_webpage' if 'webpage' in text
+                     else 'youtube_player' if 'player' in text else None)
+            if phase and phase != self.last:
+                self.last=phase;progress(phase)
         def warning(self, message):pass
         def error(self, message):pass
     try:
         options = dict(quiet=True, no_warnings=True, logger=Logger(),
-            noplaylist=True, socket_timeout=8, retries=0, extractor_retries=0,
+            noplaylist=True, skip_download=True, socket_timeout=8, retries=1, extractor_retries=0,
+            allowed_extractors=['youtube'], js_runtimes={'node': {}},
+            remote_components=['ejs:github'],
             format='bestaudio[ext=m4a]/bestaudio')
+        progress('youtube_extract')
         with yt_dlp.YoutubeDL(options) as downloader:
             info = downloader.extract_info(url, download=False)
         stream = info.get('url') or ''
@@ -57,6 +78,7 @@ def resolve(url):
             return {'stream_reachable': False, 'reason': 'no_direct_https_audio', 'resolver': __version__}
         headers = dict(info.get('http_headers') or {})
         headers['Range'] = 'bytes=0-0'
+        progress('audio_connection')
         request = urllib.request.Request(stream, headers=headers)
         with urllib.request.urlopen(request, timeout=10) as response:
             available = bool(response.read(1))
@@ -66,6 +88,36 @@ def resolve(url):
     except Exception as error:
         # Never expose signed URLs, cookies or raw extractor messages.
         return {'stream_reachable': False, 'reason': classify(str(error)), 'resolver': __version__}
+
+
+def run_resolver(theme, deadline=55):
+    started=time.monotonic()
+    child=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),'--resolve',theme],
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,start_new_session=True)
+    expired=False
+    try:
+        stdout,stderr=child.communicate(timeout=deadline)
+    except subprocess.TimeoutExpired:
+        expired=True
+        try:os.killpg(child.pid,signal.SIGKILL)
+        except ProcessLookupError:pass
+        stdout,stderr=child.communicate()
+    events=[]
+    for line in stdout.splitlines():
+        try:
+            event=json.loads(line)
+            if isinstance(event,dict):events.append(event)
+        except ValueError:pass
+    phases=[e for e in events if e.get('phase')]
+    results=[e for e in events if 'stream_reachable' in e]
+    result=(results[-1] if results and not expired and child.returncode == 0 else
+            {'stream_reachable':False,'reason':'resolver_deadline' if expired else 'resolver_process_error'})
+    result['elapsed_seconds']=round(time.monotonic()-started,1)
+    result['last_phase']=phases[-1]['phase'] if phases else 'process_start'
+    for event in phases:
+        for key in ('resolver','node_available'):
+            if key in event:result[key]=event[key]
+    return result
 
 
 def probe(sample):
@@ -83,11 +135,7 @@ def probe(sample):
             result['reason'] = 'no_theme'
             return result
         result['lookup'] = True
-        child = subprocess.run([sys.executable, str(Path(__file__).resolve()),
-            '--resolve', theme], capture_output=True, text=True, timeout=40)
-        result['stream'] = json.loads(child.stdout) if child.returncode == 0 else {'stream_reachable': False, 'reason': 'resolver_process_error'}
-    except subprocess.TimeoutExpired:
-        result['stream'] = {'stream_reachable': False, 'reason': 'resolver_deadline'}
+        result['stream'] = run_resolver(theme)
     except Exception as error:
         result['reason'] = 'lookup_' + classify(str(error))
     return result
@@ -96,14 +144,14 @@ def probe(sample):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--resolve')
+    parser.add_argument('--all',action='store_true')
     args = parser.parse_args()
     if args.resolve:
         print(json.dumps(resolve(args.resolve)))
         return
-    print('THEME-TEST: keine Plugin-Aenderung, kein GUI-Neustart, keine Musikdateien gespeichert.', flush=True)
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        for result in pool.map(probe, SAMPLES):
-            print(json.dumps(result, ensure_ascii=False), flush=True)
+    print('THEME-TEST V2: Trailer-Resolver-Konfiguration, ein Titel nach dem anderen. Keine Plugin-Aenderung.', flush=True)
+    for sample in SAMPLES if args.all else SAMPLES[:1]:
+        print(json.dumps(probe(sample),ensure_ascii=False),flush=True)
 
 
 if __name__ == '__main__':main()

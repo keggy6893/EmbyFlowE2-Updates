@@ -10,7 +10,11 @@ after one byte even when the remote server ignores Range.
 
 Uses an existing system yt-dlp module or already-installed executable zipapp.
 No receiver package installation/upgrade. Each resolver subprocess has a
-40-second deadline; at most two run concurrently. Signed media URLs and raw
+55-second deadline with a separate process group that is killed on timeout.
+V2 defaults to Skyfall only and processes titles sequentially (`--all` for all
+four). It matches the existing trailer resolver's Node.js / ejs configuration
+and records sanitized stage names and timing to distinguish imports, webpage,
+player API, JavaScript and audio-connection failures. Signed media URLs and raw
 extractor errors are not printed. Standard TLS verification remains enabled.
 
 Initial cloud result with yt-dlp 2026.08.19: ThemerrDB lookups succeeded for
@@ -23,3 +27,9 @@ feature is enabled and no release manifest is changed by this test branch.
 
 Run: `python3 test-themes.py` in a Python environment with an existing yt-dlp.
 On the receiver, the helper can live in /home/root and may be deleted after use.
+
+The initial receiver probe resolved all four ThemerrDB entries but reached its
+40-second resolver deadline for each; the stalled stage was not recorded by V1.
+Missing JavaScript runtime options in V1 are a confirmed difference from our
+trailer resolver, not a proven explanation for the receiver timeouts. No feature
+or playback success is claimed from these failures.
