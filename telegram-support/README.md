@@ -8,7 +8,12 @@ for the bot token in a password field as administrator authentication, compares 
 with the Worker secret, and calls getUpdates. Group titles/IDs are returned only
 after authentication. Raw updates, personal messages and errors are not returned.
 Tokens are not put in URLs or emitted to console. getUpdates is read-only and
-uses no offset; this stage does not set a webhook or send Telegram messages.
+uses no offset; this stage does not set a webhook. When TELEGRAM_CHAT_ID is
+configured, the page offers an authenticated test-message button. POST /test
+sends a single fixed quiet message only to the configured group (optionally
+TELEGRAM_THREAD_ID); it accepts no user-defined destination or message.
+GET never sends, missing target/auth fails closed, and errors expose no raw
+Telegram responses. This is not the automatic-report endpoint.
 
 Group discovery requires a recent update visible to this bot. Existing webhooks
 can prevent getUpdates; do not silently delete them. Re-send the bot command if
