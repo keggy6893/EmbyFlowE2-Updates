@@ -1,0 +1,17 @@
+{
+  "target": "armv7 hard-float, Cortex-A15 NEON",
+  "glibc_minimum": "2.38",
+  "binary_sha256": "37bfceafdd21751694ae29dd94e95d93509f130bbdb01e19fe7bf6c92ecf3028",
+  "archive_sha256": "69ef3e76c6b6107460bc7847a5eea1c11a425585493f47ec996721a2dc882072",
+  "binary_bytes": 3284396,
+  "archive_bytes": 1834270,
+  "sources": {
+    "ffmpeg": "38b88335f99e76ed89ff3c93f877fdefce736c13",
+    "dav1d": "54706fc6bc0cdecab7e9593974a4039cc038fca7",
+    "x264": "31e19f92f00c7003fa115047ce50978bc98c3a0d"
+  },
+  "system_changes": "none; private directory only",
+  "network_protocols": false,
+  "license": "GPL-2.0-or-later; dav1d BSD-2-Clause",
+  "source_archive_sha256": "2cc6c0fad9246d9f8278f818595c7313c90889db8e29f2e78d6258c00d6069cc"
+}
