@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261020-LCD-CONTENT-TIME",
-  "build": 2026102001,
+  "version": "2026-RCDEV-TEST-20261021-ANSKAR-AUDIO-4097",
+  "build": 2026102102,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/fd596ff7993af9eb2ec6c6c2370e609f15843cc6/EmbyFlowE2_2026102001.py",
-  "sha256": "01fa460d5d7f5146d0963d9df27f19f0c9266fefc9a6494a856913395b01ef88",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/f58cc3fe8aae3d7e35f3e6748a3bf7df15fb65cd/EmbyFlowE2_2026102102.py",
+  "sha256": "777947b3dfb967a38c840eed90c5d7f3d7c819d1412c7e31b6900038927a2783",
   "changelog": [
-    "LCD-Testupdate fuer Anskar: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.",
-    "Kompatible, bereits geladene LCD4linux-Renderer erhalten dieselbe Filmzeit nur waehrend der zugehoerigen EmbyFlow-Wiedergabe. Keine Aenderung von LCD4linux-Dateien oder Einstellungen und keine globale Seek-Manipulation.",
-    "Unbekannte LCD4linux-Renderer werden nicht angepasst. Ein begrenztes lokales Zeitprotokoll hilft bei abweichenden Versionen. Keine weiteren Serverabfragen fuer die Displayanzeige.",
-    "Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch von Anskar zu bestaetigen.",
-    "Basis ist der veroeffentlichte Stand 2026101805. Dieses Update ergaenzt ausschliesslich den Display-Zeitfix."
+    "Anskar-Testupdate: Tonspurwechsel bei DirectPlay mit Enigma2/4097 ohne ExtEplayer3. Die gewaehlte Tonspur wird serverseitig in einem neuen Stream ab der gespeicherten Filmposition angefordert; Video und Audio werden kopiert.",
+    "Die vollstaendige Server-Tonspurliste bleibt auch nach dem Wechsel verfuegbar, damit Englisch -> Deutsch wieder ausgewaehlt werden kann. Die alte Sitzung wird bereinigt; kein automatischer Neustart-Zyklus bei Fehlern.",
+    "LCD-Zeitfix 2026102001 bleibt enthalten; auf der Gigablue UHD Quad Pro von Anskar bestaetigt. Zgemma H17 TWIN und Mutant HD51 weiter unbestaetigt.",
+    "Vor dem Test eingebrannte Server-Untertitel ausschalten. Bei anderen Wiedergabepfaden bleibt der bisherige Tonwechsel erhalten.",
+    "27 lokale Tests bestanden; vollstaendiges Plugin als Python 3.8 geprueft. Wirkung auf echter Hardware und echtem Emby-Server noch NICHT bestaetigt. Bitte Deutsch -> Englisch -> Deutsch sowie Bild, Ton, Filmposition und LCD pruefen."
   ]
 }
