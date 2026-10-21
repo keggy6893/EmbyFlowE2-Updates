@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261020-LCD-CONTENT-TIME",
-  "build": 2026102001,
+  "version": "2026-RCDEV-TEST-20261021-DETAIL-HD-AUDIO-4097",
+  "build": 2026102103,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/fd596ff7993af9eb2ec6c6c2370e609f15843cc6/EmbyFlowE2_2026102001.py",
-  "sha256": "01fa460d5d7f5146d0963d9df27f19f0c9266fefc9a6494a856913395b01ef88",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/919575b680e29797d6d9a03def99e96896d21c4a/EmbyFlowE2_2026102103.py",
+  "sha256": "7f88c2a44457d7aed3c7d7ec11bab19c96f550778171e94b14a57a6ba57408ff",
   "changelog": [
-    "LCD-Testupdate fuer Anskar: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.",
-    "Kompatible, bereits geladene LCD4linux-Renderer erhalten dieselbe Filmzeit nur waehrend der zugehoerigen EmbyFlow-Wiedergabe. Keine Aenderung von LCD4linux-Dateien oder Einstellungen und keine globale Seek-Manipulation.",
-    "Unbekannte LCD4linux-Renderer werden nicht angepasst. Ein begrenztes lokales Zeitprotokoll hilft bei abweichenden Versionen. Keine weiteren Serverabfragen fuer die Displayanzeige.",
-    "Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch von Anskar zu bestaetigen.",
-    "Basis ist der veroeffentlichte Stand 2026101805. Dieses Update ergaenzt ausschliesslich den Display-Zeitfix."
+    "Detailansicht bei HD-Aufloesung: Ueberschrift und Beschreibung werden einheitlich skaliert und verschoben. Behebt die im Code nachgewiesene Ueberlagerung durch unskalierte 30-Pixel-Verschiebung.",
+    "Detail-Metadaten und Plaketten verwenden dieselbe Skalierung. Drei lokale Regressionstests bestanden fuer 720p, 1080p und 2160p; vollstaendiges Plugin als Python 3.8 geprueft.",
+    "Tonspur-Test mit Enigma2/4097 ohne ExtEplayer3 und LCD-Zeitfix bleiben enthalten. Der Tonspur-Test hatte 27 lokale Tests bestanden. Hardwarewirkung und UT-Test stehen noch aus.",
+    "Bitte auf der GB Trio UHD die Detailansicht mit langer Inhaltsangabe pruefen. Auf der Gigablue UHD Quad Pro Deutsch -> Englisch -> Deutsch pruefen: Bild, Ton, Filmposition und LCD. Eingebrannte Server-Untertitel fuer diesen Tonspur-Test vorher ausschalten.",
+    "Neutrale Bezeichnungen in aktuellen Update-Texten und Testdateien."
   ]
 }
