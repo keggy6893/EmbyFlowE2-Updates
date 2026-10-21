@@ -1,16 +1,15 @@
 {
-  "version": "2026-RCDEV-TEST-20261021-AUDIO-SESSION-4097",
-  "build": 2026102104,
+  "version": "2026-RCDEV-TEST-20261021-GENRE-SPACING",
+  "build": 2026102105,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/c761aeb5c4f6258fb85d9977a679d1f270e8fd06/EmbyFlowE2_2026102104.py",
-  "sha256": "fe79ab4fdc7e60809224bdc5a5d7d9b2ae8c7b9ff75026a8e105151375d76b5c",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/bc4cb1ad91f8b35e071a3160c27b4850fbe95e69/EmbyFlowE2_2026102105.py",
+  "sha256": "526dc9c3e8742829c110360f1a4bf37e989f4f3bb2d07b8aa38c2c2adc8980a8",
   "changelog": [
-    "Tonspur-Test 4097: Start- und Fortschrittsmeldungen nutzen dieselbe vorhandene Sitzungsverwaltung. Verhindert die lokal nachgewiesene doppelte Startmeldung nach einem Tonwechsel.",
-    "Sechs gezielte lokale Tests bestanden: Doppelmeldung im bisherigen Stand reproduziert; korrigierter Ablauf bis zu simulierten 60 Sekunden, korrekte Tonspur/Sitzung, Meldereihenfolge, Fehlerbehandlung, Filmposition, 4097 und Bereinigung der alten Sitzung geprueft. Vollstaendiges Plugin als Python 3.8 geprueft.",
-    "Hardware-Rueckmeldung zum bisherigen Stand: Tonwechsel funktioniert, danach haengen Bild und Ton nach etwa 30 Sekunden dauerhaft. Ob die korrigierte Sitzungsverwaltung diesen Fehler behebt, ist noch NICHT bestaetigt.",
-    "HD-Detailansicht und LCD-Zeitfix bleiben enthalten. UT-Test weiter offen. Eingebrannte Server-Untertitel fuer den Tonspur-Test vorher ausschalten.",
-    "Bitte nach dem Update einen Film fortsetzen, Deutsch -> Englisch wechseln und mindestens zwei Minuten laufen lassen; danach zurueck auf Deutsch und erneut pruefen."
+    "Detailansicht: Nur die Genrezeile (Action, Komoedie usw.) sitzt hoeher und erscheint warmgelb. Inhaltsangabe, Beschreibung, Titel, Info-Badges und Poster behalten ihre bisherigen Positionen.",
+    "Keine neuen Serverabfragen und keine Aenderung an Navigation oder Wiedergabe durch die Genre-Korrektur.",
+    "Basis ist Teststand 2026102104: HD-Detailansicht, LCD-Zeitfix und aktueller 4097-Tonspur-Sitzungstest bleiben enthalten. Die Hardwarebestaetigung des Tonspurtests und der UT-Test stehen weiter aus.",
+    "Gezielt lokal geprueft: Nur Genreposition und Genrefarbe im Detail-Layout geaendert; Gesamtplugin fuer Python 3.8 kompilierbar."
   ]
 }
