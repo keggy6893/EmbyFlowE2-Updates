@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261021-ANSKAR-AUDIO-4097",
-  "build": 2026102102,
+  "version": "2026-RCDEV-TEST-20261021-DETAIL-HD-AUDIO-4097",
+  "build": 2026102103,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/f58cc3fe8aae3d7e35f3e6748a3bf7df15fb65cd/EmbyFlowE2_2026102102.py",
-  "sha256": "777947b3dfb967a38c840eed90c5d7f3d7c819d1412c7e31b6900038927a2783",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/919575b680e29797d6d9a03def99e96896d21c4a/EmbyFlowE2_2026102103.py",
+  "sha256": "7f88c2a44457d7aed3c7d7ec11bab19c96f550778171e94b14a57a6ba57408ff",
   "changelog": [
-    "Anskar-Testupdate: Tonspurwechsel bei DirectPlay mit Enigma2/4097 ohne ExtEplayer3. Die gewaehlte Tonspur wird serverseitig in einem neuen Stream ab der gespeicherten Filmposition angefordert; Video und Audio werden kopiert.",
-    "Die vollstaendige Server-Tonspurliste bleibt auch nach dem Wechsel verfuegbar, damit Englisch -> Deutsch wieder ausgewaehlt werden kann. Die alte Sitzung wird bereinigt; kein automatischer Neustart-Zyklus bei Fehlern.",
-    "LCD-Zeitfix 2026102001 bleibt enthalten; auf der Gigablue UHD Quad Pro von Anskar bestaetigt. Zgemma H17 TWIN und Mutant HD51 weiter unbestaetigt.",
-    "Vor dem Test eingebrannte Server-Untertitel ausschalten. Bei anderen Wiedergabepfaden bleibt der bisherige Tonwechsel erhalten.",
-    "27 lokale Tests bestanden; vollstaendiges Plugin als Python 3.8 geprueft. Wirkung auf echter Hardware und echtem Emby-Server noch NICHT bestaetigt. Bitte Deutsch -> Englisch -> Deutsch sowie Bild, Ton, Filmposition und LCD pruefen."
+    "Detailansicht bei HD-Aufloesung: Ueberschrift und Beschreibung werden einheitlich skaliert und verschoben. Behebt die im Code nachgewiesene Ueberlagerung durch unskalierte 30-Pixel-Verschiebung.",
+    "Detail-Metadaten und Plaketten verwenden dieselbe Skalierung. Drei lokale Regressionstests bestanden fuer 720p, 1080p und 2160p; vollstaendiges Plugin als Python 3.8 geprueft.",
+    "Tonspur-Test mit Enigma2/4097 ohne ExtEplayer3 und LCD-Zeitfix bleiben enthalten. Der Tonspur-Test hatte 27 lokale Tests bestanden. Hardwarewirkung und UT-Test stehen noch aus.",
+    "Bitte auf der GB Trio UHD die Detailansicht mit langer Inhaltsangabe pruefen. Auf der Gigablue UHD Quad Pro Deutsch -> Englisch -> Deutsch pruefen: Bild, Ton, Filmposition und LCD. Eingebrannte Server-Untertitel fuer diesen Tonspur-Test vorher ausschalten.",
+    "Neutrale Bezeichnungen in aktuellen Update-Texten und Testdateien."
   ]
 }

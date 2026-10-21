@@ -1,4 +1,4 @@
-# Anskars LCD-Zeit – Testupdate 2026102001
+# den LCD-Zeit – Testupdate 2026102001
 
 Verteilung über den vorhandenen EmbyFlow-RCDEV-Updater. Basis ist ausschließlich
 veröffentlichter Build 2026101805 mit geprüfter SHA256; private Such-, Theme- und
@@ -49,7 +49,7 @@ LCD4linux-Quelle/Lizenz: joergm6, NPOSL-3.0, siehe Originalkopf.
 
 Installiertes r40 und konkrete Zgemma/Gigablue/Mutant-Hardware wurden hier nicht
 ausgeführt. Die strukturelle Laufzeitprüfung verhindert blindes Patchen eines
-abweichenden Renderers. Die Anzeige auf Anskars Geräten muss nach dem Update
+abweichenden Renderers. Die Anzeige auf den Geräten muss nach dem Update
 bestätigt werden. Das Bild +179 min allein belegt keine tatsächliche Filmrestzeit.
 
 Begrenztes Diagnoseprotokoll: `/tmp/embyflow-display-time.log`; enthält Zeitwerte
