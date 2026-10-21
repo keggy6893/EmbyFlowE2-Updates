@@ -376,14 +376,14 @@ except Exception:
         return str(actual_type or "").strip() in tuple(requested_types or ())
 
 PLUGIN_NAME = "EmbyFlow E2"
-PLUGIN_VERSION = "2026-RCDEV-TEST-20261021-ANSKAR-AUDIO-4097"
+PLUGIN_VERSION = "2026-RCDEV-TEST-20261021-RECEIVER-AUDIO-4097"
 PLUGIN_BUILD_DATE = "21.10.2026"
 PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
 
 # EMBYFLOW_GITHUB_UPDATER_V1
 # Monotonic integer used for update comparison. Do not compare version strings.
 PLUGIN_UPDATE_BUILD = 2026102102
-PLUGIN_UPDATE_CHANGELOG = 'LCD-Testupdate fuer Anskar: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.|Kompatible, bereits geladene LCD4linux-Renderer erhalten dieselbe Filmzeit nur waehrend der zugehoerigen EmbyFlow-Wiedergabe. Keine Aenderung von LCD4linux-Dateien oder Einstellungen und keine globale Seek-Manipulation.|Unbekannte LCD4linux-Renderer werden nicht angepasst. Ein begrenztes lokales Zeitprotokoll hilft bei abweichenden Versionen. Keine weiteren Serverabfragen fuer die Displayanzeige.|Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch von Anskar zu bestaetigen.|Basis ist der veroeffentlichte Stand 2026101805. Dieses Update ergaenzt ausschliesslich den Display-Zeitfix.'
+PLUGIN_UPDATE_CHANGELOG = 'LCD-Testupdate fuer Receiver: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.|Kompatible, bereits geladene LCD4linux-Renderer erhalten dieselbe Filmzeit nur waehrend der zugehoerigen EmbyFlow-Wiedergabe. Keine Aenderung von LCD4linux-Dateien oder Einstellungen und keine globale Seek-Manipulation.|Unbekannte LCD4linux-Renderer werden nicht angepasst. Ein begrenztes lokales Zeitprotokoll hilft bei abweichenden Versionen. Keine weiteren Serverabfragen fuer die Displayanzeige.|Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch auf den Receivern zu bestaetigen.|Basis ist der veroeffentlichte Stand 2026101805. Dieses Update ergaenzt ausschliesslich den Display-Zeitfix.'
 EMBYFLOW_UPDATE_CHANNEL = "rcdev"
 EMBYFLOW_UPDATE_MANIFEST_URL = (
     "https://raw.githubusercontent.com/keggy6893/"
@@ -104555,7 +104555,7 @@ def _efa2_restart_4097(
 
 
 
-# EMBYFLOW_ANSKAR_AUDIO_4097_V2_BEGIN
+# EMBYFLOW_RECEIVER_AUDIO_4097_V2_BEGIN
 # A receiver-test candidate: server-selected audio, no native selectTrack on 4097.
 _EFA2_OPEN = EmbyFlowMoviePlayer.open_audio_selection
 _EFA2_SELECT = EmbyFlowMoviePlayer.audio_selection_finished
@@ -104732,4 +104732,4 @@ def _efa2_ready(player):
 EmbyFlowMoviePlayer.open_audio_selection = _efa2_open
 EmbyFlowMoviePlayer.audio_selection_finished = _efa2_select
 EmbyFlowMoviePlayer.emby_report_payload = _efa2_report
-# EMBYFLOW_ANSKAR_AUDIO_4097_V2_END
+# EMBYFLOW_RECEIVER_AUDIO_4097_V2_END

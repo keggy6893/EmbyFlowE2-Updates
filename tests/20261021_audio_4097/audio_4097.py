@@ -1,4 +1,4 @@
-# EMBYFLOW_ANSKAR_AUDIO_4097_V2_BEGIN
+# EMBYFLOW_RECEIVER_AUDIO_4097_V2_BEGIN
 # A receiver-test candidate: server-selected audio, no native selectTrack on 4097.
 _EFA2_OPEN = EmbyFlowMoviePlayer.open_audio_selection
 _EFA2_SELECT = EmbyFlowMoviePlayer.audio_selection_finished
@@ -175,4 +175,4 @@ def _efa2_ready(player):
 EmbyFlowMoviePlayer.open_audio_selection = _efa2_open
 EmbyFlowMoviePlayer.audio_selection_finished = _efa2_select
 EmbyFlowMoviePlayer.emby_report_payload = _efa2_report
-# EMBYFLOW_ANSKAR_AUDIO_4097_V2_END
+# EMBYFLOW_RECEIVER_AUDIO_4097_V2_END

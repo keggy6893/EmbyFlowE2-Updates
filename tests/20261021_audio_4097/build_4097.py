@@ -3,7 +3,7 @@ import ast
 import hashlib
 
 HERE = Path(__file__).resolve().parent
-BASE_SHA = '01fa460d5d7f5146d0963d9df27f19f0c9266fefc9a6494a856913395b01ef88'
+BASE_SHA = '742aa17708e7ff3a204665980a8195708a68420b925394226e9fbd7408ed5ef2'
 
 
 def build():
@@ -15,7 +15,7 @@ def build():
         raise RuntimeError('Published LCD baseline mismatch')
     source = raw.decode('utf-8')
     for old, new in [
-        ('PLUGIN_VERSION = "2026-RCDEV-TEST-20261020-LCD-CONTENT-TIME"', 'PLUGIN_VERSION = "2026-RCDEV-TEST-20261021-ANSKAR-AUDIO-4097"'),
+        ('PLUGIN_VERSION = "2026-RCDEV-TEST-20261020-LCD-CONTENT-TIME"', 'PLUGIN_VERSION = "2026-RCDEV-TEST-20261021-RECEIVER-AUDIO-4097"'),
         ('PLUGIN_UPDATE_BUILD = 2026102001', 'PLUGIN_UPDATE_BUILD = 2026102102'),
         ('PLUGIN_BUILD_DATE = "20.10.2026"', 'PLUGIN_BUILD_DATE = "21.10.2026"'),
     ]:

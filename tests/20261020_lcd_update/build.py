@@ -9,10 +9,10 @@ ARTIFACT='EmbyFlowE2_2026102001.py'
 BASE_HASH='dba656338542079ea137296a85b0ca3f07d8c1ee57930548737fb040b12cd4b5'
 BASE_FILE='EmbyFlowE2_2026101805.py'
 CHANGELOG=[
- 'LCD-Testupdate fuer Anskar: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.',
+ 'LCD-Testupdate fuer Receiver: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.',
  'Kompatible, bereits geladene LCD4linux-Renderer erhalten dieselbe Filmzeit nur waehrend der zugehoerigen EmbyFlow-Wiedergabe. Keine Aenderung von LCD4linux-Dateien oder Einstellungen und keine globale Seek-Manipulation.',
  'Unbekannte LCD4linux-Renderer werden nicht angepasst. Ein begrenztes lokales Zeitprotokoll hilft bei abweichenden Versionen. Keine weiteren Serverabfragen fuer die Displayanzeige.',
- 'Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch von Anskar zu bestaetigen.',
+ 'Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch auf den Receivern zu bestaetigen.',
  'Basis ist der veroeffentlichte Stand 2026101805. Dieses Update ergaenzt ausschliesslich den Display-Zeitfix.'
 ]
 

@@ -5,12 +5,12 @@
   "target": "plugin.py",
   "artifact_type": "plugin_py",
   "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/EmbyFlowE2_2026102001.py",
-  "sha256": "01fa460d5d7f5146d0963d9df27f19f0c9266fefc9a6494a856913395b01ef88",
+  "sha256": "742aa17708e7ff3a204665980a8195708a68420b925394226e9fbd7408ed5ef2",
   "changelog": [
-    "LCD-Testupdate fuer Anskar: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.",
+    "LCD-Testupdate fuer Receiver: interne Frontdisplays und 7-Segment-Anzeigen verwenden EmbyFlows Filmlaenge und korrigierte absolute Abspielposition wie die TV-Infobar.",
     "Kompatible, bereits geladene LCD4linux-Renderer erhalten dieselbe Filmzeit nur waehrend der zugehoerigen EmbyFlow-Wiedergabe. Keine Aenderung von LCD4linux-Dateien oder Einstellungen und keine globale Seek-Manipulation.",
     "Unbekannte LCD4linux-Renderer werden nicht angepasst. Ein begrenztes lokales Zeitprotokoll hilft bei abweichenden Versionen. Keine weiteren Serverabfragen fuer die Displayanzeige.",
-    "Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch von Anskar zu bestaetigen.",
+    "Lokal geprueft: Zeitumrechnung, Fortsetzen/Streamneustart, Pause, Filmende, Live-TV-/Fremdplayer-Abgrenzung und oeffentlicher LCD4linux-Referenzrenderer. Zgemma H17 TWIN, Gigablue UHD Quad Pro und Mutant HD51 sind noch auf den Receivern zu bestaetigen.",
     "Basis ist der veroeffentlichte Stand 2026101805. Dieses Update ergaenzt ausschliesslich den Display-Zeitfix."
   ]
 }
