@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261021-DETAIL-HD-AUDIO-4097",
-  "build": 2026102103,
+  "version": "2026-RCDEV-TEST-20261021-AUDIO-SESSION-4097",
+  "build": 2026102104,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/919575b680e29797d6d9a03def99e96896d21c4a/EmbyFlowE2_2026102103.py",
-  "sha256": "7f88c2a44457d7aed3c7d7ec11bab19c96f550778171e94b14a57a6ba57408ff",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/c761aeb5c4f6258fb85d9977a679d1f270e8fd06/EmbyFlowE2_2026102104.py",
+  "sha256": "fe79ab4fdc7e60809224bdc5a5d7d9b2ae8c7b9ff75026a8e105151375d76b5c",
   "changelog": [
-    "Detailansicht bei HD-Aufloesung: Ueberschrift und Beschreibung werden einheitlich skaliert und verschoben. Behebt die im Code nachgewiesene Ueberlagerung durch unskalierte 30-Pixel-Verschiebung.",
-    "Detail-Metadaten und Plaketten verwenden dieselbe Skalierung. Drei lokale Regressionstests bestanden fuer 720p, 1080p und 2160p; vollstaendiges Plugin als Python 3.8 geprueft.",
-    "Tonspur-Test mit Enigma2/4097 ohne ExtEplayer3 und LCD-Zeitfix bleiben enthalten. Der Tonspur-Test hatte 27 lokale Tests bestanden. Hardwarewirkung und UT-Test stehen noch aus.",
-    "Bitte auf der GB Trio UHD die Detailansicht mit langer Inhaltsangabe pruefen. Auf der Gigablue UHD Quad Pro Deutsch -> Englisch -> Deutsch pruefen: Bild, Ton, Filmposition und LCD. Eingebrannte Server-Untertitel fuer diesen Tonspur-Test vorher ausschalten.",
-    "Neutrale Bezeichnungen in aktuellen Update-Texten und Testdateien."
+    "Tonspur-Test 4097: Start- und Fortschrittsmeldungen nutzen dieselbe vorhandene Sitzungsverwaltung. Verhindert die lokal nachgewiesene doppelte Startmeldung nach einem Tonwechsel.",
+    "Sechs gezielte lokale Tests bestanden: Doppelmeldung im bisherigen Stand reproduziert; korrigierter Ablauf bis zu simulierten 60 Sekunden, korrekte Tonspur/Sitzung, Meldereihenfolge, Fehlerbehandlung, Filmposition, 4097 und Bereinigung der alten Sitzung geprueft. Vollstaendiges Plugin als Python 3.8 geprueft.",
+    "Hardware-Rueckmeldung zum bisherigen Stand: Tonwechsel funktioniert, danach haengen Bild und Ton nach etwa 30 Sekunden dauerhaft. Ob die korrigierte Sitzungsverwaltung diesen Fehler behebt, ist noch NICHT bestaetigt.",
+    "HD-Detailansicht und LCD-Zeitfix bleiben enthalten. UT-Test weiter offen. Eingebrannte Server-Untertitel fuer den Tonspur-Test vorher ausschalten.",
+    "Bitte nach dem Update einen Film fortsetzen, Deutsch -> Englisch wechseln und mindestens zwei Minuten laufen lassen; danach zurueck auf Deutsch und erneut pruefen."
   ]
 }
