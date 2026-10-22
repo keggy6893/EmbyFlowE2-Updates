@@ -1,15 +1,15 @@
 {
-  "version": "2026-RCDEV-TEST-20261021-GENRE-SPACING",
-  "build": 2026102105,
+  "version": "2026-RCDEV-TEST-20261022-AUDIO-HLS",
+  "build": 2026102201,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/bc4cb1ad91f8b35e071a3160c27b4850fbe95e69/EmbyFlowE2_2026102105.py",
-  "sha256": "526dc9c3e8742829c110360f1a4bf37e989f4f3bb2d07b8aa38c2c2adc8980a8",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/dde842478beafb95170911e2801ce591759334a4/EmbyFlowE2_2026102201.py",
+  "sha256": "d2f4b32e5903bee1fdce761fd30b46a827c1e70b0fee202d9e3f52783b1bfaff",
   "changelog": [
-    "Detailansicht: Nur die Genrezeile (Action, Komoedie usw.) sitzt hoeher und erscheint warmgelb. Inhaltsangabe, Beschreibung, Titel, Info-Badges und Poster behalten ihre bisherigen Positionen.",
-    "Keine neuen Serverabfragen und keine Aenderung an Navigation oder Wiedergabe durch die Genre-Korrektur.",
-    "Basis ist Teststand 2026102104: HD-Detailansicht, LCD-Zeitfix und aktueller 4097-Tonspur-Sitzungstest bleiben enthalten. Die Hardwarebestaetigung des Tonspurtests und der UT-Test stehen weiter aus.",
-    "Gezielt lokal geprueft: Nur Genreposition und Genrefarbe im Detail-Layout geaendert; Gesamtplugin fuer Python 3.8 kompilierbar."
+    "Tonspur-Test fuer Dreambox One und Gigablue Quad Pro: Nach Sprachwechsel HLS/TS mit AAC-Stereo statt MKV mit unveraendertem Originalton. Player bleibt Enigma2/4097; Video-Streamkopie wird angefordert.",
+    "Gewaehlte Sprache, Filmposition und Wiedergabesitzung bleiben zugeordnet. Die Tonspurliste behaelt die Sprachen der Originaldatei.",
+    "Gezielter Versuch gegen Bild-/Tonausfall nach etwa 30 Sekunden. Kein bestaetigter Hardwarefix. Fuer diesen Test ist serverseitige Audio-Umwandlung erforderlich; Mehrkanalton wird auf Stereo reduziert.",
+    "Lokale USB-/NAS-Dateipfade und andere Receiver behalten den bisherigen Wiedergabeweg. Genre-Abstand, HD-Layout und LCD-Zeitkorrektur aus 2026102105 bleiben enthalten."
   ]
 }
