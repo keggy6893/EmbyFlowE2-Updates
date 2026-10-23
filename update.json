@@ -1,15 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261022-AUDIO-HLS",
-  "build": 2026102201,
+  "version": "2026-RCDEV-TEST-20261023-UPDATER-COMPILE",
+  "build": 2026102301,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/dde842478beafb95170911e2801ce591759334a4/EmbyFlowE2_2026102201.py",
-  "sha256": "d2f4b32e5903bee1fdce761fd30b46a827c1e70b0fee202d9e3f52783b1bfaff",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/0d2dbe7505a73ec3185d5cd5481ea4d91b065019/EmbyFlowE2_2026102301.py",
+  "sha256": "7cf7dcee1b14d5ad65504698e0cfdb29579ebe716f6fd9eeeb9f673665348ae8",
   "changelog": [
-    "Tonspur-Test fuer Dreambox One und Gigablue Quad Pro: Nach Sprachwechsel HLS/TS mit AAC-Stereo statt MKV mit unveraendertem Originalton. Player bleibt Enigma2/4097; Video-Streamkopie wird angefordert.",
-    "Gewaehlte Sprache, Filmposition und Wiedergabesitzung bleiben zugeordnet. Die Tonspurliste behaelt die Sprachen der Originaldatei.",
-    "Gezielter Versuch gegen Bild-/Tonausfall nach etwa 30 Sekunden. Kein bestaetigter Hardwarefix. Fuer diesen Test ist serverseitige Audio-Umwandlung erforderlich; Mehrkanalton wird auf Stereo reduziert.",
-    "Lokale USB-/NAS-Dateipfade und andere Receiver behalten den bisherigen Wiedergabeweg. Genre-Abstand, HD-Layout und LCD-Zeitkorrektur aus 2026102105 bleiben enthalten."
+    "Updater-Reparatur: Python-Syntaxpruefung mit eingebautem compile() statt optionalem py_compile. Behebt den Abbruch 'No module named py_compile' bei kuenftigen Updates.",
+    "Alle fuenf Syntaxpruefungen, SHA256-Pruefung, Sicherung und Rollback bleiben erhalten. 18 lokale Regressionstests bestanden.",
+    "Bereits betroffene alte Updater benoetigen einmalig eine separate Reparatur, bevor dieses Update installiert werden kann. Wiederholtes Starten von Updates allein behebt den Fehler nicht.",
+    "Audio-Kompatibilitaetstest aus 2026102201 bleibt enthalten: Dreambox One und Gigablue Quad Pro verwenden nach Sprachwechsel HLS/TS mit AAC-Stereo. Serverseitige Audio-Umwandlung erforderlich; Mehrkanalton wird auf Stereo reduziert. Hardware-Erfolg weiterhin unbestaetigt.",
+    "Lokale Dateipfade, andere Receiver, Genre-Abstand, HD-Layout und LCD-Zeitkorrektur bleiben auf dem bisherigen Stand."
   ]
 }
