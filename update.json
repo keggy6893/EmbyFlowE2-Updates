@@ -1,16 +1,17 @@
 {
-  "version": "2026-RCDEV-TEST-20261023-UPDATER-COMPILE",
-  "build": 2026102301,
+  "version": "2026-RCDEV-TEST-20261024-DREAMONE-NATIVE-AUDIO",
+  "build": 2026102401,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/0d2dbe7505a73ec3185d5cd5481ea4d91b065019/EmbyFlowE2_2026102301.py",
-  "sha256": "7cf7dcee1b14d5ad65504698e0cfdb29579ebe716f6fd9eeeb9f673665348ae8",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/e07206ae02700ef15302c835e2e8676773db298c/EmbyFlowE2_2026102401.py",
+  "sha256": "920f7d93442cf64bd3bb838d2dc0b8f4b8ffbcc70dcec909d1b7eafb91fc62a2",
   "changelog": [
-    "Updater-Reparatur: Python-Syntaxpruefung mit eingebautem compile() statt optionalem py_compile. Behebt den Abbruch 'No module named py_compile' bei kuenftigen Updates.",
-    "Alle fuenf Syntaxpruefungen, SHA256-Pruefung, Sicherung und Rollback bleiben erhalten. 18 lokale Regressionstests bestanden.",
-    "Bereits betroffene alte Updater benoetigen einmalig eine separate Reparatur, bevor dieses Update installiert werden kann. Wiederholtes Starten von Updates allein behebt den Fehler nicht.",
-    "Audio-Kompatibilitaetstest aus 2026102201 bleibt enthalten: Dreambox One und Gigablue Quad Pro verwenden nach Sprachwechsel HLS/TS mit AAC-Stereo. Serverseitige Audio-Umwandlung erforderlich; Mehrkanalton wird auf Stereo reduziert. Hardware-Erfolg weiterhin unbestaetigt.",
-    "Lokale Dateipfade, andere Receiver, Genre-Abstand, HD-Layout und LCD-Zeitkorrektur bleiben auf dem bisherigen Stand."
+    "DreamOne (dreamone/dmone), Enigma2/4097: Tonspuren der laufenden Datei direkt im Player wechseln. Der Tonspurwechsel startet keine neue HLS-/Remux-Sitzung und setzt die Filmposition nicht zurueck.",
+    "DreamOne: Deutsch wird nach Bereitstellung der nativen Tonspuren anhand der tatsaechlich erkannten Sprache gewaehlt. Manuelle Sprachwahl bleibt bis zum Filmende erhalten. Eine nicht verfuegbare deutsche Player-Spur wird nicht als ausgewaehlt ausgegeben.",
+    "DreamOne: Haken und Infobar werden nach bestaetigtem nativen Spurwechsel aktualisiert; die aktive Filmversion bleibt massgeblich. Originalton wird durch diesen Wechsel nicht in AAC-Stereo umgewandelt.",
+    "Gezielter Receiver-Test fuer Anskar. MKV/TS, Bild-/Tonstabilitaet und Langzeitwiedergabe muessen auf der DreamOne bestaetigt werden. Lokale Tests sind kein Nachweis, dass das gemeldete Stocken behoben ist.",
+    "Andere Receiver behalten ihren bisherigen Tonspurpfad. Updater-Syntaxpruefung ohne py_compile, LCD-Zeitfix, Genre-Abstand und HD-Layout aus 2026102301 bleiben erhalten. Keine privaten Such-/Wunschbox-/Download-Testaenderungen enthalten.",
+    "34 lokale Tests bestanden: 16 DreamOne-Tests, 11 bestehende Audio-HLS-Tests, 7 Updater-Regressionstests. Hardware-Ergebnis weiterhin offen."
   ]
 }
