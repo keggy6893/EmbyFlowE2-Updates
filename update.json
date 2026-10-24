@@ -1,17 +1,17 @@
 {
-  "version": "2026-RCDEV-TEST-20261024-DREAMONE-NATIVE-AUDIO",
-  "build": 2026102401,
+  "version": "2026-RCDEV-TEST-20261024-MODAL-GUARD",
+  "build": 2026102402,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/e07206ae02700ef15302c835e2e8676773db298c/EmbyFlowE2_2026102401.py",
-  "sha256": "920f7d93442cf64bd3bb838d2dc0b8f4b8ffbcc70dcec909d1b7eafb91fc62a2",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/8e3682dd221a005af52de66e022742a2383d8902/EmbyFlowE2_2026102402.py",
+  "sha256": "cb4dfb686d8a9345fc724581bd12f01d8d6e78c5e8d94db61bc2671065b59b12",
   "changelog": [
-    "DreamOne (dreamone/dmone), Enigma2/4097: Tonspuren der laufenden Datei direkt im Player wechseln. Der Tonspurwechsel startet keine neue HLS-/Remux-Sitzung und setzt die Filmposition nicht zurueck.",
-    "DreamOne: Deutsch wird nach Bereitstellung der nativen Tonspuren anhand der tatsaechlich erkannten Sprache gewaehlt. Manuelle Sprachwahl bleibt bis zum Filmende erhalten. Eine nicht verfuegbare deutsche Player-Spur wird nicht als ausgewaehlt ausgegeben.",
-    "DreamOne: Haken und Infobar werden nach bestaetigtem nativen Spurwechsel aktualisiert; die aktive Filmversion bleibt massgeblich. Originalton wird durch diesen Wechsel nicht in AAC-Stereo umgewandelt.",
-    "Gezielter Receiver-Test fuer Anskar. MKV/TS, Bild-/Tonstabilitaet und Langzeitwiedergabe muessen auf der DreamOne bestaetigt werden. Lokale Tests sind kein Nachweis, dass das gemeldete Stocken behoben ist.",
-    "Andere Receiver behalten ihren bisherigen Tonspurpfad. Updater-Syntaxpruefung ohne py_compile, LCD-Zeitfix, Genre-Abstand und HD-Layout aus 2026102301 bleiben erhalten. Keine privaten Such-/Wunschbox-/Download-Testaenderungen enthalten.",
-    "34 lokale Tests bestanden: 16 DreamOne-Tests, 11 bestehende Audio-HLS-Tests, 7 Updater-Regressionstests. Hardware-Ergebnis weiterhin offen."
+    "Absturzkorrektur fuer das Crashlog vom 24.10.2026: Der Hinweis-Timer _efguard_gui_tick oeffnet kein modales Fenster mehr, waehrend die Enigma2-Sitzung keinen ausfuehrenden Dialog hat.",
+    "Waehrend eines Bildschirm-/Playerwechsels bleibt der Hinweis vorgemerkt. Eine Ausnahme beim Oeffnen darf Enigma2 nicht beenden; ein neuerer Hinweis wird beim erneuten Vormerken nicht ueberschrieben.",
+    "Gezielte Korrektur des Pluginfehlers \"Modal open are allowed only from a screen which is modal\". FF_ERROR ist damit nicht als exteplayer3-Absturz eingeordnet. Keine Aenderung an Player-Auswahl, Suchfunktionen, Tonspurwechsel, Stream-URLs oder Server-Abbruchregeln.",
+    "DreamOne-Teststand 2026102401 bleibt enthalten. Stocken und Sprachwechsel sind damit weiterhin nicht als auf Hardware behoben bestaetigt. Kein weiterer Hardwaretest von Anskar fuer die Analyse dieses belegten Dialogfehlers angefordert.",
+    "Lokale Regression: Originalabsturz reproduziert, Dialog-Uebergaenge und parallele Hinweise geprueft; sonstiger Plugin-Code bleibt erhalten.",
+    "45 lokale Tests bestanden: 11 Modal-/Release-Pruefungen, 16 DreamOne-Audiotests, 11 Audio-HLS-Tests und 7 Updater-Regressionen. Keine Hardwarebestaetigung fuer Wiedergabestabilitaet behauptet."
   ]
 }
