@@ -3,6 +3,15 @@ Update repository for EmbyFlow E2
 
 ## Update-Fehler: No module named 'py_compile'
 
+**Einmalige Reparatur ohne Telnet:**
+[Reparatur-IPK herunterladen](https://github.com/keggy6893/EmbyFlowE2-Updates/releases/download/updater-repair-20261025-r1/enigma2-plugin-extensions-embyflowe2-updater-repair_2026.10.25-r1_all.ipk),
+nach `/tmp` auf die Box kopieren, in der Softwareverwaltung als lokale
+Erweiterung installieren und danach die GUI manuell neu starten.
+Das Zusatzpaket repariert ausschliesslich den vorhandenen Updater. Es ersetzt
+keine komplette Plugin-Version und enthaelt keine versionsgebundenen
+Python-Bytecode-Helfer.
+[Paketinhalt, Sicherung und Installationshinweise](ipk/updater-repair-20261025-r1/README.md).
+
 Der ueber `update.json` angebotene Build 2026102402 enthaelt bereits den
 Updater-Fix aus Build 2026102301: Alle fuenf Syntaxpruefungen verwenden das
 eingebaute `compile()`. Das zusaetzliche Python-Paket ist dafuer nicht noetig.
@@ -17,10 +26,13 @@ laufenden alten Code nicht. Es gibt dort keinen vorgelagerten Reparatur-Hook.
 
 Fuer diese Installationen liegt die einmalige lokale Reparatur in
 [`tools/repair-updater-only-20261025.py`](tools/repair-updater-only-20261025.py).
-Sie muss ausserhalb des blockierten Updaters gestartet werden. Sie sichert die
+Das Reparatur-IPK fuehrt sie ausserhalb des blockierten Updaters mit
+`--no-restart` aus; danach ist der manuelle GUI-Neustart erforderlich.
+Beim direkten Skriptaufruf ohne diesen Parameter wird der GUI-Neustart
+automatisch angefordert. Die Reparatur sichert die
 installierte Datei, ersetzt ausschliesslich die fuenf Syntaxpruefungen im
-erkannten alten Updater und fordert anschliessend den GUI-Start an. Auch bei
-fehlgeschlagenem Stoppen oder Aufraeumen wird der Wiederanlauf versucht.
+erkannten alten Updater. Beim direkten Aufruf wird auch bei fehlgeschlagenem
+Stoppen oder Aufraeumen der Wiederanlauf versucht.
 Ein bereits reparierter Updater bleibt unveraendert, ohne GUI-Neustart.
 Danach funktionieren kuenftige Updates wieder ueber das Plugin-Menue.
 

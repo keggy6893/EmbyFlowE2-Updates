@@ -1,4 +1,4 @@
-import os,stat,fcntl,tempfile,time,shutil,subprocess
+import os,stat,fcntl,time,subprocess,sys
 from pathlib import Path
 import re
 
@@ -37,7 +37,7 @@ def patched(source):
     return result
 
 def main(plugin_path="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py",
-         lock_path="/etc/enigma2/embyflow-download-quota.json.lock"):
+         lock_path="/etc/enigma2/embyflow-download-quota.json.lock", restart_gui=True):
     fd=os.open(lock_path,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):raise RuntimeError("Sperrdatei ungueltig")
@@ -48,12 +48,14 @@ def main(plugin_path="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plug
         result=patched(s).encode("utf-8")
         if result==raw:
             print("Updater ist bereits ohne py_compile-Modul nutzbar. Kein Neustart.",flush=True);return
-        if shutil.disk_usage(p.parent).free<len(raw)*2+2097152:raise RuntimeError("Zu wenig Speicher")
+        space=os.statvfs(p.parent)
+        if space.f_bavail*space.f_frsize<len(raw)*2+2097152:raise RuntimeError("Zu wenig Speicher")
         backup=str(p)+".vor-updater-only-"+time.strftime("%Y%m%d-%H%M%S")+"-"+str(os.getpid())
         mode=stat.S_IMODE(p.stat().st_mode)
         with open(backup,"xb") as f:f.write(raw);f.flush();os.fsync(f.fileno())
         os.chmod(backup,mode)
-        h,tmp=tempfile.mkstemp(dir=p.parent,prefix=".updater-only-");stopped=False
+        tmp=str(p.parent / (".updater-only-"+str(os.getpid())+"-"+str(time.time_ns())))
+        h=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600);stopped=False
         try:
             with os.fdopen(h,"wb") as f:f.write(result);f.flush();os.fsync(f.fileno())
             os.chmod(tmp,mode)
@@ -61,8 +63,9 @@ def main(plugin_path="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plug
             print("Sicherung: "+backup,flush=True)
             # A failed stop request may already have stopped part of the GUI.
             # Always request its restart once stopping has been attempted.
-            stopped=True
-            subprocess.run(["init","4"],check=True);time.sleep(3)
+            if restart_gui:
+                stopped=True
+                subprocess.run(["init","4"],check=True);time.sleep(3)
             if p.read_bytes()!=raw:raise RuntimeError("Plugin inzwischen geaendert")
             os.replace(tmp,p)
         finally:
@@ -72,10 +75,14 @@ def main(plugin_path="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plug
                 print("HINWEIS: Temporaere Datei konnte nicht entfernt werden: "+str(error),flush=True)
             finally:
                 if stopped:subprocess.run(["init","3"],check=True)
-        print("FERTIG. Nur Updater repariert. Alle 5 Syntaxpruefungen bleiben aktiv. GUI-Start angefordert.",flush=True)
+        print("FERTIG. Nur Updater repariert. Alle 5 Syntaxpruefungen bleiben aktiv. "+
+              ("GUI-Start angefordert." if restart_gui else "Bitte GUI nach der Paketinstallation manuell neu starten."),flush=True)
     finally:os.close(fd)
 if __name__ == "__main__":
-    try:main()
+    try:
+        if sys.argv[1:] not in ([], ["--no-restart"]):
+            raise RuntimeError("Erlaubter Parameter: --no-restart")
+        main(restart_gui=not bool(sys.argv[1:]))
     except Exception as error:
         print("STOPP: "+str(error),flush=True)
         raise SystemExit(1)

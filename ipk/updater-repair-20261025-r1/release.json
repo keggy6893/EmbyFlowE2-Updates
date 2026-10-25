@@ -1,0 +1,11 @@
+{
+  "package": "enigma2-plugin-extensions-embyflowe2-updater-repair",
+  "version": "2026.10.25-r1",
+  "filename": "enigma2-plugin-extensions-embyflowe2-updater-repair_2026.10.25-r1_all.ipk",
+  "sha256": "99c64d8481fa11ab1d64a91764405b15bd4a25a4bfc50419d8c644d5f8a37394",
+  "source_sha256": "9930cad3622fa612829dfe4ddca30ceb3bab96d437dabcdd7002053f93085609",
+  "size": 3722,
+  "automatic_gui_restart": false,
+  "replaces_full_plugin": false,
+  "bytecode_files": 0
+}

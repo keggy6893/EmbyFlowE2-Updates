@@ -76,6 +76,15 @@ class InstallerTests(unittest.TestCase):
         self.run.assert_not_called()
         self.assertEqual(self.plugin.read_bytes(), self.original)
 
+    def test_package_install_changes_only_updater_without_controlling_gui(self):
+        settings = self.folder / 'embyflow-login.ini'
+        settings.write_bytes(b'private-settings-unchanged')
+        REPAIR.main(str(self.plugin), str(self.lock), restart_gui=False)
+        self.run.assert_not_called()
+        self.assertEqual(settings.read_bytes(), b'private-settings-unchanged')
+        self.assertEqual(self.plugin.read_text(), REPAIR.patched(self.original.decode()))
+        self.assertIn('manuell neu starten', self.output.getvalue())
+
     def test_restart_failure_is_not_reported_as_success(self):
         self.run.side_effect = [None, subprocess.CalledProcessError(1, ['init', '3'])]
         with self.assertRaises(subprocess.CalledProcessError):
