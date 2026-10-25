@@ -1,17 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261024-MODAL-GUARD",
-  "build": 2026102402,
+  "version": "2026-RCDEV-TEST-20261025-LOCAL-SEEK",
+  "build": 2026102501,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/8e3682dd221a005af52de66e022742a2383d8902/EmbyFlowE2_2026102402.py",
-  "sha256": "cb4dfb686d8a9345fc724581bd12f01d8d6e78c5e8d94db61bc2671065b59b12",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/bae476620d507695ddf87e9107a151f9e801e28b/EmbyFlowE2_2026102501.py",
+  "sha256": "6d6b2508197aa6a9b961752a95077bd4d7b2a11f218606bff5efca7607e72cd8",
   "changelog": [
-    "Absturzkorrektur fuer das Crashlog vom 24.10.2026: Der Hinweis-Timer _efguard_gui_tick oeffnet kein modales Fenster mehr, waehrend die Enigma2-Sitzung keinen ausfuehrenden Dialog hat.",
-    "Waehrend eines Bildschirm-/Playerwechsels bleibt der Hinweis vorgemerkt. Eine Ausnahme beim Oeffnen darf Enigma2 nicht beenden; ein neuerer Hinweis wird beim erneuten Vormerken nicht ueberschrieben.",
-    "Gezielte Korrektur des Pluginfehlers \"Modal open are allowed only from a screen which is modal\". FF_ERROR ist damit nicht als exteplayer3-Absturz eingeordnet. Keine Aenderung an Player-Auswahl, Suchfunktionen, Tonspurwechsel, Stream-URLs oder Server-Abbruchregeln.",
-    "DreamOne-Teststand 2026102401 bleibt enthalten. Stocken und Sprachwechsel sind damit weiterhin nicht als auf Hardware behoben bestaetigt. Kein weiterer Hardwaretest von Anskar fuer die Analyse dieses belegten Dialogfehlers angefordert.",
-    "Lokale Regression: Originalabsturz reproduziert, Dialog-Uebergaenge und parallele Hinweise geprueft; sonstiger Plugin-Code bleibt erhalten.",
-    "45 lokale Tests bestanden: 11 Modal-/Release-Pruefungen, 16 DreamOne-Audiotests, 11 Audio-HLS-Tests und 7 Updater-Regressionen. Keine Hardwarebestaetigung fuer Wiedergabestabilitaet behauptet."
+    "Lokale USB-/HDD-/NAS-Dateien: Taste 9, Kapitelspruenge und die beiden Restart-Einstiege verwenden den aktiven nativen Dateidienst. Kein Emby-HTTP-Neustart und kein Backendwechsel fuer lokale Spruenge.",
+    "Spruenge pruefen die aktive eigene Datei, beachten die native Laufzeit und lassen Pause sowie Tonspur unveraendert. Bei abgelehntem Sprung erfolgt kein Neustart vom Filmanfang.",
+    "Der lokale Skyfall-TS-Vergleich wurde auf der Vu+ mit Tonspurwechsel und Taste 9 vom Nutzer bestaetigt. EMC wird als Referenz fuer den nativen Dateidienst verwendet; EMC muss nicht installiert sein.",
+    "Modal-Guard-Absturzkorrektur, bisheriger DreamOne-Tonspur-Teststand und Updater ohne py_compile-Abhaengigkeit aus Build 2026102402 bleiben enthalten.",
+    "Grenze: Anskars Standbild beim Tonspurwechsel ueber HTTP/GStreamer ist weiterhin offen. Dieser Build ist keine bestaetigte Loesung dieses Decoderproblems. Server-Streams behalten den bisherigen Sprungpfad."
   ]
 }

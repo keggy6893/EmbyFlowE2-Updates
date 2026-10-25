@@ -1,6 +1,20 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
+## Aktueller RCDEV-Test: Build 2026102501 – lokale Dateispruenge
+
+Ueber **EmbyFlow → Updates → Update pruefen → Update installieren** verfuegbar.
+Nach erfolgreicher Installation die GUI neu starten.
+
+Enthaelt den lokalen Taste-9-/Kapitel-Fix: Spruenge in lokalen Dateien verwenden
+wie beim EMC-Vergleich den aktiven nativen Dateidienst. Kein Emby-HTTP-Neustart
+und kein Backendwechsel fuer lokale Spruenge. Pause und Tonspur bleiben erhalten.
+Die bisherigen Modal-Guard-, DreamOne- und Updater-Korrekturen sind enthalten.
+
+**Anskars Standbild beim HTTP/GStreamer-Tonspurwechsel ist weiterhin offen.**
+Die lokale Bestaetigung auf der Vu+ ist keine Bestaetigung fuer diesen Fall.
+[Umfang und Pruefungen](tests/20261025_local_seek_release/).
+
 ## Update-Fehler: No module named 'py_compile'
 
 **Einfacher Weg ueber den vorhandenen Image-Feed, ohne Telnet:**
@@ -31,7 +45,7 @@ keine komplette Plugin-Version und enthaelt keine versionsgebundenen
 Python-Bytecode-Helfer.
 [Paketinhalt, Sicherung und Installationshinweise](ipk/updater-repair-20261025-r1/README.md).
 
-Der ueber `update.json` angebotene Build 2026102402 enthaelt bereits den
+Der ueber `update.json` angebotene Build 2026102501 enthaelt bereits den
 Updater-Fix aus Build 2026102301: Alle fuenf Syntaxpruefungen verwenden das
 eingebaute `compile()`. Das zusaetzliche Python-Paket ist dafuer nicht noetig.
 Installationen mit funktionierendem Updater beziehen diese Korrektur ueber
@@ -61,7 +75,7 @@ Erweiterungen sind im veroeffentlichten Build nicht automatisch enthalten.
 Lokale Regressionen simulieren fehlendes `py_compile`, Installation, Sicherung,
 Wiederanlauf und Fehlerfaelle. Eine Receiver-Pruefung wird damit nicht behauptet.
 
-## Aktueller RCDEV-Test: Build 2026101802 – Downloads mit Tageslimit
+## Frueherer RCDEV-Test: Build 2026101802 – Downloads mit Tageslimit
 
 Der eingebaute Updater bietet diesen Test unter **Updates → Update pruefen** an.
 Nach Installation die GUI neu starten. Unter **Erweiterte Einstellungen →
