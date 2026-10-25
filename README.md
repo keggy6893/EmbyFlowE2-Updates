@@ -4,7 +4,7 @@ Update repository for EmbyFlow E2
 ## Update-Fehler: No module named 'py_compile'
 
 **Einmalige Reparatur ohne Telnet:**
-[Reparatur-IPK herunterladen](https://github.com/keggy6893/EmbyFlowE2-Updates/releases/download/updater-repair-20261025-r1/enigma2-plugin-extensions-embyflowe2-updater-repair_2026.10.25-r1_all.ipk),
+[Reparatur-IPK herunterladen](https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/65995374ea529924da652d29189e2fecbde123d8/ipk/updater-repair-20261025-r1/enigma2-plugin-extensions-embyflowe2-updater-repair_2026.10.25-r1_all.ipk),
 nach `/tmp` auf die Box kopieren, in der Softwareverwaltung als lokale
 Erweiterung installieren und danach die GUI manuell neu starten.
 Das Zusatzpaket repariert ausschliesslich den vorhandenen Updater. Es ersetzt
