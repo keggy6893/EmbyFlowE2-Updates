@@ -1,7 +1,20 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
-## Aktueller RCDEV-Test: Build 2026102501 – lokale Dateispruenge
+## Aktueller RCDEV-Test: Build 2026102502 – Sprachanzeige
+
+Ueber **EmbyFlow → Updates → Update pruefen → Update installieren** verfuegbar.
+Danach GUI neu starten. Die Infobar liest die Sprache der aktiven nativen
+Tonspur und aktualisiert ihren Text beim Oeffnen und waehrend sie sichtbar ist,
+auch auf Nicht-DreamOne-Boxen wie der SF8008 Supreme. Fehlende native
+Sprachdaten verwenden weiter die vorhandenen Metadaten.
+
+Tonspurwahl und Spruenge bleiben unveraendert. Der lokale Taste-9-Fix aus
+2026102501 und die bisherigen Korrekturen bleiben enthalten. Kein auf Hardware
+bestaetigter Fix fuer Anskars HTTP-Standbild oder das Verhalten nach Taste 9.
+[Anzeigekorrektur und Tests](tests/20261025_audio_language/).
+
+## Vorheriger RCDEV-Test: Build 2026102501 – lokale Dateispruenge
 
 Ueber **EmbyFlow → Updates → Update pruefen → Update installieren** verfuegbar.
 Nach erfolgreicher Installation die GUI neu starten.
@@ -45,7 +58,7 @@ keine komplette Plugin-Version und enthaelt keine versionsgebundenen
 Python-Bytecode-Helfer.
 [Paketinhalt, Sicherung und Installationshinweise](ipk/updater-repair-20261025-r1/README.md).
 
-Der ueber `update.json` angebotene Build 2026102501 enthaelt bereits den
+Der ueber `update.json` angebotene Build 2026102502 enthaelt bereits den
 Updater-Fix aus Build 2026102301: Alle fuenf Syntaxpruefungen verwenden das
 eingebaute `compile()`. Das zusaetzliche Python-Paket ist dafuer nicht noetig.
 Installationen mit funktionierendem Updater beziehen diese Korrektur ueber

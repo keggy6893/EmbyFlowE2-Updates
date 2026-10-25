@@ -1,16 +1,16 @@
 {
-  "version": "2026-RCDEV-TEST-20261025-LOCAL-SEEK",
-  "build": 2026102501,
+  "version": "2026-RCDEV-TEST-20261025-AUDIO-LABEL",
+  "build": 2026102502,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/bae476620d507695ddf87e9107a151f9e801e28b/EmbyFlowE2_2026102501.py",
-  "sha256": "6d6b2508197aa6a9b961752a95077bd4d7b2a11f218606bff5efca7607e72cd8",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/127d2766f3a147bb9140a246dc71d72ac630eb56/EmbyFlowE2_2026102502.py",
+  "sha256": "a5144f7359dc6863c280d0db11183c002b6d39b5d8e1039c16dcb46dc2de2f56",
   "changelog": [
-    "Lokale USB-/HDD-/NAS-Dateien: Taste 9, Kapitelspruenge und die beiden Restart-Einstiege verwenden den aktiven nativen Dateidienst. Kein Emby-HTTP-Neustart und kein Backendwechsel fuer lokale Spruenge.",
-    "Spruenge pruefen die aktive eigene Datei, beachten die native Laufzeit und lassen Pause sowie Tonspur unveraendert. Bei abgelehntem Sprung erfolgt kein Neustart vom Filmanfang.",
-    "Der lokale Skyfall-TS-Vergleich wurde auf der Vu+ mit Tonspurwechsel und Taste 9 vom Nutzer bestaetigt. EMC wird als Referenz fuer den nativen Dateidienst verwendet; EMC muss nicht installiert sein.",
-    "Modal-Guard-Absturzkorrektur, bisheriger DreamOne-Tonspur-Teststand und Updater ohne py_compile-Abhaengigkeit aus Build 2026102402 bleiben enthalten.",
-    "Grenze: Anskars Standbild beim Tonspurwechsel ueber HTTP/GStreamer ist weiterhin offen. Dieser Build ist keine bestaetigte Loesung dieses Decoderproblems. Server-Streams behalten den bisherigen Sprungpfad."
+    "Sprachanzeige in der Infobar: Die Sprache der tatsaechlich aktiven nativen Tonspur hat Vorrang vor Start- und Standardmetadaten, auch auf Octagon SF8008 Supreme und anderen Receivern.",
+    "Die Infobar wird beim Oeffnen und bei sichtbarer laufender Aktualisierung aufgefrischt. Dadurch wird auch ein erst nach dem Menueschliessen bestaetigter Tonspurwechsel angezeigt. Keine neue Timer-Schleife.",
+    "Reine Anzeigekorrektur: keine Aenderung an Tonspurwahl, Wiedergabestart, Serveranfragen, Pausenzustand oder Spruengen. Unbekannte native Sprachdaten behalten die bisherige Metadaten-Anzeige; fremde Dienste werden nicht ausgewertet.",
+    "Lokaler Taste-9-Fix aus Build 2026102501 sowie Modal-Guard-, DreamOne- und Updater-Korrekturen bleiben enthalten.",
+    "Anskars Standbild beim HTTP/GStreamer-Tonspurwechsel und das noch nicht genauer beschriebene Verhalten nach Taste 9 sind damit nicht als behoben bestaetigt."
   ]
 }
