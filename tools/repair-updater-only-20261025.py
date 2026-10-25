@@ -36,12 +36,13 @@ def patched(source):
     compile(result,'plugin.py','exec')
     return result
 
-def main():
-    fd=os.open("/etc/enigma2/embyflow-download-quota.json.lock",os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
+def main(plugin_path="/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py",
+         lock_path="/etc/enigma2/embyflow-download-quota.json.lock"):
+    fd=os.open(lock_path,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):raise RuntimeError("Sperrdatei ungueltig")
         fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        p=Path("/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py")
+        p=Path(plugin_path)
         if p.is_symlink() or not p.is_file():raise RuntimeError("Plugin fehlt")
         raw=p.read_bytes();s=raw.decode("utf-8")
         result=patched(s).encode("utf-8")
@@ -58,15 +59,23 @@ def main():
             os.chmod(tmp,mode)
             if p.read_bytes()!=raw:raise RuntimeError("Plugin inzwischen geaendert")
             print("Sicherung: "+backup,flush=True)
-            subprocess.run(["init","4"],check=True);stopped=True;time.sleep(3)
+            # A failed stop request may already have stopped part of the GUI.
+            # Always request its restart once stopping has been attempted.
+            stopped=True
+            subprocess.run(["init","4"],check=True);time.sleep(3)
             if p.read_bytes()!=raw:raise RuntimeError("Plugin inzwischen geaendert")
             os.replace(tmp,p)
-            print("FERTIG. Nur Updater repariert. Alle 5 Syntaxpruefungen bleiben aktiv. GUI startet.",flush=True)
         finally:
-            if os.path.exists(tmp):os.unlink(tmp)
-            if stopped:subprocess.run(["init","3"],check=True)
+            try:
+                if os.path.exists(tmp):os.unlink(tmp)
+            except OSError as error:
+                print("HINWEIS: Temporaere Datei konnte nicht entfernt werden: "+str(error),flush=True)
+            finally:
+                if stopped:subprocess.run(["init","3"],check=True)
+        print("FERTIG. Nur Updater repariert. Alle 5 Syntaxpruefungen bleiben aktiv. GUI-Start angefordert.",flush=True)
     finally:os.close(fd)
-try:main()
-except Exception as error:
-    print("STOPP: "+str(error),flush=True)
-    raise SystemExit(1)
+if __name__ == "__main__":
+    try:main()
+    except Exception as error:
+        print("STOPP: "+str(error),flush=True)
+        raise SystemExit(1)

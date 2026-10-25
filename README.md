@@ -1,6 +1,35 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
+## Update-Fehler: No module named 'py_compile'
+
+Der ueber `update.json` angebotene Build 2026102402 enthaelt bereits den
+Updater-Fix aus Build 2026102301: Alle fuenf Syntaxpruefungen verwenden das
+eingebaute `compile()`. Das zusaetzliche Python-Paket ist dafuer nicht noetig.
+Installationen mit funktionierendem Updater beziehen diese Korrektur ueber
+**Updates → Update pruefen → Update installieren**.
+
+**Bereits blockierte alte Installationen koennen sich nicht allein durch ein
+GitHub-Update reparieren.** Ihr installierter Updater importiert `py_compile`
+noch vor dem ersten Abruf der neuen Plugin-Datei. Eine neue Manifest-Version,
+ein anderes Downloadformat oder ein Reparaturskript im Repo aendern den bereits
+laufenden alten Code nicht. Es gibt dort keinen vorgelagerten Reparatur-Hook.
+
+Fuer diese Installationen liegt die einmalige lokale Reparatur in
+[`tools/repair-updater-only-20261025.py`](tools/repair-updater-only-20261025.py).
+Sie muss ausserhalb des blockierten Updaters gestartet werden. Sie sichert die
+installierte Datei, ersetzt ausschliesslich die fuenf Syntaxpruefungen im
+erkannten alten Updater und fordert anschliessend den GUI-Start an. Auch bei
+fehlgeschlagenem Stoppen oder Aufraeumen wird der Wiederanlauf versucht.
+Ein bereits reparierter Updater bleibt unveraendert, ohne GUI-Neustart.
+Danach funktionieren kuenftige Updates wieder ueber das Plugin-Menue.
+
+Die Reparatur fuehrt selbst kein vollstaendiges Plugin-Update aus. Ein spaeteres
+regulaeres Update ersetzt dagegen die gesamte `plugin.py`; private lokale
+Erweiterungen sind im veroeffentlichten Build nicht automatisch enthalten.
+Lokale Regressionen simulieren fehlendes `py_compile`, Installation, Sicherung,
+Wiederanlauf und Fehlerfaelle. Eine Receiver-Pruefung wird damit nicht behauptet.
+
 ## Aktueller RCDEV-Test: Build 2026101802 – Downloads mit Tageslimit
 
 Der eingebaute Updater bietet diesen Test unter **Updates → Update pruefen** an.

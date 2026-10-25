@@ -1,6 +1,8 @@
 import ast
 import builtins
 import hashlib
+import json
+import importlib.util
 import os
 import tempfile
 import unittest
@@ -10,10 +12,16 @@ from updater_compile_fix import repair
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (ROOT / 'EmbyFlowE2_2026102201.py').read_text(encoding='utf-8')
-FIXED = (ROOT / 'EmbyFlowE2_2026102301.py').read_text(encoding='utf-8')
+MANIFEST = json.loads((ROOT / 'update.json').read_text(encoding='utf-8'))
+ARTIFACT = ROOT / MANIFEST['download'].rsplit('/', 1)[-1]
+FIXED = ARTIFACT.read_text(encoding='utf-8')
 
 
 class UpdaterCompileTests(unittest.TestCase):
+    def test_advertised_artifact_matches_manifest_checksum(self):
+        self.assertEqual(hashlib.sha256(ARTIFACT.read_bytes()).hexdigest(),
+                         MANIFEST['sha256'].lower())
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent))
         self.addCleanup(self.tmp.cleanup)
@@ -76,6 +84,19 @@ class UpdaterCompileTests(unittest.TestCase):
         self.assertEqual(self.live.read_bytes(), self.new)
         self.assertEqual(Path(result['backup']).read_bytes(), self.old)
         self.assertTrue(self.record)
+
+    def test_bootstrap_repair_enables_old_updater_without_optional_module(self):
+        spec = importlib.util.spec_from_file_location(
+            'updater_only_repair', ROOT / 'tools/repair-updater-only-20261025.py')
+        repair_script = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(repair_script)
+        old_source = (ROOT / 'EmbyFlowE2_BOOTSTRAP_V2_20260919.py').read_text()
+        install = self.load(repair_script.patched(old_source))
+        with self.without_py_compile():
+            result = install(self.manifest())
+        self.assertTrue(result['ok'])
+        self.assertEqual(self.live.read_bytes(), self.new)
+        self.assertEqual(Path(result['backup']).read_bytes(), self.old)
 
     def test_syntax_validation_does_not_execute_downloaded_code(self):
         self.new = b"raise RuntimeError('must not execute during validation')\n"
