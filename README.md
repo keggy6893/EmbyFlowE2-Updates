@@ -3,7 +3,26 @@ Update repository for EmbyFlow E2
 
 ## Update-Fehler: No module named 'py_compile'
 
-**Einmalige Reparatur ohne Telnet:**
+**Einfacher Weg ueber den vorhandenen Image-Feed, ohne Telnet:**
+
+1. Im Browser das OpenWebif der betroffenen Box oeffnen.
+2. Unter **Einstellungen → Pakete** nach `python3-compile` suchen und das
+   Standardpaket installieren, sofern es im Image-Feed angeboten wird.
+3. Danach in EmbyFlow das normale Update erneut installieren und nach dessen
+   erfolgreichem Abschluss die GUI neu starten.
+
+Das Paket stellt dem alten Updater das fehlende Standardmodul zur Verfuegung.
+Der danach installierte neue Updater verwendet bereits das eingebaute
+`compile()` und braucht dieses Zusatzmodul kuenftig nicht mehr.
+Die Verfuegbarkeit im jeweiligen Receiver-Feed wurde hier nicht geprueft.
+Die normale Installation ueber die Paketverwaltung loest Abhaengigkeiten auf;
+keine fremde `py_compile.py` aus einer anderen Python-Version kopieren.
+
+Quellen: [OpenEmbedded Python-Paketaufteilung](https://github.com/openembedded/openembedded-core/blob/master/meta/recipes-devtools/python/python3/python3-manifest.json),
+[OpenWebif Paketverwaltung](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif/blob/master/plugin/controllers/views/responsive/ajax/settings.tmpl)
+und [Installationscontroller](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif/blob/master/plugin/controllers/ipkg.py).
+
+**Alternative, falls das Standardpaket im Feed fehlt: Reparatur-IPK ohne Telnet:**
 [Reparatur-IPK herunterladen](https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/65995374ea529924da652d29189e2fecbde123d8/ipk/updater-repair-20261025-r1/enigma2-plugin-extensions-embyflowe2-updater-repair_2026.10.25-r1_all.ipk),
 nach `/tmp` auf die Box kopieren, in der Softwareverwaltung als lokale
 Erweiterung installieren und danach die GUI manuell neu starten.

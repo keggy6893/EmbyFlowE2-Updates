@@ -76,6 +76,19 @@ class UpdaterCompileTests(unittest.TestCase):
         self.assertFalse(self.downloads)
         self.assertEqual(self.live.read_bytes(), self.old)
 
+    def test_old_updater_can_retry_when_standard_compile_module_becomes_available(self):
+        old_source = (ROOT / 'EmbyFlowE2_BOOTSTRAP_V2_20260919.py').read_text()
+        install = self.load(old_source)
+        with self.without_py_compile(), self.assertRaises(ModuleNotFoundError):
+            install(self.manifest())
+        self.assertFalse(self.downloads)
+        # The image package supplies the real stdlib module. The same loaded
+        # old updater can then retry without a preliminary GUI restart.
+        result = install(self.manifest())
+        self.assertTrue(result['ok'])
+        self.assertEqual(self.live.read_bytes(), self.new)
+        self.assertEqual(Path(result['backup']).read_bytes(), self.old)
+
     def test_repaired_updater_installs_without_optional_module(self):
         install = self.load(FIXED)
         with self.without_py_compile():
