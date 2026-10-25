@@ -25,3 +25,5 @@ Sprachparsermethoden, mehrfache Wechsel, verzoegerter Wechsel, fremde Dienste,
 unbekannte Sprachkennung, verborgene Infobar, Fehlerfaelle und Releaseumfang.
 Keine Hardwarebestaetigung fuer die SF8008 Supreme behauptet.
 Anskars HTTP-Tonspur-/Sprungproblem ist damit nicht als behoben eingestuft.
+
+[Nachtraeglicher EMC-Quellcodevergleich und verbleibende Grenzen](EMC_REFERENCE.md).

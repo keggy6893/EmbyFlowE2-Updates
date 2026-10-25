@@ -3,6 +3,10 @@ Update repository for EmbyFlow E2
 
 ## Aktueller RCDEV-Test: Build 2026102502 – Sprachanzeige
 
+**Teststatus:** lokal geprueft. Kein direkter EMC-/EmbyFlow-Hardwarevergleich;
+Bestaetigung auf der SF8008 Supreme/DreamOne steht aus.
+[EMC-Quellcodevergleich und Grenzen](tests/20261025_audio_language/EMC_REFERENCE.md).
+
 Ueber **EmbyFlow → Updates → Update pruefen → Update installieren** verfuegbar.
 Danach GUI neu starten. Die Infobar liest die Sprache der aktiven nativen
 Tonspur und aktualisiert ihren Text beim Oeffnen und waehrend sie sichtbar ist,

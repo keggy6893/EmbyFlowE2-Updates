@@ -7,6 +7,7 @@
   "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/127d2766f3a147bb9140a246dc71d72ac630eb56/EmbyFlowE2_2026102502.py",
   "sha256": "a5144f7359dc6863c280d0db11183c002b6d39b5d8e1039c16dcb46dc2de2f56",
   "changelog": [
+    "Teststatus der Sprachanzeige: lokal geprueft; kein direkter EMC-/EmbyFlow-Vergleich auf SF8008 Supreme oder DreamOne durchgefuehrt. Receiver-Bestaetigung steht aus.",
     "Sprachanzeige in der Infobar: Die Sprache der tatsaechlich aktiven nativen Tonspur hat Vorrang vor Start- und Standardmetadaten, auch auf Octagon SF8008 Supreme und anderen Receivern.",
     "Die Infobar wird beim Oeffnen und bei sichtbarer laufender Aktualisierung aufgefrischt. Dadurch wird auch ein erst nach dem Menueschliessen bestaetigter Tonspurwechsel angezeigt. Keine neue Timer-Schleife.",
     "Reine Anzeigekorrektur: keine Aenderung an Tonspurwahl, Wiedergabestart, Serveranfragen, Pausenzustand oder Spruengen. Unbekannte native Sprachdaten behalten die bisherige Metadaten-Anzeige; fremde Dienste werden nicht ausgewertet.",
