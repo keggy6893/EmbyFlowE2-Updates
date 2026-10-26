@@ -23,7 +23,8 @@ def _elfg_entries(screen):
                      key=lambda e: (_elfg_priority(e), str(e.get('name') or '').casefold()))
     if not show_all:
         media = [e for e in entries if _elfg_priority(e) < 10 or e.get('kind') == 'file']
-        entries = media if media else entries
+        if any(e.get('kind') == 'dir' and _elfg_priority(e) < 10 for e in entries):
+            entries = media
     screen._elfg_cache_source = source
     screen._elfg_cache_all = show_all
     screen._elfg_cache_view = entries

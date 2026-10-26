@@ -104,6 +104,12 @@ class GridTests(unittest.TestCase):
         s.refresh()
         self.assertEqual(len(self.ns['_elfg_entries'](s)), 2)
 
+    def test_loose_video_does_not_hide_unknown_media_folders(self):
+        s = self.screen
+        s.entries = [self.entry('My Collection'), self.entry('Archiv'), self.entry('clip.ts', 'file')]
+        s.refresh()
+        self.assertEqual(len(self.ns['_elfg_entries'](s)), 3)
+
     def test_video_files_remain_visible_in_media_view(self):
         s = self.screen
         movie = self.entry('Skyfall.ts', 'file')

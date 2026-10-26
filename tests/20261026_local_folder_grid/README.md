@@ -23,7 +23,7 @@ sie unter `assets/local_folder_grid_20261026` ab, sichert die installierte
 Plugin-Datei und fordert nach der Aenderung einen GUI-Neustart an. Ein spaeteres
 regulaeres Vollupdate kann den lokalen Zusatz ersetzen.
 
-15 lokale Tests pruefen Skin/Marineblau, Filter und unveraenderte Eintraege,
+16 lokale Tests pruefen Skin/Marineblau, Filter und unveraenderte Eintraege,
 unbekannte Ordnernamen, Ordner-/Dateiauswahl, Root-Grenzen, Raster-Navigation,
 leere und laufende Scans, Seitenwechsel, PNGs und lokale Installation/Sicherung.
 Die sortierte Ansicht wird bei der Navigation wiederverwendet und erst nach
