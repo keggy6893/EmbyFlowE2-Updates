@@ -130,7 +130,7 @@ def _els_nav(self):
 
 def _els_activate(self):
     rows=self.direct_nav_entries_ref12;index=self.direct_nav_cursor_ref12
-    if 0<=index<len(rows) and rows[index][1].get('_direct_action_ref12')=='local_usb':return self.session.open(EmbyFlowLocalSkyfallDetail, {'path': _ELS_PATH})
+    if 0<=index<len(rows) and rows[index][1].get('_direct_action_ref12')=='local_usb':return self.open_local_media_menu()
     return _ELS_ACTIVATE_BEFORE(self)
 
 EmbyFlowLocalLibraryScreenV3.open_selected=_els_open

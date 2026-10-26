@@ -57,6 +57,21 @@ class RestoreTests(unittest.TestCase):
         self.assertEqual(RESTORE.patched(result), result)
         ast.parse(result, feature_version=(3, 8))
 
+    def test_previous_direct_skyfall_patch_upgrades_only_known_block(self):
+        dashboard = "if 0<=index<len(rows) and rows[index][1].get('_direct_action_ref12')=='local_usb':return self.open_local_media_menu()"
+        direct = "if 0<=index<len(rows) and rows[index][1].get('_direct_action_ref12')=='local_usb':return self.session.open(EmbyFlowLocalSkyfallDetail, {'path': _ELS_PATH})"
+        previous = self.source.decode().rstrip() + '\n\n' + RESTORE.RUNTIME.replace(dashboard, direct, 1)
+        self.plugin.write_text(previous)
+        self.install()
+        expected = RESTORE.patched(self.source.decode())
+        self.assertEqual(self.plugin.read_text(), expected)
+        self.assertEqual(next(self.folder.glob('plugin.py.vor-skyfall-lokal-*')).read_text(), previous)
+
+    def test_unknown_existing_skyfall_block_is_not_overwritten(self):
+        broken = RESTORE.patched(self.source.decode()).replace("self.open_local_media_menu()", "self.other_local_menu()")
+        with self.assertRaisesRegex(RuntimeError, 'Abweichender'):
+            RESTORE.patched(broken)
+
     def test_repeated_install_does_not_restart(self):
         self.install()
         self.run.reset_mock()

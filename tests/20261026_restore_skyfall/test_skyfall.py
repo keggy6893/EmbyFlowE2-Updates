@@ -32,6 +32,15 @@ class SkyfallTests(unittest.TestCase):
   p.selected_entry=lambda:{'path':str(self.root/'Skyfall-Theme-Test.ts')};self.ns['_els_open'](p);self.local_open.assert_called_once_with(p)
  def test_original_play_no_copy_and_no_network_stream(self):
   self.screen.play_local();self.play.assert_called_once_with(self.screen,str(self.movie));self.assertEqual(self.movie.read_bytes(),b'original movie');self.ns['embyflow_http_get'].assert_not_called()
+ def test_dashboard_uses_original_usb_hdd_screen(self):
+  source=(HERE.parents[1]/'EmbyFlowE2_2026102502.py').read_text();tree=ast.parse(source)
+  node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_embyflow_v17_open_local_media_dashboard')
+  screen=object();ns={'EmbyFlowLocalSourcesScreenV17':screen};exec(ast.get_source_segment(source,node),ns)
+  ns['_embyflow_v17_open_local_media_dashboard'](Obj(session=self.session))
+  self.session.open.assert_called_once_with(screen)
+  cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='EmbyFlowLocalSourcesScreenV17')
+  skin=ast.get_source_segment(source,cls)
+  self.assertIn('Meine Quellen',skin);self.assertIn('Quellen verwalten',skin)
  def test_detail_has_synopsis_offline_and_measured_runtime(self):
   s=self.screen;s.render_local();self.assertIn('MI6',s['overview'].text)
   s.load_local();s.poll_local();self.assertIn('143 Min.',s['meta'].text);self.assertEqual(s.data['directors'],['Sam Mendes']);self.assertTrue(Path(self.ns['_ELS_CACHE']).exists())
@@ -46,7 +55,7 @@ class SkyfallTests(unittest.TestCase):
   fn=self.ns['_els_nav'];p=Obj(open_local_media_menu=Mock(),session=self.session)
   rows=fn(p);self.assertEqual(sum(x[0]=='Emby Local' for x in rows),1)
   self.nav_builder.return_value=rows;self.assertEqual(fn(p),rows)
-  p.direct_nav_entries_ref12=rows;p.direct_nav_cursor_ref12=1;self.ns['_els_activate'](p);p.open_local_media_menu.assert_not_called();self.session.open.assert_called_once_with(self.ns['EmbyFlowLocalSkyfallDetail'],{'path':str(self.movie)})
+  p.direct_nav_entries_ref12=rows;p.direct_nav_cursor_ref12=1;self.ns['_els_activate'](p);p.open_local_media_menu.assert_called_once_with();self.session.open.assert_not_called()
  def test_close_stops_timer_and_no_ready_updates_are_applied(self):
   self.screen.timer_local.start();self.screen.close();self.assertFalse(self.screen.timer_local.active);self.assertTrue(self.screen.closed_local)
  def test_valid_skin_and_focus_button_visibility(self):

@@ -7,6 +7,10 @@ und die Server-Mediathek werden dadurch nicht geaendert.
 Das Werkzeug verlangt die vorhandene, nicht leere Originaldatei
 `/media/usb/Filme/James Bond 007 - Skyfall (2012).ts`. Es sichert die installierte
 `plugin.py` und ergaenzt den bisherigen lokalen Einstieg samt Detailseite.
+Der Menuepunkt **Emby Local** oeffnet die vorhandene eigene USB-/HDD-Oberflaeche
+mit Quellenkacheln und Quellenverwaltung. Erst die Auswahl von Skyfall in der
+lokalen Filmliste oeffnet dessen Detailseite. Der vorherige direkte
+Skyfall-Einstieg wird gezielt auf diesen urspruenglichen Menueweg korrigiert.
 Vorhandene Player-Korrekturen und Einstellungen bleiben erhalten. Filmdaten
 kommen nur aus vorhandenen lokalen Caches und Bildern. Es werden keine
 Server-Metadaten abgerufen und keine Filme kopiert oder heruntergeladen.
@@ -15,7 +19,7 @@ Bei einer Aenderung wird die GUI neu gestartet; Wiederholung ist ohne
 Aenderung und Neustart moeglich. Ein spaeteres regulaeres Vollupdate der
 `plugin.py` kann diesen lokalen Zusatz erneut ersetzen.
 
-21 lokale Tests pruefen Detailseite, originalen lokalen TS-Playerpfad,
+24 lokale Tests pruefen Detailseite, originalen lokalen TS-Playerpfad,
 Navigation inklusive Hintergrund-Neuaufbau, Erhalt der bisherigen
 Player-Korrekturen und Quellenliste sowie Sicherung und Fehlerbehandlung.
 Es wurde hier keine Installation auf der Vu ausgefuehrt.
