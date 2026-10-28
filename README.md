@@ -1,7 +1,29 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
-## Aktueller RCDEV-Test: Build 2026102502 – Sprachanzeige
+## Aktueller RCDEV-Test: Build 2026102801 – deutsche Tonwahl bei Direct Play
+
+Direkte Wiedergabe verwendet die nativen Decoder-Tonspuren receiverunabhaengig.
+Eine erkannte deutsche Tonspur wird automatisch bevorzugt; manuelle Auswahl
+bleibt vorrangig. GRUEN oeffnet bei Direct Play die native Tonspurliste.
+Bereits serverseitig umgesetzte Tonwechsel verwenden weiter ihren bisherigen Weg.
+
+**Receiver-Bestaetigung:** Auf Vu+ Duo 4K SE mit OpenATV startet „2012“ in 1080p
+jetzt auf Deutsch DTS 5.1. Der Benutzer bestaetigte den Start und zeigte das
+funktionierende Audio-Menue mit Deutsch und Englisch. Weitere Receiver und
+Anskars frueherer HTTP-Standbildfall bleiben ungeprueft.
+
+Der Build basiert auf der veroeffentlichten Version 2026102502. Zusaetzliche
+lokale TS-/Videotext-Versuche sind nicht Teil dieses Updates.
+Lokale Auswahl-, Routing-, Quellen- und Syntaxpruefungen sind dokumentiert unter
+[Audio-Fix und Tests](tests/20261028_universal_audio/).
+
+Installation ueber **EmbyFlow → Updates → Update pruefen → Update installieren**,
+danach GUI neu starten. Der Updater sichert die bisherige plugin.py.
+Ein regulaeres Update ersetzt die komplette Datei; private lokale Erweiterungen
+sind im veroeffentlichten Build nicht enthalten.
+
+## Vorheriger RCDEV-Test: Build 2026102502 – Sprachanzeige
 
 **Teststatus:** lokal geprueft. Kein direkter EMC-/EmbyFlow-Hardwarevergleich;
 Bestaetigung auf der SF8008 Supreme/DreamOne steht aus.
