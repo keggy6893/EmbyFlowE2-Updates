@@ -1,0 +1,13 @@
+{
+  "version": "2026-UPDATE-RC2",
+  "build": 2026103002,
+  "channel": "rcdev",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/4f1936dd59b5b97dc60fae6811d3eee202ae5d7d/tests/20261030_update_rc/plugin_UPDATE_RC2.py",
+  "sha256": "0680a72f3e346291dc4a6cbc529a4f33f7e45b6c15757187302f1a61202eaccb",
+  "changelog": [
+    "Update-Test fuer Anskar: sichtbarer Wechsel von UPDATE-RC1 auf UPDATE-RC2.",
+    "Syntaxpruefung ueber eingebautes compile(); kein optionales py_compile erforderlich."
+  ]
+}
