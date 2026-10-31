@@ -1,0 +1,13 @@
+{
+  "version": "2026-RC26.1",
+  "build": 2026103102,
+  "channel": "rcdev",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/ef5d75ac7263d583d6060330f1b0f771c3e104e4/tests/20261031_rc26/plugin_RC26.1.py",
+  "sha256": "84fac22c607ae90f05dcbef34bcc3b87a4475c2642904e00d2e237bb435874d4",
+  "changelog": [
+    "Update-Test fuer Anskar: sichtbarer Wechsel von RC26 auf RC26.1.",
+    "Syntaxpruefung ueber eingebautes compile(); kein optionales py_compile erforderlich."
+  ]
+}
