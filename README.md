@@ -1,6 +1,16 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
+## Eigene Medien: gepruefte lokale Fixes vom 01.11.2026
+
+[Installer, Picons, Tests und genauer Teststand](tests/20261101_own_media_ui/)
+fuer Ordner-/Abschlussdialog, Quelleninformationen, Picons, Schnellinfo und
+Kachelfokus. Der Kachelfokus wurde vom Benutzer auf der Vu+ bestaetigt. Die
+Schnellinfo behielt im lokalen Vergleich ihre Zaehler bei; die neue Scanlaufzeit
+auf Hardware ist noch nicht gemessen. Andere Boxen sind nicht pauschal geprueft.
+Die verworfene Quelleninfo V2 und der HTTP-Tonwechselversuch sind nicht enthalten.
+Dies sind optionale Installer; der regulaere Updatekanal bleibt unveraendert.
+
 ## Aktueller RCDEV-Test: Build 2026102801 – deutsche Tonwahl bei Direct Play
 
 Direkte Wiedergabe verwendet die nativen Decoder-Tonspuren receiverunabhaengig.
@@ -233,3 +243,4 @@ Der nächste Abschnitt wird 15 Sekunden vor Ablauf des geladenen Bereichs angefo
 **Receiver-Bestätigung des Benutzers, VU+ Ultimo 4K mit openATV 8.0.1:** „Mayday“ in 4K zeigt die deutschen Untertitel automatisch und synchron, mit ungefähr 30 Sekunden Startverzögerung. „Tenzig“ in 4K zeigt sie automatisch sofort und synchron; auch nach weiterem Abspielen wurde funktionierender Betrieb bestätigt. Dies ist keine Zusage für sämtliche Filme, Server, andere Receiver oder PGS-Bilduntertitel. Die Startverzögerung bei „Mayday“ bleibt eine bekannte Einschränkung.
 
 Vierzehn lokale Abschnittstests prüfen unter anderem tatsächliche Textausgabe mit originalem Renderer und echtem lokalem HTTP, Nachladen, verschiedene Spulwege, Cache-/Anfragebegrenzung, Ausschalten, Versionswechsel, Fehler und absolute Zeitstempel. Die Quelltexte und der optionale manuelle Testinstaller stehen unter `tests/20261017_subtitle_segments/`. Das Auto-Update enthält den getesteten Abschnittscode bereits vollständig; der Testinstaller ist dafür nicht zusätzlich erforderlich. Diagnose: `/tmp/embyflow_subtitle_segments.jsonl` enthält nur Zeitbereiche, Status, Daten-/Dialoganzahl und Fehlerklassen ohne URLs oder Zugangsdaten.
+
