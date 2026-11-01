@@ -28,6 +28,11 @@ Erweiterungen werden nicht blind ueberschrieben.
 Das NAS muss im Receiver eingerichtet sein. Aktive CIFS/NFS/NFS4-Mounts werden
 aus `/proc/mounts` gelesen. Fuer noch nicht aktive autofs-Freigaben werden auch
 aktivierte Netzwerkquellen in `/etc/enigma2/embyflow_local_sources.json` genutzt.
+Zusaetzlich werden explizite NFS-/SMB-Eintraege aus `/etc/auto.network`
+beruecksichtigt, wenn diese indirekte autofs-Map bereits in `/proc/mounts`
+registriert ist. Dadurch muessen vorhandene Image-Freigaben nicht noch einmal
+im Plugin eingerichtet oder vorher manuell geoeffnet werden. Wildcards,
+ausfuehrbare Maps und weitere Map-Includes werden nicht ausgewertet.
 Eine solche Quelle kann einmal unter Eigene Medien eingerichtet werden;
 anschliessend wird zum Abspielen die normale Emby-Bibliothek benutzt.
 Der Fix richtet keine Freigaben ein und speichert keine Zugangsdaten.
@@ -46,7 +51,10 @@ eingebauten `compile()` (kein optionales `py_compile` erforderlich), erstellt
 und verifiziert eine datierte Sicherung und ersetzt die Datei atomar.
 Die genaue Sicherungsdatei wird ausgegeben. Bereits installierte lokale
 NAS-Testwege werden nicht ueberschrieben; auf der bestaetigten VU ist keine
-erneute Installation erforderlich.
+erneute Installation erforderlich. Ausnahme: Die vorherige Version dieses
+NAS-Installers ohne Erkennung von `/etc/auto.network` kann mit demselben Befehl
+aktualisiert werden. Dabei wird ausschliesslich die bekannte Resolver-Funktion
+ersetzt und die vorhandene TS-/Player-Integration beibehalten.
 
 ## Zuordnung und Grenzen
 
@@ -89,14 +97,17 @@ Stream-URLs oder Zugangsdaten.
 python3 tests/20261101_emby_nas_native/test_runtime.py
 ```
 
-18 Tests fuer NFS/SMB-Pfade, inaktive konfigurierte autofs-Quellen,
+22 Tests fuer NFS/SMB-Pfade, inaktive konfigurierte autofs-Quellen,
 Mount-Escapes, Dateigroessen, Mehrdeutigkeit, Quellenauswahl, deaktivierte oder
 ungueltige Konfiguration, HTTP-Fallback und den Installer auf der
 veroeffentlichten Pluginbasis. Der komplette Installer wird sowohl auf der
 oeffentlichen Audio-Basis ohne TS-Erweiterung als auch auf EmbyLocal TEST1 mit
 vorhandener TS-Erweiterung geprueft. Vollstaendige Syntaxpruefung einschliesslich
 Python-3.8-Grammatik auf der ergaenzten oeffentlichen Basis bestanden.
-Die bestaetigten Runtime-Funktionen sind
-gegenueber dem VU-Test unveraendert; nur Installation und Dokumentation wurden
-zusammengefasst. Der regulaere Updatekanal wird durch diesen Commit nicht
-veraendert.
+Weitere Tests decken inaktive NFS-/SMB-Eintraege der Image-autofs-Map,
+ungueltige Schluessel sowie das gezielte Upgrade nur der Resolver-Funktion ab.
+Gegenueber dem bestaetigten VU-Stand wurde die Quellenerkennung um die
+Image-autofs-Map erweitert. Player, Tonwahl und Menue bleiben unveraendert.
+Auf Anskars Dreambox wurde zuvor `roots: []` mit HTTP-Fallback nachgewiesen;
+der Hardwaretest dieser ergaenzten Erkennung steht noch aus. Der regulaere
+Updatekanal wird durch diesen Commit nicht veraendert.

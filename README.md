@@ -7,9 +7,10 @@ Update repository for EmbyFlow E2
 [Optionaler Shell-Installer, Testbericht und Anleitung](tests/20261101_emby_nas_native/).
 Auf VU+ Duo 4K SE / openATV 8.0.1 bestaetigt: Skyfall und 2012 direkt vom NAS,
 DE/EN in beide Richtungen unter einer Sekunde ohne Spinner sowie Fortsetzen.
-Der Fix beruecksichtigt eingerichtete, noch inaktive autofs-Netzwerkquellen.
+Der Fix beruecksichtigt eingerichtete, noch inaktive autofs-Netzwerkquellen,
+auch bestehende Image-Eintraege in `/etc/auto.network`.
 Der Shell-Installer ergaenzt fehlende native TS-Unterstuetzung automatisch.
-Keine festen Filmnamen, NAS-Pfade oder Boxmodell-Listen. 18 lokale Tests
+Keine festen Filmnamen, NAS-Pfade oder Boxmodell-Listen. 22 lokale Tests
 bestanden; andere Receiver und NFS ueber diesen Emby-Einstieg stehen noch aus.
 Der regulaere Updatekanal bleibt unveraendert.
 

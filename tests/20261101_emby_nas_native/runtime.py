@@ -50,14 +50,21 @@ def _ebnt_resolve(info):
         size = 0
     if size <= 0:
         return None, 'missing-server-file-size'
-    # Only mounted network filesystems; never enumerate all files or trigger
-    # unmounted autofs entries. Kernel mount escapes are octal, not URL escapes.
+    # Discover active network mounts and registered indirect autofs maps.
+    # Kernel mount escapes are octal, not URL escapes.
     roots = set()
+    automaps = []
     try:
         with open('/proc/mounts', 'r') as handle:
             for row in handle:
                 fields = row.split()
-                if len(fields) < 3 or fields[2] not in ('cifs', 'nfs', 'nfs4'):
+                if len(fields) < 3:
+                    continue
+                if fields[2] == 'autofs' and fields[0] == '/etc/auto.network':
+                    parent = re.sub(r'\\([0-7]{3})', lambda m: chr(int(m.group(1), 8)), fields[1])
+                    if parent.startswith('/') and parent != '/':
+                        automaps.append((fields[0], parent))
+                if fields[2] not in ('cifs', 'nfs', 'nfs4'):
                     continue
                 mount = re.sub(r'\\([0-7]{3})', lambda m: chr(int(m.group(1), 8)), fields[1])
                 if not mount.startswith('/') or mount == '/':
@@ -65,6 +72,33 @@ def _ebnt_resolve(info):
                 roots.add(_ebnt_os.path.realpath(mount))
     except OSError:
         return None, 'mount-list-unavailable'
+    # Read literal NFS/SMB keys from the already mounted indirect autofs map.
+    # Parse data only: never execute map programs or log mount credentials.
+    import shlex
+    for mapfile, parent in automaps:
+        try:
+            with open(mapfile, 'r') as handle:
+                data = handle.read(262145)
+            if len(data) > 262144:
+                continue
+            for line in data.splitlines():
+                try:
+                    fields = shlex.split(line, comments=True)
+                except ValueError:
+                    continue
+                if len(fields) < 3:
+                    continue
+                key = fields[0]
+                if key in ('.', '..') or not re.fullmatch(r'[A-Za-z0-9_. -]+', key):
+                    continue
+                if not any(re.search(r'(?:^|[,-])fstype=(?:nfs|nfs4|cifs)(?:,|$)', opt)
+                           for opt in fields[1:-1]):
+                    continue
+                roots.add(_ebnt_os.path.realpath(_ebnt_os.path.join(parent, key)))
+                if len(roots) > 16:
+                    return None, 'too-many-network-mounts'
+        except OSError:
+            continue
     # Known configured network roots also cover idle autofs mounts.
     # Do not load the UI source loader: it may create default sources.
     try:

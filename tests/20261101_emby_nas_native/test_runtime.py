@@ -31,9 +31,14 @@ class Tests(unittest.TestCase):
     def resolve(self):
         realpath=os.path.realpath
         def mapped(path):
-            return str(self.mount) if path in ('/mounted action','/media/autofs/Action') else realpath(path)
+            normalized=str(path).replace('\\','/')
+            prefix='/media/autofs/Action'
+            if normalized.startswith(prefix+'/'):
+                return realpath(self.mount.joinpath(*normalized[len(prefix)+1:].split('/')))
+            return str(self.mount) if normalized in ('/mounted action','/media/autofs/Action') else realpath(path)
         def opened(path,*args,**kwargs):
             if path=='/proc/mounts': return io.StringIO(self.rows)
+            if path=='/etc/auto.network': return io.StringIO(getattr(self,'maptext',''))
             if path=='/etc/enigma2/embyflow_local_sources.json':
                 import json
                 return io.StringIO(json.dumps(getattr(self,'config',{'sources':[]})))
@@ -54,6 +59,18 @@ class Tests(unittest.TestCase):
         self.assertIsNone(self.resolve()[0])
     def test_corrupt_configuration(self):
         self.config=[]
+        self.assertIsNotNone(self.resolve()[0])
+    def test_idle_image_autofs_map(self):
+        self.rows='/etc/auto.network /media/autofs autofs rw 0 0\n'
+        self.maptext='Action -fstype=nfs,rw,nolock 192.0.2.1:/volume1/Action\n'
+        self.assertEqual(self.resolve()[0][0],str(self.file))
+    def test_autofs_map_comments_and_invalid_keys(self):
+        self.rows='/etc/auto.network /media/autofs autofs rw 0 0\n'
+        self.maptext='# Action -fstype=nfs host:/Action\n../Action -fstype=nfs host:/Action\n* -fstype=nfs host:/Action\nAction -fstype=ext4 host:/Action\n'
+        self.assertIsNone(self.resolve()[0])
+    def test_idle_smb_autofs_map(self):
+        self.rows='/etc/auto.network /media/autofs autofs rw 0 0\n'
+        self.maptext='Action -fstype=cifs,credentials=/private/file ://nas/Action\n'
         self.assertIsNotNone(self.resolve()[0])
     def test_nfs_nested(self):
         self.assertEqual(self.resolve()[0][0], str(self.file))
@@ -124,5 +141,19 @@ class Tests(unittest.TestCase):
         base=(ROOT.parents[1]/'EmbyFlowE2_2026102801.py').read_text(encoding='utf-8')
         with self.assertRaises(ValueError):
             installer['transform'](base+'\ndef _eftw_partial(): pass\n')
+    def test_upgrade_only_resolver(self):
+        installer={'__name__':'test_import'}
+        exec((ROOT/'installer.py').read_text(encoding='utf-8'),installer)
+        base=(ROOT.parent/'20261101_embylocal/plugin_TEST1.py').read_text(encoding='utf-8')
+        before=base.rstrip()+'\n\n'+installer['RUNTIME']
+        node=next(n for n in ast.parse(before).body if isinstance(n,ast.FunctionDef) and n.name=='_ebnt_resolve')
+        lines=before.splitlines(keepends=True)
+        lines[node.lineno-1:node.end_lineno]=[installer['OLD_RESOLVER']+'\n']
+        before=''.join(lines)
+        after=installer['transform'](before)
+        changes=[getattr(a,'name','') for a,b in zip(ast.parse(before).body,ast.parse(after).body) if ast.dump(a)!=ast.dump(b)]
+        self.assertEqual(changes,['_ebnt_resolve'])
+        compile(after,'full-upgraded-plugin','exec')
+        with self.assertRaises(ValueError): installer['transform'](after)
 
 if __name__ == '__main__': unittest.main(verbosity=2)
