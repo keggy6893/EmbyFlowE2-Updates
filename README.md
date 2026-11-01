@@ -1,6 +1,15 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
+## Vollstaendiges EmbyLocal TEST1 fuer Dreambox One / openATV 8.0.1
+
+[Test-IPK, Installation und Pruefbericht](tests/20261101_embylocal/) mit sichtbarem
+Emby-Local-Einstieg, USB/NAS-Quellenverwaltung, allen benoetigten Grafiken,
+nativem lokalen TS-Weg und den sechs UI-Fixes. Neun lokale Pakettests bestanden;
+Dreambox-Installation und Decoderverhalten sind noch nicht bestaetigt. Die
+enthaltenen Python-3.13-Hilfsmodule werden vor Installation auf passende ABI
+geprueft. Der regulaere Updatekanal bleibt unveraendert.
+
 ## Eigene Medien: gepruefte lokale Fixes vom 01.11.2026
 
 [Installer, Picons, Tests und genauer Teststand](tests/20261101_own_media_ui/)

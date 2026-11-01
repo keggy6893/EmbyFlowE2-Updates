@@ -1,0 +1,11 @@
+{
+  "filename": "enigma2-plugin-extensions-embyflowe2_2026.11.01-embylocal1_all.ipk",
+  "sha256": "58e1ff375a8c56d069ceb64ed71deb5b7efd28f9d11e01c7716a0e650e475bea",
+  "size": 1318254,
+  "version": "2026-EMBYLOCAL-TEST1",
+  "build": 2026110101,
+  "python_magic": "2b0e0d0a",
+  "files": 55,
+  "hardware_target": "Dreambox One / openATV 8.0.1",
+  "hardware_confirmed": false
+}
