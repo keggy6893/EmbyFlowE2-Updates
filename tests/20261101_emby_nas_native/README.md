@@ -17,9 +17,13 @@ Das ist keine Freigabe fuer alle Boxen oder Container.
 
 ## Voraussetzungen
 
-Eine kompatible Pluginbasis mit nativem lokalen TS- und Tonspurweg, etwa das
-[EmbyLocal TEST1-Paket](../20261101_embylocal/). Der Installer kontrolliert den
-Player-Einstieg und bricht bei abweichender Grundlage ab.
+Eine EmbyFlow-Pluginbasis mit universeller Tonspurwahl, etwa der veroeffentlichte
+Build 2026102801 oder das [EmbyLocal TEST1-Paket](../20261101_embylocal/).
+Der vollstaendige Shell-Installer ergaenzt den nativen lokalen TS-Weg selbst,
+wenn er noch fehlt. Ein separates EmbyLocal-Paket muss dafuer nicht installiert
+werden. Ein vorhandener kompatibler TS-Weg wird weiterbenutzt. Player- und
+Menue-Schnittstellen werden vorab geprueft; unbekannte oder unvollstaendige
+Erweiterungen werden nicht blind ueberschrieben.
 
 Das NAS muss im Receiver eingerichtet sein. Aktive CIFS/NFS/NFS4-Mounts werden
 aus `/proc/mounts` gelesen. Fuer noch nicht aktive autofs-Freigaben werden auch
@@ -85,10 +89,14 @@ Stream-URLs oder Zugangsdaten.
 python3 tests/20261101_emby_nas_native/test_runtime.py
 ```
 
-16 Tests fuer NFS/SMB-Pfade, inaktive konfigurierte autofs-Quellen,
+18 Tests fuer NFS/SMB-Pfade, inaktive konfigurierte autofs-Quellen,
 Mount-Escapes, Dateigroessen, Mehrdeutigkeit, Quellenauswahl, deaktivierte oder
 ungueltige Konfiguration, HTTP-Fallback und den Installer auf der
-veroeffentlichten Pluginbasis. Die bestaetigten Runtime-Funktionen sind
+veroeffentlichten Pluginbasis. Der komplette Installer wird sowohl auf der
+oeffentlichen Audio-Basis ohne TS-Erweiterung als auch auf EmbyLocal TEST1 mit
+vorhandener TS-Erweiterung geprueft. Vollstaendige Syntaxpruefung einschliesslich
+Python-3.8-Grammatik auf der ergaenzten oeffentlichen Basis bestanden.
+Die bestaetigten Runtime-Funktionen sind
 gegenueber dem VU-Test unveraendert; nur Installation und Dokumentation wurden
 zusammengefasst. Der regulaere Updatekanal wird durch diesen Commit nicht
 veraendert.

@@ -107,5 +107,22 @@ class Tests(unittest.TestCase):
         compile(after,'full-plugin','exec')
         with self.assertRaises(ValueError): installer['transform'](after)
         with self.assertRaises(ValueError): installer['transform']('pass')
+    def test_complete_installer_on_public_audio_basis(self):
+        installer={'__name__':'test_import'}
+        exec((ROOT/'installer.py').read_text(encoding='utf-8'),installer)
+        base=(ROOT.parents[1]/'EmbyFlowE2_2026102801.py').read_text(encoding='utf-8')
+        after=installer['transform'](base)
+        self.assertTrue(after.startswith(base.rstrip()))
+        self.assertEqual(after.count('def _eftsh_launch('),1)
+        self.assertEqual(after.count('def _ebnt_launch('),1)
+        self.assertIn('# EMBYFLOW_TS_SUBTITLE_STATE_FIX_END',after)
+        compile(after,'full-public-plugin','exec')
+        ast.parse(after,feature_version=(3,8))
+    def test_incomplete_native_rejected(self):
+        installer={'__name__':'test_import'}
+        exec((ROOT/'installer.py').read_text(encoding='utf-8'),installer)
+        base=(ROOT.parents[1]/'EmbyFlowE2_2026102801.py').read_text(encoding='utf-8')
+        with self.assertRaises(ValueError):
+            installer['transform'](base+'\ndef _eftw_partial(): pass\n')
 
 if __name__ == '__main__': unittest.main(verbosity=2)
