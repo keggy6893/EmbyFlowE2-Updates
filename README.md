@@ -2,6 +2,15 @@
 Update repository for EmbyFlow E2
 
 
+
+## Trailer-Fix: fehlendes yt_dlp-Systempaket
+
+[Shell-Installer und bestaetigter Teststand](tests/20261101_trailer_ytdlp/).
+Auf VU+ Duo 4K SE / openATV 8.0.1 behob die Feed-Installation von
+`python3-yt-dlp` (2026.10.26) die Meldung `No module named 'yt_dlp'`;
+Trailerwiedergabe wurde anschliessend bestaetigt. Der Installer sichert die
+Paketliste und prueft Import und Mindestversion. Kein Austausch der Plugin-Datei.
+
 ## Normale Emby-Auswahl: schneller TS-Tonwechsel vom NAS
 
 [Optionaler Shell-Installer, Testbericht und Anleitung](tests/20261101_emby_nas_native/).
