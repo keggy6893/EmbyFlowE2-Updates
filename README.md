@@ -1,6 +1,11 @@
 # EmbyFlowE2-Updates
 Update repository for EmbyFlow E2
 
+## HTTP-Tonspurfix: native Auswahl bevorzugen
+
+[Optionaler Installer und Prüfanleitung](tests/20261102_http_native_audio/README.md) für den bestätigten HTTP-Tonwechsel bei **6 Underground** auf VU+ Duo 4K SE / openATV 8.0.1. Vorhandene native Tonspuren umgehen den zusätzlichen Remote-Copy-Testweg. NAS und regulärer Updatekanal bleiben unverändert; weitere Boxen sind nicht durch diesen Test bestätigt.
+
+
 
 
 ## Trailer-Fix: fehlendes yt_dlp-Systempaket
