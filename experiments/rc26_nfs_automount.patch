@@ -1,6 +1,6 @@
 --- a/plugin.py
 +++ b/plugin.py
-@@ -105284,3 +105284,92 @@
+@@ -105284,3 +105284,83 @@
  EmbyFlowMoviePlayer.embyflow_media_streams_by_type = _efua_streams
  EmbyFlowMoviePlayer.embyflow_apply_confirmed_audio_track = _efua_apply
  # EMBYFLOW_UNIVERSAL_DIRECT_AUDIO_V1_20261028_END
