@@ -1,0 +1,86 @@
+--- a/plugin.py
++++ b/plugin.py
+@@ -105284,3 +105284,92 @@
+ EmbyFlowMoviePlayer.embyflow_media_streams_by_type = _efua_streams
+ EmbyFlowMoviePlayer.embyflow_apply_confirmed_audio_track = _efua_apply
+ # EMBYFLOW_UNIVERSAL_DIRECT_AUDIO_V1_20261028_END
++
++
++# EMBYFLOW_NFS_DIRECT_TS_EXPERIMENT
++# Direct playback for TS files with a matching NFS export; no private paths.
++_EMBYFLOW_NFS_ORIGINAL_OPEN = _open_embyflow_player_now
++
++def _embyflow_nfs_mounts():
++    """Return exported NFS paths and their currently mounted local directories."""
++    mounts = []
++    try:
++        with open('/proc/mounts', 'r') as handle:
++            for line in handle:
++                parts = line.split()
++                if len(parts) < 3 or parts[2] not in ('nfs', 'nfs4'):
++                    continue
++                source, local = parts[0], parts[1]
++                if ':' not in source:
++                    continue
++                export = source.split(':', 1)[1]
++                # Linux /proc/mounts octal-escapes spaces and backslashes.
++                for encoded, char in (('\\040', ' '), ('\\011', '\t'), ('\\134', '\\')):
++                    export = export.replace(encoded, char)
++                    local = local.replace(encoded, char)
++                if export.startswith('/') and local.startswith('/'):
++                    mounts.append((export.rstrip('/') + '/', local.rstrip('/') + '/'))
++    except Exception:
++        pass
++    return sorted(mounts, key=lambda pair: len(pair[0]), reverse=True)
++
++def _embyflow_nfs_exact_media_file(info):
++    try:
++        import os as _nfs_os
++        if not isinstance(info, dict) or info.get('local_file'):
++            return None
++        item = info.get('item') or {}
++        if str(item.get('Type') or item.get('type') or '').lower() not in ('movie', 'episode'):
++            return None
++        sources = item.get('MediaSources') or item.get('media_sources') or []
++        selected_id = str(info.get('media_source_id') or info.get('MediaSourceId') or '')
++        if selected_id:
++            sources = [s for s in sources if str(s.get('Id') or s.get('id') or '') == selected_id]
++        if len(sources) != 1:
++            return None
++        src = sources[0]
++        original_path = str(src.get('Path') or src.get('path') or item.get('Path') or '')
++        if not original_path.lower().endswith('.ts'):
++            return None
++        for exported_prefix, local_prefix in _embyflow_nfs_mounts():
++            if not original_path.startswith(exported_prefix):
++                continue
++            suffix = original_path[len(exported_prefix):]
++            root = _nfs_os.path.realpath(local_prefix)
++            candidate = _nfs_os.path.realpath(_nfs_os.path.join(local_prefix, suffix))
++            if (candidate.startswith(root + _nfs_os.sep)
++                    and _nfs_os.path.isfile(candidate)
++                    and _nfs_os.access(candidate, _nfs_os.R_OK)):
++                return candidate
++        return None
++    except Exception:
++        return None
++
++def _embyflow_nfs_direct_open(session, ref, title, stream_url, playback_info=None):
++    info = playback_info or {}
++    path = _embyflow_nfs_exact_media_file(info)
++    if path:
++        try:
++            local_info = dict(info)
++            local_info.update(url=path, local_file=True,
++                              local_service_type=1, local_extension='.ts',
++                              playback_mode='direct', service_type=1,
++                              engine_mode='e2')
++            local_ref = eServiceReference(1, 0, path)
++            local_ref.setName(title)
++            return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, local_ref, title, path, local_info)
++        except Exception:
++            pass
++    return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, ref, title, stream_url, playback_info)
++
++_open_embyflow_player_now = _embyflow_nfs_direct_open
++# EMBYFLOW_NFS_DIRECT_TS_EXPERIMENT_END
