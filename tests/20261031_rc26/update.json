@@ -1,14 +1,14 @@
 {
-  "version": "2026-RC26.2-NFS-TEST",
-  "build": 2026103103,
+  "version": "2026-RC26.3-TS-NFS-TEST",
+  "build": 2026110601,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/42a3c38643f80824892b36190ce23cb382b97657/tests/20261031_rc26/plugin_RC26.2_NFS_TEST.py",
-  "sha256": "519a7aebd37e616914474f22e3f0306ae7ab8eeacbdc7014bfdf99605c85f107",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/f5eaf0bdd88451b146fda3db378f930113b393f2/tests/20261031_rc26/plugin_RC26_20261106_NFS_MKV.py",
+  "sha256": "498358063f4f91f19c4af6d7c775a39bbc48dbee758893b372a11c240edf43b3",
   "changelog": [
-    "RC26.2 NFS-Test fuer Anskar: direkte TS-Dateiwiedergabe ueber vorhandene NFS-Mounts bei eindeutiger Pfadzuordnung.",
-    "Kein privater NAS-Pfad im Plugin; bisheriger MKV/MP4-Weg bleibt unveraendert.",
-    "Entwicklungs-Testversion: NFS-Zuordnung auf GigaBlue noch nicht praktisch bestaetigt."
+    "RC26.3 TS/NFS-Test fuer Anskar auf GigaBlue: Stand der auf Vu+ Duo 4K SE am 06.11.2026 lokal getesteten plugin.py.",
+    "Direkte TS-Wiedergabe ueber NFS wurde auf der Vu+ getestet; Test auf GigaBlue steht noch aus.",
+    "Bestehender Wiedergabepfad bleibt enthalten."
   ]
 }
