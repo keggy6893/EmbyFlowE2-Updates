@@ -1,0 +1,104 @@
+79940:         self.audio_timer.start(1200, True)
+79941:     except Exception:
+79942:         pass
+79943: 
+79944:     # EMBYFLOW_ADMIN_SESSION_PLAYING_V11_1_QUALITY_V2
+79945:     # Fresh PlaySessionId for direct server-resume or HLS replacement.
+79946:     try:
+79947:         self.send_emby_playback_report("Playing", target_ticks)
+79948:     except Exception:
+79949:         pass
+79950: 
+79951:     _embyflow_engine_v11_4_log(
+79952:         self,
+79953:         "QUALITY_APPLY",
+79954:         engine_mode,
+79955:         "service_type=%s quality=%s playback_mode=%s"
+79956:         % (new_service_type, quality_mode, playback_mode),
+79957:     )
+79958: 
+79959:     if source_changed:
+79960:         _embyflow_qs_v1_restore_subtitle_after_source_change(
+79961:             self,
+79962:             target_source,
+79963:             old_subtitle_signature,
+79964:         )
+79965: 
+79966:     if direct_server_resume:
+79967:         # No native seek attempt here: the real-box log proves seekTo() returns
+79968:         # -1 for this direct service. StartTimeTicks is the authoritative resume.
+79969:         self.embyflow_qs_v2_resume_target = None
+79970:         try:
+104492:             self.initial_big_seek_timer.stop()
+104493:         except Exception:
+104494:             pass
+104495: 
+104496:         generation = int(
+104497:             getattr(self, "_embyflow_seek_async_generation_v17_5_6", 0)
+104498:             or 0
+104499:         ) + 1
+104500:         self._embyflow_seek_async_generation_v17_5_6 = generation
+104501: 
+104502:         # Snapshot report payloads while the new session is current.  Workers
+104503:         # receive plain Python data only; they never inspect Enigma2 services.
+104504:         self._efa3_audio_compat_session = new_session_id if compat_codec else None
+104505:         self.embyflow_playback_mode = 'audio-compat-transcoding' if compat_codec else 'directstream'
+104506:         self.playback_info.update(url=new_url, play_session_id=new_session_id,
+104507:                                   playback_mode=self.embyflow_playback_mode, service_type=4097,
+104508:                                   audio_compat_hls=bool(compat_codec))
+104509: 
+104510:         main_started = time.time()
+104511:         _embyflow_seek_async_v17_5_6_log(
+104512:             "RESTART_BEGIN generation=%s item=%s target=%s old_session=%s new_session=%s"
+104513:             % (
+104514:                 generation,
+104515:                 item_id,
+104516:                 target_ticks,
+104517:                 old_play_session_id or "-",
+104518:                 new_session_id,
+104519:             )
+104520:         )
+104521: 
+104522:         # Start old-session cleanup without blocking Enigma2's ActionMap/eTimer
+105317:         for server_prefix, local_prefix in _EMBYFLOW_NFS_PREFIX_MAP:
+105318:             if not original_path.startswith(server_prefix):
+105319:                 continue
+105320:             suffix = original_path[len(server_prefix):]
+105321:             # Realpath guards against path traversal and symlinks escaping NFS.
+105322:             root = _nfs_os.path.realpath(_EMBYFLOW_NFS_REAL_ROOT)
+105323:             candidate = _nfs_os.path.realpath(_nfs_os.path.join(local_prefix, suffix))
+105324:             if (candidate.startswith(root + _nfs_os.sep)
+105325:                     and _nfs_os.path.isfile(candidate)
+105326:                     and _nfs_os.access(candidate, _nfs_os.R_OK)):
+105327:                 return candidate
+105328:         return None
+105329:     except Exception:
+105330:         return None
+105331: 
+105332: def _embyflow_nfs_direct_open(session, ref, title, stream_url, playback_info=None):
+105333:     info = playback_info or {}
+105334:     path = _embyflow_nfs_exact_media_file(info)
+105335:     if path:
+105336:         try:
+105337:             # Preserve Emby item and resume data for the regular player.
+105338:             local_info = dict(info)
+105339:             local_info.update(url=path, local_file=True,
+105340:                               local_service_type=1, local_extension='.ts',
+105341:                               playback_mode='direct', service_type=1,
+105342:                               engine_mode='e2')
+105343:             local_ref = eServiceReference(1, 0, path)
+105344:             local_ref.setName(title)
+105345:             try:
+105346:                 with embyflow_open_log('/tmp/embyflow_nfs_direct.log', 'a') as _log:
+105347:                     _log.write('%s NFS-DIRECT title=%s path=%s service=1\n' %
+105348:                                (time.strftime('%H:%M:%S'), title, path))
+105349:             except Exception:
+105350:                 pass
+105351:             return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, local_ref, title, path, local_info)
+105352:         except Exception:
+105353:             # Preserve original playback if NFS-service setup is unavailable.
+105354:             pass
+105355:     return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, ref, title, stream_url, playback_info)
+105356: 
+105357: _open_embyflow_player_now = _embyflow_nfs_direct_open
+105358: # EMBYFLOW_NFS_DIRECT_TS_TEST_V1_END
