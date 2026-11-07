@@ -1,0 +1,61 @@
+name: Build RC26 with GigaBlue NAS V5 (manual IPK)
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-gbnas-v5-ipk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-ipk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reconstruct original RC26 and integrate verified V5 append
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast, base64, hashlib, io, json, runpy, zlib
+          from pathlib import Path
+          mod=runpy.run_path('tests/20261031_rc26/build_rc.py')
+          parts, unpack, pack, ar=[mod[k] for k in ('parts','unpack','pack','ar')]
+          root=Path('tests/20261031_rc26')
+          base=root/'enigma2-plugin-extensions-embyflowe2_2026.10.31-rc26_all.ipk'
+          expected='acaa432595fb829f8b2009bc5d7c951f7b482e6eb2e683290dc2c75f8a453414'
+          assert hashlib.sha256(base.read_bytes()).hexdigest()==expected, 'RC26 original does not match uploaded package'
+          original=parts(base.read_bytes())
+          data=unpack(original['data.tar.gz'])
+          control=unpack(original['control.tar.gz'])
+          key='usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py'
+          append=zlib.decompress(base64.b64decode(Path('tests/20261107_gbnas5/append_v5.py.zlib.b64').read_text().strip()))
+          assert b'EMBYFLOW_GIGABLUE_NAS_NATIVE_V5_20261107_BEGIN' in append
+          data[key]+=append
+          ast.parse(data[key].decode('utf-8'),feature_version=(3,8))
+          compile(data[key],key,'exec')
+          control['control']=control['control'].replace(b'Version: 2026.10.31-rc26\n',b'Version: 2026.11.07-rc26-gbnas5\n')
+          control['control']=control['control'].replace(b'Description: EmbyFlowE2 RC26 with built-in syntax validation',b'Description: EmbyFlowE2 RC26 with GigaBlue NAS native TS V5')
+          manifest='usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/PACKAGE-MANIFEST.json'
+          data[manifest]=(json.dumps({'build':2026110701,'version':'2026-RC26+GigaBlueNAS-V5','python_magic':'2b0e0d0a','files':{name:hashlib.sha256(value).hexdigest() for name,value in data.items() if name!=manifest}},indent=2)+'\n').encode()
+          assembled=ar({'debian-binary':original['debian-binary'],'control.tar.gz':pack(control,('preinst','postinst')),'data.tar.gz':pack(data)})
+          assert unpack(parts(assembled)['data.tar.gz'])==data
+          output=Path('ipk/20261107_gbnas_v5/enigma2-plugin-extensions-embyflowe2_2026.11.07-rc26-gbnas5_all.ipk')
+          output.parent.mkdir(parents=True,exist_ok=True)
+          output.write_bytes(assembled)
+          output.with_suffix('.ipk.sha256').write_text(hashlib.sha256(assembled).hexdigest()+'  '+output.name+'\n')
+          print('Built:',output,'sha256:',hashlib.sha256(assembled).hexdigest())
+          PY
+      - name: Publish only standalone IPK, leave existing updater unchanged
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ipk/20261107_gbnas_v5/
+          git commit -m "Publish standalone RC26 GigaBlue NAS V5 IPK" || exit 0
+          git push
