@@ -1,0 +1,81 @@
+name: Build isolated RC26.3 audio one-shot IPK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-rc26-audio-test-ipk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create test overlay IPK without replacing the main package
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from io import BytesIO
+          import tarfile, hashlib, tempfile, subprocess
+          path=Path('tests/20261031_rc26')
+          source=path/'plugin_RC26_3_Audio_OneShot_Test.py'
+          raw=source.read_bytes()
+          compile(raw,str(source),'exec')
+          sha=hashlib.sha256(raw).hexdigest()
+          pkg='enigma2-plugin-extensions-embyflowe2-audio-oneshot-test'
+          version='2026.11.07-r1'
+          output=path/(pkg+'_'+version+'_all.ipk')
+          control='Package: '+pkg+'\nVersion: '+version+'\nArchitecture: all\nMaintainer: EmbyFlowE2 testing\nSection: extensions\nPriority: optional\nDescription: Audio one-shot test overlay with automatic backup and restore\n'
+          postinst='''#!/bin/sh
+          set -eu
+          TARGET=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py
+          PAYLOAD=/usr/share/embyflowe2-audio-oneshot-test/plugin.py
+          BACKUP=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py.before-audio-oneshot-test
+          [ -f "$TARGET" ] || { echo "EmbyFlowE2 plugin.py not found" >&2; exit 1; }
+          [ -f "$PAYLOAD" ] || { echo "Test payload missing" >&2; exit 1; }
+          if [ ! -f "$BACKUP" ]; then cp -p "$TARGET" "$BACKUP"; fi
+          cp "$PAYLOAD" "$TARGET.audio-test.tmp"
+          chmod 0644 "$TARGET.audio-test.tmp"
+          mv -f "$TARGET.audio-test.tmp" "$TARGET"
+          exit 0
+          '''
+          prerm='''#!/bin/sh
+          set -eu
+          TARGET=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py
+          BACKUP=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py.before-audio-oneshot-test
+          if [ -f "$TARGET" ] && [ -f "$BACKUP" ]; then
+            CHECK=$(sha256sum "$TARGET" | cut -d ' ' -f 1)
+            if [ "$CHECK" = "SHA_HERE" ]; then
+              cp -p "$BACKUP" "$TARGET.restore.tmp"
+              mv -f "$TARGET.restore.tmp" "$TARGET"
+              rm -f "$BACKUP"
+            fi
+          fi
+          exit 0
+          '''.replace('SHA_HERE',sha)
+          def pack(members):
+            buff=BytesIO()
+            with tarfile.open(fileobj=buff,mode='w:gz',format=tarfile.GNU_FORMAT) as archive:
+              for name,data,mode in members:
+                if isinstance(data,str):data=data.encode()
+                item=tarfile.TarInfo(name)
+                item.size=len(data);item.mode=mode;item.mtime=0
+                archive.addfile(item,BytesIO(data))
+            return buff.getvalue()
+          with tempfile.TemporaryDirectory() as directory:
+            tmp=Path(directory)
+            (tmp/'debian-binary').write_bytes(b'2.0\n')
+            (tmp/'control.tar.gz').write_bytes(pack([('./control',control,0o644),('./postinst',postinst,0o755),('./prerm',prerm,0o755)]))
+            (tmp/'data.tar.gz').write_bytes(pack([('./usr/share/embyflowe2-audio-oneshot-test/plugin.py',raw,0o644)]))
+            subprocess.run(['ar','q',str(output.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=tmp,check=True)
+          print('IPK:',output,'payload:',sha,'bytes:',output.stat().st_size)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261031_rc26/*audio-oneshot-test*.ipk
+          git commit -m "Package RC26.3 native audio one-shot as installable IPK"
+          git push origin HEAD:main
