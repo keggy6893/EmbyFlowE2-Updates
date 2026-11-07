@@ -1,0 +1,51 @@
+name: Publish RC26.3 native audio one-shot candidate
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-rc26-audio-oneshot.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build isolated audio test from RC26.3 without touching update manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import ast,hashlib
+          base=Path('tests/20261031_rc26')
+          source=base/'plugin_RC26_3_TS_NFS_BUILD_FIX.py'
+          raw=source.read_bytes()
+          expected='37dc1281ea2853ee89eca83390e0afac0147e8569cb3957070b970f9877eb46a'
+          assert hashlib.sha256(raw).hexdigest()==expected, 'RC26.3 source changed; stop to prevent unreviewed patch'
+          text=raw.decode('utf-8')
+          old_retry="""            if self.embyflow_audio_confirm_attempts in (3, 6, 9):
+              try:
+                  tracks.selectTrack(requested)
+              except Exception:
+                  pass
+          """
+          # Whitespace in existing source is 16/20/16 spaces, not YAML indentation.
+          old_retry="            if self.embyflow_audio_confirm_attempts in (3, 6, 9):\n                try:\n                    tracks.selectTrack(requested)\n                except Exception:\n                    pass\n"
+          assert text.count(old_retry)==1, 'Audio retry block missing or ambiguous'
+          text=text.replace(old_retry,"            # Native track change: no repeated selectTrack while decoder settles.\n",1)
+          old_select='            tracks.selectTrack(requested)\n            self["state_label"].setText(\n                "Tonspur wird gewechselt: %s" % label\n            )'
+          assert text.count(old_select)==1, 'Manual audio selection block missing or ambiguous'
+          text=text.replace(old_select,'            if int(tracks.getCurrentTrack()) != requested:\n                tracks.selectTrack(requested)\n            self["state_label"].setText(\n                "Tonspur wird gewechselt: %s" % label\n            )',1)
+          ast.parse(text)
+          target=base/'plugin_RC26_3_Audio_OneShot_Test.py'
+          target.write_text(text,encoding='utf-8')
+          print('test sha256',hashlib.sha256(target.read_bytes()).hexdigest())
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261031_rc26/plugin_RC26_3_Audio_OneShot_Test.py
+          git commit -m "Add isolated RC26.3 native audio one-shot test candidate"
+          git push origin HEAD:main
