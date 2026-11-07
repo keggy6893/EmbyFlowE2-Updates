@@ -1,0 +1,30 @@
+name: Inspect RC26.3 NFS native start for packaging
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-rc26-nfs.yml']
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('tests/20261031_rc26/plugin_RC26_3_Audio_OneShot_Test.py')
+          lines=src.read_text(encoding='utf-8').splitlines()
+          tokens=('def _embyflow_nfs_direct_open','local_info.update(url=path','local_info = dict(info)','local_ref = eServiceReference','engine_mode=','playback_mode=')
+          found=[i for i,line in enumerate(lines) if any(token in line for token in tokens)]
+          indices=set()
+          for i in found:
+            for j in range(max(0,i-15),min(len(lines),i+16)): indices.add(j)
+          out='\n'.join(f'{i+1}: {lines[i]}' for i in sorted(indices))[:15000]
+          Path('tests/20261031_rc26/audio_nfs_build_inspection.txt').write_text(out+'\n',encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261031_rc26/audio_nfs_build_inspection.txt
+          git commit -m "Record NFS callsite for test packaging"
+          git push origin HEAD:main
