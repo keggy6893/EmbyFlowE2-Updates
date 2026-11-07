@@ -1,0 +1,106 @@
+name: Build downloadable Dream TS Start test IPK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-dream-ts-start-ipk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch NFS TS start with Dreambox media descriptors and package test IPK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import ast,tarfile,io,hashlib,subprocess,tempfile
+          root=Path('tests/20261031_rc26')
+          source=root/'plugin_RC26_3_Audio_OneShot_Test.py'
+          text=source.read_text(encoding='utf-8')
+          old="""            local_info.update(url=path, local_file=True,
+                              local_service_type=1, local_extension='.ts',
+                              playback_mode='direct', service_type=1,
+                              engine_mode='e2')"""
+          new="""            # Retain the exact Emby audio/subtitle descriptors during native TS start.
+            item = info.get('item') or {}
+            sources = item.get('MediaSources') or item.get('media_sources') or []
+            wanted = str(info.get('media_source_id') or info.get('MediaSourceId') or '')
+            selected = [src for src in sources
+                        if isinstance(src, dict) and
+                        (not wanted or str(src.get('Id') or src.get('id') or '') == wanted)]
+            if len(selected) != 1:
+                return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, ref, title, stream_url, playback_info)
+            media_source = selected[0]
+            local_info.update(url=path, local_file=True,
+                              local_service_type=1, local_extension='.ts',
+                              playback_mode='directplay',
+                              local_probe={'ok': True, 'media_streams': list(media_source.get('MediaStreams') or media_source.get('media_streams') or [])})"""
+          assert text.count(old)==1, 'Unexpected source: abort'
+          text=text.replace(old,new,1)
+          ast.parse(text)
+          payload=text.encode('utf-8')
+          file=root/'plugin_RC26_3_Dream_TS_Start_Test.py'
+          file.write_bytes(payload)
+          pkg='enigma2-plugin-extensions-embyflowe2-dream-ts-start-test'
+          output=root/(pkg+'_2026.11.07-r2_all.ipk')
+          control=('Package: '+pkg+'\nVersion: 2026.11.07-r2\nArchitecture: all\n'
+                   'Section: extensions\nPriority: optional\nMaintainer: EmbyFlowE2\n'
+                   'Description: Isolated Dreambox-inspired direct NFS TS playback test\n')
+          digest=hashlib.sha256(payload).hexdigest()
+          postinst='''#!/bin/sh
+          set -eu
+          TARGET=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py
+          PAYLOAD=/usr/share/embyflowe2-dream-ts-start-test/plugin.py
+          BACKUP=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py.before-dream-ts-start-test
+          [ -f "$TARGET" ] || exit 1
+          [ -f "$PAYLOAD" ] || exit 1
+          if [ ! -f "$BACKUP" ]; then cp -p "$TARGET" "$BACKUP"; fi
+          cp "$PAYLOAD" "$TARGET.tmp"
+          chmod 0644 "$TARGET.tmp"
+          mv -f "$TARGET.tmp" "$TARGET"
+          exit 0
+          '''
+          prerm='''#!/bin/sh
+          set -eu
+          TARGET=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py
+          BACKUP=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py.before-dream-ts-start-test
+          if [ -f "$TARGET" ] && [ -f "$BACKUP" ]; then
+            CURRENT=$(sha256sum "$TARGET" | cut -d ' ' -f 1)
+            if [ "$CURRENT" = "DIGEST" ]; then
+              cp -p "$BACKUP" "$TARGET.restore.tmp"
+              mv -f "$TARGET.restore.tmp" "$TARGET"
+              rm -f "$BACKUP"
+            fi
+          fi
+          exit 0
+          '''.replace('DIGEST',digest)
+          def archive(entries):
+            b=io.BytesIO()
+            with tarfile.open(fileobj=b,mode='w:gz') as t:
+              for name,data,mode in entries:
+                if isinstance(data,str):data=data.encode('utf-8')
+                info=tarfile.TarInfo(name);info.size=len(data);info.mode=mode;info.mtime=0
+                t.addfile(info,io.BytesIO(data))
+            return b.getvalue()
+          with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)
+            (folder/'debian-binary').write_bytes(b'2.0\n')
+            (folder/'control.tar.gz').write_bytes(archive([('./control',control,0o644),('./postinst',postinst,0o755),('./prerm',prerm,0o755)]))
+            (folder/'data.tar.gz').write_bytes(archive([('./usr/share/embyflowe2-dream-ts-start-test/plugin.py',payload,0o644)]))
+            subprocess.run(['ar','q',str(output.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=folder,check=True)
+          assert output.stat().st_size>100000
+          subprocess.run(['ar','t',str(output)],check=True)
+          print('Created',output,'sha256',hashlib.sha256(output.read_bytes()).hexdigest())
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261031_rc26/plugin_RC26_3_Dream_TS_Start_Test.py tests/20261031_rc26/enigma2-plugin-extensions-embyflowe2-dream-ts-start-test_2026.11.07-r2_all.ipk
+          git commit -m "Publish downloadable Dream TS start IPK test"
+          git push origin HEAD:main
