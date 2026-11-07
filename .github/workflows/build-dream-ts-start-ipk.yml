@@ -26,7 +26,7 @@ jobs:
           text=source.read_text(encoding='utf-8')
           import re
           # Match the full original native NFS launch block, regardless of minor formatting.
-          pattern = r"(?m)^            local_info\.update\(url=path, local_file=True,[\s\S]*?^                              engine_mode='e2'\)"
+          pattern = r"(?m)^            local_info\.update\(url=path, local_file=True,[\s\S]*?^[ ]+engine_mode='e2'\)"
           found = re.search(pattern,text)
           if not found:
             print('NFS launch marker unavailable; context:')
