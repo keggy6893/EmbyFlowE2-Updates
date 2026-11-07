@@ -24,11 +24,17 @@ jobs:
           root=Path('tests/20261031_rc26')
           source=root/'plugin_RC26_3_Audio_OneShot_Test.py'
           text=source.read_text(encoding='utf-8')
-          old="""            local_info.update(url=path, local_file=True,
-                              local_service_type=1, local_extension='.ts',
-                              playback_mode='direct', service_type=1,
-                              engine_mode='e2')"""
-          new="""            # Retain the exact Emby audio/subtitle descriptors during native TS start.
+          import re
+          # Match the full original native NFS launch block, regardless of minor formatting.
+          pattern = r"(?m)^            local_info\.update\(url=path, local_file=True,[\s\S]*?^                              engine_mode='e2'\)"
+          found = re.search(pattern,text)
+          if not found:
+            print('NFS launch marker unavailable; context:')
+            for line in text.splitlines():
+              if 'local_info.update(url=path' in line or "engine_mode='e2'" in line:
+                print(repr(line))
+            raise RuntimeError('NFS TS start differs: abort instead of publishing unrelated IPK')
+          new="""            # Dreambox-style native TS media stream descriptors
             item = info.get('item') or {}
             sources = item.get('MediaSources') or item.get('media_sources') or []
             wanted = str(info.get('media_source_id') or info.get('MediaSourceId') or '')
@@ -42,8 +48,7 @@ jobs:
                               local_service_type=1, local_extension='.ts',
                               playback_mode='directplay',
                               local_probe={'ok': True, 'media_streams': list(media_source.get('MediaStreams') or media_source.get('media_streams') or [])})"""
-          assert text.count(old)==1, 'Unexpected source: abort'
-          text=text.replace(old,new,1)
+          text=text[:found.start()]+new+text[found.end():]
           ast.parse(text)
           payload=text.encode('utf-8')
           file=root/'plugin_RC26_3_Dream_TS_Start_Test.py'
