@@ -4,11 +4,11 @@
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/f5eaf0bdd88451b146fda3db378f930113b393f2/tests/20261031_rc26/plugin_RC26_20261106_NFS_MKV.py",
-  "sha256": "498358063f4f91f19c4af6d7c775a39bbc48dbee758893b372a11c240edf43b3",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/tests/20261031_rc26/plugin_RC26_3_TS_NFS_BUILD_FIX.py",
+  "sha256": "37dc1281ea2853ee89eca83390e0afac0147e8569cb3957070b970f9877eb46a",
   "changelog": [
-    "RC26.3 TS/NFS-Test fuer Anskar auf GigaBlue: Stand der auf Vu+ Duo 4K SE am 06.11.2026 lokal getesteten plugin.py.",
-    "Direkte TS-Wiedergabe ueber NFS wurde auf der Vu+ getestet; Test auf GigaBlue steht noch aus.",
-    "Bestehender Wiedergabepfad bleibt enthalten."
+    "RC26.3 TS/NFS-Test fuer Anskar auf GigaBlue; Versionskennung nach dem Neustart korrekt.",
+    "Versionsfix: PLUGIN_UPDATE_BUILD entspricht jetzt dem Manifest-Build 2026110601.",
+    "TS/NFS-Wiedergabecode ist gegenueber dem lokal getesteten Stand unveraendert."
   ]
 }
