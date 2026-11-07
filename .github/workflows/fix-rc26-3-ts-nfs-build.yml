@@ -1,0 +1,63 @@
+name: Fix RC26.3 TS NFS installed build number
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-rc26-3-ts-nfs-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: rc26-3-ts-nfs-build-fix
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch version only, verify unchanged TS NFS logic, update RC26 manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          base=Path('tests/20261031_rc26')
+          source=base/'plugin_RC26_20261106_NFS_MKV.py'
+          original=source.read_bytes()
+          expected='498358063f4f91f19c4af6d7c775a39bbc48dbee758893b372a11c240edf43b3'
+          assert hashlib.sha256(original).hexdigest()==expected, 'Unexpected source file; abort'
+          text=original.decode('utf-8')
+          edits=[
+            ("PLUGIN_VERSION = '2026-RC26'", "PLUGIN_VERSION = '2026-RC26.3-TS-NFS-TEST'"),
+            ("PLUGIN_BUILD_DATE = '31.10.2026'", "PLUGIN_BUILD_DATE = '06.11.2026'"),
+            ("PLUGIN_UPDATE_BUILD = 2026103101", "PLUGIN_UPDATE_BUILD = 2026110601"),
+          ]
+          for old,new in edits:
+            assert text.count(old)==1, 'Missing or ambiguous patch marker: '+old
+            text=text.replace(old,new,1)
+          compile(text,str(source),'exec')
+          result=text.encode('utf-8')
+          target=base/'plugin_RC26_3_TS_NFS_BUILD_FIX.py'
+          target.write_bytes(result)
+          digest=hashlib.sha256(result).hexdigest()
+          manifest_path=base/'update.json'
+          manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
+          assert int(manifest['build'])==2026110601, 'Manifest changed; abort'
+          manifest['version']='2026-RC26.3-TS-NFS-TEST'
+          manifest['download']='https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/'+str(target)
+          manifest['sha256']=digest
+          manifest['changelog']=[
+            'RC26.3 TS/NFS-Test fuer Anskar auf GigaBlue; Versionskennung nach dem Neustart korrekt.',
+            'Versionsfix: PLUGIN_UPDATE_BUILD entspricht jetzt dem Manifest-Build 2026110601.',
+            'TS/NFS-Wiedergabecode ist gegenueber dem lokal getesteten Stand unveraendert.'
+          ]
+          manifest_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('Patched source SHA256:',digest)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261031_rc26/plugin_RC26_3_TS_NFS_BUILD_FIX.py tests/20261031_rc26/update.json
+          git commit -m "Fix RC26.3 installed build detection without changing TS NFS logic"
+          git push origin HEAD:main
