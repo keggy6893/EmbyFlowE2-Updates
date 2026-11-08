@@ -1,0 +1,71 @@
+name: Build RC26 Compact Search Grid IPK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-rc26-searchgrid.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build isolated RC26 search layout test
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast,hashlib,io,json,runpy
+          mod=runpy.run_path('tests/20261031_rc26/build_rc.py')
+          parts,unpack,pack,ar=[mod[k] for k in ('parts','unpack','pack','ar')]
+          base=Path('tests/20261031_rc26/enigma2-plugin-extensions-embyflowe2_2026.10.31-rc26_all.ipk').read_bytes()
+          assert hashlib.sha256(base).hexdigest()=='acaa432595fb829f8b2009bc5d7c951f7b482e6eb2e683290dc2c75f8a453414'
+          original=parts(base);data=unpack(original['data.tar.gz']);control=unpack(original['control.tar.gz'])
+          key='usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py'
+          s=data[key].decode();a=s.index('class EmbyFlowDisneySearchScreen(Screen):');b=s.index('\ndef embyflow_hb_container_filter_v1(',a);c=s[a:b]
+          def rep(old,new):
+           global c
+           assert c.count(old)==1,(old,c.count(old))
+           c=c.replace(old,new,1)
+          rep('    POSTER_SLOTS = 5','    POSTER_SLOTS = 15\n    POSTER_COLUMNS = 5\n    def _page_start(self): return (self.result_index // self.POSTER_SLOTS)*self.POSTER_SLOTS')
+          for old,new in [('38,124" size="390,760','38,220" size="568,740'),('62,148" size="330,38','62,244" size="490,38'),('62,198" zPosition="5" size="340,620','62,295" zPosition="5" size="490,212'),('450,124" size="1428,760','627,220" size="1250,740'),('480,150" zPosition="4" size="1368,64','40,126" zPosition="4" size="1830,70'),('492,218" zPosition="4" size="1280,26','650,963" zPosition="4" size="1180,26'),('    _x0, _y0, _kw, _kh, _gap = 480, 264, 34, 48, 3','    _x0, _y0, _kw, _kh, _gap = 64, 560, 48, 50, 5'),('480,330" zPosition="4" size="1000,34','650,242" zPosition="4" size="680,34'),('480,374" zPosition="4" size="1000,32','1360,242" zPosition="4" size="480,32'),('position="40,918"','position="40,1015"'),('position="360,918"','position="360,1015"'),('position="700,918"','position="700,1015"'),('position="1330,918"','position="1330,1015"'),('self.result_index = 0\n        self.number_keyboard','self.result_index = 0; self._displayed_page = 0\n        self.number_keyboard'),('    def _update_focus(self):\n        self._hide_focus()','    def _update_focus(self):\n        if self.focus_mode == "results" and self.results and self._page_start()!=self._displayed_page:\n            self._render_results(); return\n        self._hide_focus()'),('self._poster_geo[min(self.result_index,self.POSTER_SLOTS-1)]','self._poster_geo[self.result_index-self._page_start()]'),('self.result_index=(self.result_index+1)%min(len(self.results),self.POSTER_SLOTS)','self.result_index=(self.result_index+1)%len(self.results)'),('emby_search_items(term, 18, include_types)','emby_search_items(term, 50, include_types)'),('self._clear_posters(); visible=self.results[:self.POSTER_SLOTS]','self._displayed_page=self._page_start()\n        self._clear_posters(); visible=self.results[self._displayed_page:self._displayed_page+self.POSTER_SLOTS]'),('for i,item in enumerate(self.results[:self.POSTER_SLOTS]):','for i,item in enumerate(self.results[self._page_start():self._page_start()+self.POSTER_SLOTS]):'),('path,214,304,token="disney-layout4-%d-%s"','path,135,165,token="compact-search-%d-%s"')]:
+           rep(old,new)
+          rep('        _w = 58 if _key in ("123", "DEL") else (68 if _key == "SPACE" else _kw)\n        _x = _next_x\n        _next_x += _w + _gap','        _w = _kw\n        _x = _x0 + (_i % 10) * (_kw + _gap)\n        _y = _y0 + (_i // 10) * 66')
+          rep('        _key_geo.append((_x, _y0, _w, _kh))','        _key_geo.append((_x, _y, _w, _kh))')
+          rep('(_i, _x, _y0, _w, _kh))','(_i, _x, _y, _w, _kh))')
+          rep('''        _x = 480 + _i * 264
+                  _poster_geo.append((_x, 424, 214, 304))
+                  _skin.append('''+"'''"+'''<widget name="p%d" position="%d,424" size="214,304" zPosition="5" alphatest="on" />
+                  <widget name="t%d" position="%d,738" size="214,54" zPosition="6" font="Bold;18" foregroundColor="#F1F5F8" backgroundColor="#0C1827" transparent="1" valign="top" />
+                  <widget name="m%d" position="%d,796" size="214,44" zPosition="6" font="Regular;16" foregroundColor="#899AA8" backgroundColor="#0C1827" transparent="1" valign="top" />''' + "'''"+''' % (_i, _x, _i, _x, _i, _x))''','''        _x = 653 + (_i % 5) * 240
+                  _y = 290 + (_i // 5) * 210
+                  _poster_geo.append((_x, _y, 142, 178))
+                  _skin.append('''+"'''"+'''<widget name="p%d" position="%d,%d" size="135,165" zPosition="5" alphatest="on" />
+                  <widget name="t%d" position="%d,%d" size="220,28" zPosition="6" font="Bold;16" foregroundColor="#F1F5F8" backgroundColor="#0C1827" transparent="1" valign="top" />
+                  <widget name="m%d" position="%d,%d" size="220,18" zPosition="6" font="Regular;13" foregroundColor="#899AA8" backgroundColor="#0C1827" transparent="1" valign="top" />''' + "'''"+''' % (_i, _x, _y, _i, _x, _y+165, _i, _x, _y+192))''')
+          rep('        elif self.focus_mode == "history" and self.history_items: self.result_index=(self.result_index+1)%min(len(self.history_items),8)\n        self._update_focus()','        elif self.focus_mode == "history" and self.history_items: self.result_index=(self.result_index+1)%min(len(self.history_items),8)\n        elif self.focus_mode == "results" and self.results: self.result_index=min(len(self.results)-1,self.result_index+self.POSTER_COLUMNS)\n        self._update_focus()')
+          rep('        if self.focus_mode == "results": self.focus_mode="keys"','        if self.focus_mode == "results":\n            if self.result_index >= self.POSTER_COLUMNS: self.result_index-=self.POSTER_COLUMNS\n            else: self.focus_mode="keys"')
+          rep('        self._load_ready_posters(); self._update_focus()','        self["status"].setText("%d Treffer · Seite %d/%d" % (len(self.results),self._displayed_page//self.POSTER_SLOTS+1,max(1,(len(self.results)+self.POSTER_SLOTS-1)//self.POSTER_SLOTS)))\n        self._load_ready_posters(); self._update_focus()')
+          s=s[:a]+c+s[b:];ast.parse(s,feature_version=(3,8));compile(s,'plugin.py','exec')
+          data[key]=s.encode()
+          control['control']=control['control'].replace(b'Version: 2026.10.31-rc26\n',b'Version: 2026.11.08-rc26-searchgrid1\n')
+          manifest='usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/PACKAGE-MANIFEST.json'
+          data[manifest]=(json.dumps({'build':2026110801,'version':'2026-RC26-SEARCHGRID1','files':{n:hashlib.sha256(v).hexdigest() for n,v in data.items() if n!=manifest}},indent=2)+'\n').encode()
+          built=ar({'debian-binary':original['debian-binary'],'control.tar.gz':pack(control,('preinst','postinst')),'data.tar.gz':pack(data)})
+          assert unpack(parts(built)['data.tar.gz'])==data
+          dest=Path('ipk/searchgrid-20261108/enigma2-plugin-extensions-embyflowe2_2026.11.08-rc26-searchgrid1_all.ipk')
+          dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(built)
+          print(dest, hashlib.sha256(built).hexdigest(), len(built))
+          
+          PY
+      - name: Commit standalone IPK only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ipk/searchgrid-20261108/
+          git commit -m "Publish isolated RC26 compact search grid test IPK" || exit 0
+          git push
