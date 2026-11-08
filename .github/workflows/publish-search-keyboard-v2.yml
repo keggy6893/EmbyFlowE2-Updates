@@ -1,0 +1,105 @@
+name: Publish search keyboard fix v2
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-search-keyboard-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build corrected navigation and larger keys
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+          p=Path('tests/20261108_searchgrid/plugin_searchgrid1.py')
+          s=p.read_text()
+          a=s.index('class EmbyFlowDisneySearchScreen(Screen):')
+          b=s.index('\ndef embyflow_hb_container_filter_v1(',a)
+          c=s[a:b]
+          def r(old,new):
+           global c
+           assert c.count(old)==1,(old[:80],c.count(old))
+           c=c.replace(old,new,1)
+          for x,y in [
+           ('    POSTER_COLUMNS = 5\n','    POSTER_COLUMNS = 5\n    KEY_COLUMNS = 8\n'),
+           ('    _x0, _y0, _kw, _kh, _gap = 64, 560, 48, 50, 5','    _x0, _y0, _kw, _kh, _gap = 65, 538, 58, 64, 6'),
+           ('_x = _x0 + (_i % 10) * (_kw + _gap)\n        _y = _y0 + (_i // 10) * 66','_x = _x0 + (_i % 8) * (_kw + _gap)\n        _y = _y0 + (_i // 8) * 78'),
+           ('zPosition="10" font="Bold;18"','zPosition="10" font="Bold;27"'),
+           ('size="490,212" font="Regular;22"','size="490,212" font="Regular;25"'),
+           ('size="135,165" zPosition="5"','size="150,180" zPosition="5"'),
+           ('size="220,28" zPosition="6" font="Bold;16"','size="220,32" zPosition="6" font="Bold;21"'),
+           ('size="220,18" zPosition="6" font="Regular;13"','size="220,22" zPosition="6" font="Regular;17"'),
+           ('_y = 290 + (_i // 5) * 210','_y = 288 + (_i // 5) * 218'),
+           ('_poster_geo.append((_x, _y, 142, 178))','_poster_geo.append((_x, _y, 155, 185))'),
+           ('_y+165, _i, _x, _y+192','_y+180, _i, _x, _y+210'),
+           ('path,135,165,token="compact-search-%d-%s"','path,150,180,token="compact-search-v2-%d-%s"'),
+           ('font="Bold;32" foregroundColor="#FFFFFF"','font="Bold;36" foregroundColor="#FFFFFF"'),
+           ('self["hint"] = Label("Ab 2 Buchstaben erscheinen automatisch Treffer mit Emby-Postern")','self["hint"] = Label("Pfeiltasten: Buchstaben wählen · OK: schreiben · Rechts: Poster")')
+          ]: r(x,y)
+          start=c.index('    def left(self):')
+          end=c.index('    def ok(self):',start)
+          nav="""    def _key_count(self):
+                  return len(self.NUMBER_KEYS if self.number_keyboard else self.KEYS)
+              def left(self):
+                  if self.focus_mode == "keys":
+                      if self.key_index % self.KEY_COLUMNS == 0 and self.history_items:
+                          self.focus_mode="history"; self.result_index=0
+                      else: self.key_index=max(0,self.key_index-1)
+                  elif self.focus_mode == "results" and self.results:
+                      if self.result_index % self.POSTER_COLUMNS == 0:
+                          self.focus_mode="keys"; self.key_index=0
+                      else: self.result_index-=1
+                  elif self.focus_mode == "history" and self.history_items:
+                      self.result_index=0
+                  self._update_focus()
+              def right(self):
+                  if self.focus_mode == "keys":
+                      if self.key_index % self.KEY_COLUMNS == self.KEY_COLUMNS-1 and self.results:
+                          self.focus_mode="results"; self.result_index=0
+                      else: self.key_index=min(self._key_count()-1,self.key_index+1)
+                  elif self.focus_mode == "results" and self.results:
+                      self.result_index=min(len(self.results)-1,self.result_index+1)
+                  elif self.focus_mode == "history":
+                      self.focus_mode="keys"; self.key_index=0
+                  self._update_focus()
+              def down(self):
+                  if self.focus_mode == "keys":
+                      new_index=self.key_index+self.KEY_COLUMNS
+                      if new_index < self._key_count(): self.key_index=new_index
+                      elif self.results: self.focus_mode="results"; self.result_index=0
+                  elif self.focus_mode == "history" and self.history_items:
+                      self.result_index=min(self.result_index+1,min(len(self.history_items),8)-1)
+                  elif self.focus_mode == "results" and self.results:
+                      self.result_index=min(len(self.results)-1,self.result_index+self.POSTER_COLUMNS)
+                  self._update_focus()
+              def up(self):
+                  if self.focus_mode == "keys":
+                      self.key_index=max(0,self.key_index-self.KEY_COLUMNS)
+                  elif self.focus_mode == "results":
+                      if self.result_index >= self.POSTER_COLUMNS: self.result_index-=self.POSTER_COLUMNS
+                      else: self.focus_mode="keys"; self.key_index=0
+                  elif self.focus_mode == "history" and self.history_items:
+                      if self.result_index > 0: self.result_index-=1
+                      else: self.focus_mode="keys"; self.key_index=0
+                  self._update_focus()
+          """
+          c=c[:start]+nav+c[end:]
+          s=s[:a]+c+s[b:]
+          ast.parse(s,feature_version=(3,8));compile(s,'plugin_sufu_v2.py','exec')
+          out=Path('tests/20261108_searchgrid/plugin_sufu_v2.py')
+          out.write_text(s)
+          print('Created',out,len(s))
+          
+          PY
+      - name: Commit separate test plugin
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261108_searchgrid/plugin_sufu_v2.py
+          git commit -m "Fix search keyboard navigation and increase font sizes" || exit 0
+          git push
