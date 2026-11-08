@@ -1,0 +1,44 @@
+name: Publish compact search plugin.py standalone
+on:
+  push:
+    paths:
+      - '.github/workflows/export-searchgrid-plugin.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract plugin.py from already built search IPK
+        run: |
+          python - <<'PY'
+          import gzip, io, tarfile, ast
+          from pathlib import Path
+          package=Path('ipk/searchgrid-20261108/enigma2-plugin-extensions-embyflowe2_2026.11.08-rc26-searchgrid1_all.ipk').read_bytes()
+          assert package.startswith(b'!<arch>\n')
+          p=8
+          members={}
+          while p<len(package):
+              header=package[p:p+60]
+              name=header[:16].decode().strip().rstrip('/')
+              size=int(header[48:58])
+              members[name]=package[p+60:p+60+size]
+              p+=60+size+(size%2)
+          with tarfile.open(fileobj=io.BytesIO(members['data.tar.gz']),mode='r:gz') as t:
+              entry=next(m for m in t if m.name.endswith('/EmbyFlowE2/plugin.py'))
+              src=t.extractfile(entry).read()
+          ast.parse(src.decode(),feature_version=(3,8))
+          dest=Path('tests/20261108_searchgrid/plugin_searchgrid1.py')
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          dest.write_bytes(src)
+          print('Exported',len(src),'bytes')
+          PY
+      - name: Commit standalone test source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/20261108_searchgrid/plugin_searchgrid1.py
+          git commit -m "Publish standalone search grid plugin for VU+ test" || exit 0
+          git push
