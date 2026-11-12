@@ -1,0 +1,743 @@
+--- a/plugin.py
++++ b/plugin.py
+@@ -376,13 +376,13 @@
+         return str(actual_type or "").strip() in tuple(requested_types or ())
+ 
+ PLUGIN_NAME = "EmbyFlow E2"
+-PLUGIN_VERSION = '2026-RC26.3-TS-NFS-TEST'
++PLUGIN_VERSION = '2026-RC26.3-VU8-V6-TEST'
+ PLUGIN_BUILD_DATE = '06.11.2026'
+ PLUGIN_PATH = "/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2"
+ 
+ # EMBYFLOW_GITHUB_UPDATER_V1
+ # Monotonic integer used for update comparison. Do not compare version strings.
+-PLUGIN_UPDATE_BUILD = 2026110601
++PLUGIN_UPDATE_BUILD = 2026111206
+ PLUGIN_UPDATE_CHANGELOG = 'Direkte Wiedergabe: erkannte deutsche Decoder-Tonspuren werden receiverunabhaengig bevorzugt; manuelle Tonwahl bleibt vorrangig.|GRUEN oeffnet bei direkter Wiedergabe die nativen Tonspuren. Sprach- und Codec-Zuordnung erfolgen anhand der aktiven Filmversion.|Serverseitige Tonwechsel und Transcoding behalten den vorhandenen Weg; bei laufendem Tonwechsel erscheint eine Meldung statt eines stummen Abbruchs.|Bestaetigt vom Nutzer: 2012 in 1080p startet auf Vu+ Duo 4K SE mit OpenATV auf Deutsch DTS 5.1; GRUEN zeigt Deutsch und Englisch korrekt.|Lokale Tests bestanden. Weitere Receiver und Anskars bisheriger HTTP-Standbildfall sind mit diesem Test nicht als behoben bestaetigt.'
+ EMBYFLOW_UPDATE_CHANNEL = "rcdev"
+ EMBYFLOW_UPDATE_MANIFEST_URL = (
+@@ -2496,7 +2496,8 @@
+     search_term=None,
+     audio_mode="direct",
+     item_id=None,
+-    item_data=None
++    item_data=None,
++    start_from_beginning=False
+ ):
+     if not requests or not EMBY_SERVER or not EMBY_USERNAME:
+         return None
+@@ -2844,6 +2845,8 @@
+                 ):
+                     _resume_ticks_ref15 = 0
+             except Exception:
++                _resume_ticks_ref15 = 0
++            if start_from_beginning:
+                 _resume_ticks_ref15 = 0
+ 
+             try:
+@@ -6167,6 +6170,10 @@
+         if not isinstance(primary, dict) or not primary:
+             return result
+ 
++        if isinstance(primary.get("UserData"), dict):
++            result["UserData"] = primary["UserData"]
++            result["PlaybackPositionTicks"] = primary["UserData"].get("PlaybackPositionTicks", 0)
++
+         def unique_append(target, value):
+             value = str(value or "").strip()
+             if value and value not in target:
+@@ -6579,6 +6586,35 @@
+ config.embyflow.api_key = ConfigText(default="", fixed_size=False)
+ 
+ 
++for slot_number in range(1, 5):
++    for field, config_type in (
++        ("address", ConfigText), ("username", ConfigText), ("password", ConfigPassword)
++    ):
++        setattr(config.embyflow, "slot_login_%d_%s" % (slot_number, field),
++                config_type(default="", fixed_size=False))
++
++
++def embyflow_slot_login_fields(index):
++    prefix = "slot_login_%d_" % (index + 1)
++    return tuple(getattr(config.embyflow, prefix + field)
++                 for field in ("address", "username", "password"))
++
++
++def embyflow_save_slot_login(index, address, username, password):
++    for item, value in zip(embyflow_slot_login_fields(index), (address, username, password)):
++        item.setValue(value)
++        item.save()
++
++
++def embyflow_forget_active_slot_login():
++    active = str(config.embyflow.server.value or "").strip().rstrip("/")
++    if active:
++        for index in range(4):
++            address, _, _ = embyflow_slot_login_fields(index)
++            if address.value == active:
++                embyflow_save_slot_login(index, "", "", "")
++
++
+ # EMBYFLOW_SERVERLOADFIX1_RELEASE_START
+ # Some Enigma2 images can expose empty runtime ConfigText values during a cold
+ # boot even though the persisted config.embyflow.* entries are already present
+@@ -6596,6 +6632,11 @@
+         "config.embyflow.password": "password",
+         "config.embyflow.api_key": "api_key",
+     }
++
++    for slot_number in range(1, 5):
++        for field in ("address", "username", "password"):
++            attr = "slot_login_%d_%s" % (slot_number, field)
++            key_to_attr["config.embyflow." + attr] = attr
+ 
+     missing = {}
+     for key, attr in key_to_attr.items():
+@@ -8785,17 +8826,17 @@
+         <widget name="nav_focus_marker" position="-500,-500" size="198,38" zPosition="200" font="Regular;21" foregroundColor="#FFFFFF" backgroundColor="#0B4E5E" halign="left" valign="center" transparent="0" cornerRadius="6" noWrap="1" />
+         <widget name="nav_focus_accent" position="-500,-500" size="4,38" zPosition="202" backgroundColor="#D74376" transparent="0" />
+         <widget name="nav_focus_underline" position="-500,-500" size="198,2" zPosition="201" backgroundColor="#0AAAD5" transparent="0" />
+-        <widget name="poster_title1" position="292,792" size="221,58" zPosition="90" font="Regular;24" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
++        <widget name="poster_title1" position="292,792" size="221,58" zPosition="90" font="Regular;22" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
+         <widget name="poster_meta1" position="292,852" size="221,26" zPosition="90" font="Regular;20" foregroundColor="#B8C0CC" backgroundColor="layer-a-background" transparent="1" noWrap="1" valign="top" />
+-        <widget name="poster_title2" position="556,792" size="221,58" zPosition="90" font="Regular;24" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
++        <widget name="poster_title2" position="556,792" size="221,58" zPosition="90" font="Regular;22" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
+         <widget name="poster_meta2" position="556,852" size="221,26" zPosition="90" font="Regular;20" foregroundColor="#B8C0CC" backgroundColor="layer-a-background" transparent="1" noWrap="1" valign="top" />
+-        <widget name="poster_title3" position="853,792" size="221,58" zPosition="90" font="Regular;24" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
++        <widget name="poster_title3" position="853,792" size="221,58" zPosition="90" font="Regular;22" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
+         <widget name="poster_meta3" position="853,852" size="221,26" zPosition="90" font="Regular;20" foregroundColor="#B8C0CC" backgroundColor="layer-a-background" transparent="1" noWrap="1" valign="top" />
+-        <widget name="poster_title4" position="1117,792" size="221,58" zPosition="90" font="Regular;24" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
++        <widget name="poster_title4" position="1117,792" size="221,58" zPosition="90" font="Regular;22" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
+         <widget name="poster_meta4" position="1117,852" size="221,26" zPosition="90" font="Regular;20" foregroundColor="#B8C0CC" backgroundColor="layer-a-background" transparent="1" noWrap="1" valign="top" />
+-        <widget name="poster_title5" position="1414,792" size="221,58" zPosition="90" font="Regular;24" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
++        <widget name="poster_title5" position="1414,792" size="221,58" zPosition="90" font="Regular;22" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
+         <widget name="poster_meta5" position="1414,852" size="221,26" zPosition="90" font="Regular;20" foregroundColor="#B8C0CC" backgroundColor="layer-a-background" transparent="1" noWrap="1" valign="top" />
+-        <widget name="poster_title6" position="1678,792" size="221,58" zPosition="90" font="Regular;24" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
++        <widget name="poster_title6" position="1678,792" size="221,58" zPosition="90" font="Regular;22" foregroundColor="layer-a-foreground" backgroundColor="layer-a-background" transparent="1" noWrap="0" valign="top" />
+         <widget name="poster_meta6" position="1678,852" size="221,26" zPosition="90" font="Regular;20" foregroundColor="#B8C0CC" backgroundColor="layer-a-background" transparent="1" noWrap="1" valign="top" />
+ 
+         <widget name="progress_bg1" position="-500,-500" size="1,1" zPosition="28" backgroundColor="layer-a-accent1" transparent="0" />
+@@ -9697,8 +9738,6 @@
+                     continue
+                 # EMBYFLOW_HOME_DISCOVERFIX1_END
+                 title = item.get("title") or item.get("Name") or ""
+-                if len(title) > 25:
+-                    title = title[:24] + "..."
+ 
+                 try:
+                     fname, area, col, fx, fy, fw, fh = self.current_focus()
+@@ -12758,10 +12797,20 @@
+             focus_w = w
+ 
+             if name.startswith("poster_"):
+-                # N�her ans Poster und an beiden Seiten etwas k�rzer.
+-                focus_y = y + h + 4
+-                focus_x = x + 7
+-                focus_w = max(20, w - 14)
++                # Keep the selection visible against both light and dark posters.
++                border = 4
++                for key, edge_x, edge_y, edge_w, edge_h in (
++                    ("focus_top", x - border, y - border, w + 2 * border, border),
++                    ("focus_bottom", x - border, y + h, w + 2 * border, border),
++                    ("focus_left", x - border, y, border, h),
++                    ("focus_right", x + w, y, border, h),
++                ):
++                    edge = self[key].instance
++                    edge.setBackgroundColor(parseColor("#26DFF5"))
++                    edge.move(EFP(edge_x, edge_y))
++                    edge.resize(EFS(edge_w, edge_h))
++                    edge.show()
++                return
+             elif name.startswith("action_"):
+                 # ACTION_UNDERLINES_TEXT_WIDTH_V1
+                 # Jeder Unterstrich wird nur unter der jeweiligen
+@@ -12798,7 +12847,7 @@
+             )
+             self["focus_glow"].instance.show()
+ 
+-            # Schmaler, klarer wei�er Kern.
++            self["focus_bottom"].instance.setBackgroundColor(parseColor("#FFD400"))
+             self["focus_bottom"].instance.move(
+                 EFP(focus_x, focus_y)
+             )
+@@ -39145,7 +39194,8 @@
+     ref,
+     title,
+     stream_url,
+-    playback_info=None
++    playback_info=None,
++    detail_choice=None
+ ):
+     # EMBYFLOW_ENTRYPOINT_TRACE_V1
+     # Garantierter Log-Eintrag, unabhaengig davon, welcher Aufrufer
+@@ -39354,6 +39404,67 @@
+     ):
+         should_ask = False
+ 
++    def resume_choice_finished(result):
++        if result == "cancel":
++            return
++
++        selected_info = playback_info
++
++        if result == "restart":
++            try:
++                restart_item = (
++                    (playback_info or {}).get("item")
++                    or {}
++                )
++
++                clear_embyflow_local_resume(
++                    restart_item.get("Id")
++                    or restart_item.get("id")
++                    or ""
++                )
++            except:
++                pass
++
++            try:
++                selected_info = dict(playback_info or {})
++                selected_item = dict(
++                    (playback_info or {}).get("item")
++                    or {}
++                )
++
++                selected_user_data = dict(
++                    selected_item.get("UserData")
++                    or selected_item.get("user_data")
++                    or {}
++                )
++
++                selected_user_data[
++                    "PlaybackPositionTicks"
++                ] = 0
++
++                selected_item["UserData"] = (
++                    selected_user_data
++                )
++                selected_item[
++                    "PlaybackPositionTicks"
++                ] = 0
++
++                selected_info["item"] = selected_item
++            except:
++                selected_info = playback_info
++
++        _open_embyflow_player_now(
++            session,
++            ref,
++            title,
++            stream_url,
++            selected_info
++        )
++
++    if detail_choice in ("resume", "restart"):
++        resume_choice_finished(detail_choice)
++        return
++
+     if not should_ask:
+         _open_embyflow_player_now(
+             session,
+@@ -39363,63 +39474,6 @@
+             playback_info
+         )
+         return
+-
+-    def resume_choice_finished(result):
+-        if result == "cancel":
+-            return
+-
+-        selected_info = playback_info
+-
+-        if result == "restart":
+-            try:
+-                restart_item = (
+-                    (playback_info or {}).get("item")
+-                    or {}
+-                )
+-
+-                clear_embyflow_local_resume(
+-                    restart_item.get("Id")
+-                    or restart_item.get("id")
+-                    or ""
+-                )
+-            except:
+-                pass
+-
+-            try:
+-                selected_info = dict(playback_info or {})
+-                selected_item = dict(
+-                    (playback_info or {}).get("item")
+-                    or {}
+-                )
+-
+-                selected_user_data = dict(
+-                    selected_item.get("UserData")
+-                    or selected_item.get("user_data")
+-                    or {}
+-                )
+-
+-                selected_user_data[
+-                    "PlaybackPositionTicks"
+-                ] = 0
+-
+-                selected_item["UserData"] = (
+-                    selected_user_data
+-                )
+-                selected_item[
+-                    "PlaybackPositionTicks"
+-                ] = 0
+-
+-                selected_info["item"] = selected_item
+-            except:
+-                selected_info = playback_info
+-
+-        _open_embyflow_player_now(
+-            session,
+-            ref,
+-            title,
+-            stream_url,
+-            selected_info
+-        )
+ 
+     session.openWithCallback(
+         resume_choice_finished,
+@@ -41327,6 +41381,7 @@
+         self.log_setup_action("blue/logout")
+ 
+         try:
++            embyflow_forget_active_slot_login()
+             clear_emby_auth_cache()
+ 
+             try:
+@@ -42658,7 +42713,7 @@
+     def play_audio_compatible(self):
+         self.play_selected("aac")
+ 
+-    def play_selected(self, audio_mode="direct", skip_dolby_warning=False):
++    def play_selected(self, audio_mode="direct", skip_dolby_warning=False, detail_choice=None):
+         try:
+             try:
+                 f = embyflow_open_log("/tmp/embyflow_detail_data_debug.log", "a")
+@@ -42704,7 +42759,7 @@
+ 
+             if str(item_type or "").lower() != "audio" and not skip_dolby_warning and item_has_dolby_vision(self.data):
+                 self.session.openWithCallback(
+-                    lambda answer: self.play_selected(audio_mode, True) if answer else None,
++                    lambda answer: self.play_selected(audio_mode, True, detail_choice) if answer else None,
+                     MessageBox,
+                     "Dieser Film ist Dolby Vision.\n\nAuf dieser Box kann das schwarzes Bild mit Ton verursachen.\n\nTrotzdem abspielen?",
+                     MessageBox.TYPE_YESNO,
+@@ -42721,7 +42776,8 @@
+                         self.search_term,
+                         audio_mode,
+                         item_id=item_id,
+-                        item_data=self.data
++                        item_data=self.data,
++                        start_from_beginning=detail_choice == "restart"
+                     )
+                     if stream_info:
+                         stream_url = stream_info.get("url")
+@@ -42749,7 +42805,7 @@
+             ref.setName(title)
+             if isinstance(stream_info, dict) and self.data.get("cast_crew"):
+                 stream_info["cast_crew"] = list(self.data["cast_crew"])
+-            open_embyflow_player(self.session, ref, title, stream_url, stream_info)
++            open_embyflow_player(self.session, ref, title, stream_url, stream_info, detail_choice=detail_choice)
+         except Exception as e:
+             try:
+                 f = embyflow_open_log("/tmp/embyflow_play_error.log", "a")
+@@ -43112,7 +43168,15 @@
+         self.protocol, self.port = self._server_parts()
+         self.connection_ok = bool(self.server_runtime_states.get(index) == "online")
+         self.server_name = self._server_display_name(index)
+-        if clear_password:
++        address, username, password = embyflow_slot_login_fields(index)
++        if self.server and address.value == self.server:
++            self.username = self._cfg(username)
++            self.password = str(password.value or "")
++        elif self.server and self.server == self._cfg(config.embyflow.server).rstrip("/"):
++            self.username = self._cfg(config.embyflow.username)
++            self.password = str(config.embyflow.password.value or "")
++        elif clear_password or self.server != self._cfg(config.embyflow.server).rstrip("/"):
++            self.username = ""
+             self.password = ""
+ 
+     def _save_slot(self, index, value):
+@@ -43120,6 +43184,8 @@
+         normalized = str(value or "").strip().rstrip("/")
+         if normalized and not normalized.lower().startswith(("http://", "https://")):
+             normalized = "https://" + normalized
++        if normalized != str(self.server_slots[index] or "").strip().rstrip("/"):
++            embyflow_save_slot_login(index, "", "", "")
+         self.server_slots[index] = normalized
+         cfg = self._slot_cfg(index)
+         self._set_cfg(cfg, normalized)
+@@ -43542,10 +43608,23 @@
+             if not token or not user_id:
+                 raise RuntimeError("Login-Antwort enth�lt kein Token oder keine User-ID")
+ 
++            # Preserve the existing login on upgrades before switching the active server.
++            active = self._cfg(config.embyflow.server).rstrip("/")
++            active_username = self._cfg(config.embyflow.username)
++            if active and active != self.server and active_username:
++                for index, address in enumerate(self.server_slots):
++                    if address == active:
++                        stored_address, _, _ = embyflow_slot_login_fields(index)
++                        if not stored_address.value:
++                            embyflow_save_slot_login(
++                                index, active, active_username, str(config.embyflow.password.value or "")
++                            )
++            saved_password = self.password if self.save_password_enabled else ""
++            embyflow_save_slot_login(self.selected_server_index, self.server, self.username, saved_password)
+             # Aktiven Server erst nach erfolgreichem Login umschalten.
+             self._set_cfg(config.embyflow.server, self.server)
+             self._set_cfg(config.embyflow.username, self.username)
+-            self._set_cfg(config.embyflow.password, self.password if self.save_password_enabled else "")
++            self._set_cfg(config.embyflow.password, saved_password)
+             config.embyflow.server.save()
+             config.embyflow.username.save()
+             config.embyflow.password.save()
+@@ -43994,6 +44073,7 @@
+         if not answer:
+             return
+         try:
++            embyflow_forget_active_slot_login()
+             clear_emby_auth_cache()
+             for item in (config.embyflow.username, config.embyflow.password, config.embyflow.api_key):
+                 self._set_value(item, "")
+@@ -84439,7 +84519,7 @@
+     </screen>
+     """)
+ 
+-    def __init__(self, session):
++    def __init__(self, session, confirmed_manifest=None):
+         Screen.__init__(self, session)
+         self.setTitle("EmbyFlow Update")
+ 
+@@ -84500,7 +84580,14 @@
+         )
+ 
+         self._refresh_update_timestamps()
+-        self.onLayoutFinish.append(self.check_updates)
++        if confirmed_manifest is None:
++            self.onLayoutFinish.append(self.check_updates)
++        else:
++            def install_from_notice():
++                self._apply_manifest(confirmed_manifest)
++                if self._update_available_flag and self._installable:
++                    self._install_confirmed(True)
++            self.onLayoutFinish.append(install_from_notice)
+ 
+     def _refresh_update_timestamps(self):
+         state = _embyflow_update_load_state()
+@@ -100255,14 +100342,13 @@
+         except Exception: pass
+     video=getattr(self,'_efcin_video',False)
+     image=getattr(self,'_efcin_backdrop',False)
+-    if video or image:
+-        self['fallback_screen_base'].hide()
+-    else:
+-        self['fallback_screen_base'].show()
+-    if image and not video:
+-        self['fallback_detail_backdrop'].show()
+-    else:
+-        self['fallback_detail_backdrop'].hide()
++    for name, visible in (
++        ('fallback_screen_base', not (video or image)),
++        ('fallback_detail_backdrop', image and not video),
++    ):
++        if name in self:
++            widget = self[name]
++            (widget.show if visible else widget.hide)()
+ 
+ def _fallback_detail_poll(self):
+     result=getattr(self,'_fallback_result',None)
+@@ -105359,3 +105445,286 @@
+ 
+ _open_embyflow_player_now = _embyflow_nfs_direct_open
+ # EMBYFLOW_NFS_DIRECT_TS_TEST_V1_END
++
++
++# RC26.3 detail-page resume test.
++_DETAIL_RESUME_INIT = EmbyFlowDetailScreen.__init__
++_DETAIL_RESUME_FOCUS = EmbyFlowDetailScreen.update_detail_focus
++_DETAIL_RESUME_OK = EmbyFlowDetailScreen.detail_ok
++_DETAIL_RESUME_UP = EmbyFlowDetailScreen.detail_up
++_DETAIL_RESUME_DOWN = EmbyFlowDetailScreen.detail_down
++_DETAIL_RESUME_APPLY = EmbyFlowDetailScreen._detail_ref14_apply_metadata_labels
++
++
++def _detail_resume_position(screen):
++    data = screen.data
++    user_data = data.get("UserData") or data.get("user_data") or {}
++    try:
++        position = int(user_data.get("PlaybackPositionTicks") or data.get("PlaybackPositionTicks") or 0)
++        runtime = int(data.get("RunTimeTicks") or data.get("runtime_ticks") or 0)
++    except (AttributeError, TypeError, ValueError):
++        position = runtime = 0
++    if position <= 0:
++        position, local_runtime = get_embyflow_local_resume(
++            data.get("Id") or data.get("id") or data.get("item_id")
++        )
++        runtime = runtime or local_runtime
++    return position if position >= 300000000 and (not runtime or position < runtime - 600000000) else 0
++
++
++def _detail_resume_init(self, session, data):
++    self._detail_resume_ready = False
++    self._detail_resume_ticks = 0
++    _DETAIL_RESUME_INIT(self, session, data)
++    item_type = str(self.data.get("type") or self.data.get("Type") or "").lower()
++    if item_type not in ("movie", "film") or not getattr(self, "_efpolish_ready", False):
++        return
++    import xml.etree.ElementTree as ET
++
++    root = ET.fromstring(self.skin)
++    self["detail_restart_bg"] = Pixmap()
++    self["detail_restart_btn"] = Label("Von vorn abspielen")
++    ET.SubElement(root, "widget", {
++        "name": "detail_restart_bg", "position": "%d,%d" % (sx(1506), sy(685)),
++        "size": "%d,%d" % (sx(338), sy(64)), "zPosition": "39", "alphatest": "blend",
++    })
++    ET.SubElement(root, "widget", {
++        "name": "detail_restart_btn", "position": "%d,%d" % (sx(1510), sy(689)),
++        "size": "%d,%d" % (sx(330), sy(56)), "zPosition": "40", "transparent": "1",
++        "font": "Regular;%d" % sy(28), "foregroundColor": "#F1F4F8",
++        "halign": "center", "valign": "center",
++    })
++    self.skin = ET.tostring(root, encoding="unicode")
++    self._detail_resume_ready = True
++    self.onLayoutFinish.append(self.update_detail_focus)
++
++
++def _detail_resume_focus(self):
++    if not self._detail_resume_ready:
++        return _DETAIL_RESUME_FOCUS(self)
++
++    from enigma import ePoint, eSize
++
++    ticks = _detail_resume_position(self)
++    self._detail_resume_ticks = ticks
++    if not ticks and self.detail_focus == 4:
++        self.detail_focus = 0
++    focus = self.detail_focus
++    if focus == 4:
++        self.detail_focus = 0
++    try:
++        _DETAIL_RESUME_FOCUS(self)
++    finally:
++        self.detail_focus = focus
++
++    images = getattr(self, "_efpolish_images", {})
++    if focus == 4:
++        self["cinema_focus_0"].hide()
++        play_background = self["cinema_button_bg_0"].instance
++        if play_background and images.get(False):
++            play_background.setPixmap(images[False])
++            play_background.setScale(1)
++    for key in ("detail_restart_bg", "detail_restart_btn"):
++        (self[key].show if ticks else self[key].hide)()
++    if ticks:
++        hours, remainder = divmod(ticks // 10000000, 3600)
++        minutes, seconds = divmod(remainder, 60)
++        self["detail_play_btn"].setText("Fortsetzen bei %02d:%02d:%02d" % (hours, minutes, seconds))
++        widget = self["detail_restart_bg"]
++        pixmap = images.get(self.detail_focus == 4)
++        if widget.instance and pixmap:
++            widget.instance.setPixmap(pixmap)
++            widget.instance.setScale(1)
++    rows = [("detail_play_btn", "cinema_button_bg_0")]
++    if ticks:
++        rows.append(("detail_restart_btn", "detail_restart_bg"))
++    if getattr(self, "_trailer_enabled", False):
++        rows.append(("trailer_button", "cinema_button_bg_2"))
++    if getattr(self, "_efdl_button_ready", False):
++        rows.append(("movie_download_button", "movie_download_background"))
++    rows.append(("detail_back_btn", "cinema_button_bg_1"))
++    step, height = (74, 56) if ticks else (95, 72)
++    for index, (label, background) in enumerate(rows):
++        y = 615 + index * step
++        for key, x, offset, width, extra in (
++            (label, 1510, 0, 330, 0),
++            (background, 1506, -4, 338, 8),
++        ):
++            instance = self[key].instance
++            if instance:
++                instance.move(ePoint(sx(x), sy(y + offset)))
++                instance.resize(eSize(sx(width), sy(height + extra)))
++
++
++def _detail_resume_apply(self, data):
++    result = _DETAIL_RESUME_APPLY(self, data)
++    if self._detail_resume_ready:
++        self.update_detail_focus()
++    return result
++
++
++def _detail_resume_move(self, step):
++    if not self._detail_resume_ready or not self._detail_resume_ticks:
++        return (_DETAIL_RESUME_UP if step < 0 else _DETAIL_RESUME_DOWN)(self)
++    order = [0, 4]
++    if getattr(self, "_trailer_enabled", False):
++        order.append(2)
++    if getattr(self, "_efdl_button_ready", False):
++        order.append(3)
++    order.append(1)
++    index = order.index(self.detail_focus) if self.detail_focus in order else 0
++    self.detail_focus = order[max(0, min(len(order) - 1, index + step))]
++    self.update_detail_focus()
++
++
++def _detail_resume_ok(self):
++    if self._detail_resume_ready and self.detail_focus in (0, 4):
++        if getattr(self, "_trailer_busy", False):
++            self._trs5_deferred = True
++        choice = "resume" if self.detail_focus == 0 and self._detail_resume_ticks else "restart"
++        return self.play_selected(detail_choice=choice)
++    return _DETAIL_RESUME_OK(self)
++
++
++EmbyFlowDetailScreen.__init__ = _detail_resume_init
++EmbyFlowDetailScreen.update_detail_focus = _detail_resume_focus
++EmbyFlowDetailScreen._detail_ref14_apply_metadata_labels = _detail_resume_apply
++EmbyFlowDetailScreen.detail_up = lambda self: _detail_resume_move(self, -1)
++EmbyFlowDetailScreen.detail_down = lambda self: _detail_resume_move(self, 1)
++EmbyFlowDetailScreen.detail_ok = _detail_resume_ok
++
++class EmbyFlowStartupUpdateNotice(Screen):
++    skin = scale_skin("""
++    <screen name="EmbyFlowStartupUpdateNotice" position="center,center" size="1000,570"
++            flags="wfNoBorder" backgroundColor="#0C1827">
++        <eLabel position="0,0" size="1000,4" backgroundColor="#26DFF5" />
++        <eLabel text="Update verf�gbar" position="40,36" size="920,58" font="Bold;42"
++                foregroundColor="#F4F7FB" transparent="1" />
++        <widget name="versions" position="40,105" size="920,66" font="Bold;26"
++                foregroundColor="#26DFF5" transparent="1" />
++        <widget name="notes" position="40,178" size="920,240" font="Regular;28"
++                foregroundColor="#F4F7FB" transparent="1" />
++        <widget name="page" position="40,425" size="920,36" font="Regular;22"
++                foregroundColor="#B7C2CF" transparent="1" />
++        <widget name="later" position="40,475" size="410,64" font="Bold;30"
++                halign="center" valign="center" foregroundColor="#FFFFFF" />
++        <widget name="install" position="470,475" size="490,64" font="Bold;30"
++                halign="center" valign="center" foregroundColor="#FFFFFF" />
++    </screen>
++    """)
++
++    def __init__(self, session, manifest):
++        Screen.__init__(self, session)
++        self["versions"] = Label("Neu %s � Installiert %s" % (
++            _embyflow_update_display_version(manifest["version"]),
++            _embyflow_update_display_version(PLUGIN_VERSION),
++        ))
++        self["notes"] = Label("")
++        self["page"] = Label("")
++        self["later"] = Label("Sp�ter")
++        self["install"] = Label("Jetzt aktualisieren")
++        self.install_selected = False
++        self.page_index = 0
++        self.pages = self.make_pages(manifest.get("changelog") or [])
++        self["actions"] = ActionMap(
++            ["OkCancelActions", "DirectionActions"],
++            {
++                "left": lambda: self.select_install(False),
++                "right": lambda: self.select_install(True),
++                "up": lambda: self.show_page(-1),
++                "down": lambda: self.show_page(1),
++                "ok": lambda: self.close(self.install_selected),
++                "cancel": lambda: self.close(False),
++            },
++            -1,
++        )
++        self.onLayoutFinish.append(self.refresh)
++        self.show_page(0)
++
++    @staticmethod
++    def make_pages(notes):
++        import textwrap
++
++        lines = []
++        for note in notes:
++            lines.extend(textwrap.wrap(
++                note, width=57, initial_indent=" ", subsequent_indent="  ",
++                break_on_hyphens=False,
++            ))
++        return ["\n".join(lines[i:i + 6]) for i in range(0, len(lines), 6)] or [
++            "Keine �nderungsnotizen angegeben."
++        ]
++
++    def show_page(self, step):
++        self.page_index = max(0, min(len(self.pages) - 1, self.page_index + step))
++        self["notes"].setText(self.pages[self.page_index])
++        self["page"].setText(
++            "%d/%d �   �nderungen" % (self.page_index + 1, len(self.pages))
++            if len(self.pages) > 1 else ""
++        )
++
++    def select_install(self, selected):
++        self.install_selected = selected
++        self.refresh()
++
++    def refresh(self):
++        for name, active in (("later", not self.install_selected),
++                             ("install", self.install_selected)):
++            instance = self[name].instance
++            if instance is not None:
++                instance.setBackgroundColor(parseColor("#146481" if active else "#263A4F"))
++
++
++def _embyflow_check_update_on_open(screen):
++    from threading import Thread
++
++    result = {}
++    timer = eTimer()
++
++    def fetch():
++        try:
++            manifest = _embyflow_update_fetch_manifest()
++        except Exception:
++            manifest = None
++        result["manifest"] = manifest
++
++    def stop():
++        timer.stop()
++
++    def poll():
++        if "manifest" not in result:
++            return
++        manifest = result["manifest"]
++        if (not manifest or not manifest.get("installable")
++                or manifest["build"] <= PLUGIN_UPDATE_BUILD):
++            stop()
++            return
++        if screen.session.current_dialog is not screen:
++            return
++        stop()
++
++        def notice_closed(install=False):
++            if install:
++                screen.session.open(EmbyFlowUpdateScreen, manifest)
++
++        screen.session.openWithCallback(notice_closed, EmbyFlowStartupUpdateNotice, manifest)
++
++    try:
++        timer.callback.append(poll)
++    except AttributeError:
++        screen._startup_update_timer_connection = timer.timeout.connect(poll)
++    screen._startup_update_timer = timer
++    screen.onClose.append(stop)
++    Thread(target=fetch, name="EmbyFlowStartupUpdate", daemon=True).start()
++    timer.start(250, False)
++
++
++_EMBYFLOW_STARTUP_UPDATE_HOME_INIT = EmbyFlowE2Screen.__init__
++
++
++def _embyflow_startup_update_home_init(self, *args, **kwargs):
++    _EMBYFLOW_STARTUP_UPDATE_HOME_INIT(self, *args, **kwargs)
++    self.onFirstExecBegin.append(lambda: _embyflow_check_update_on_open(self))
++
++
++EmbyFlowE2Screen.__init__ = _embyflow_startup_update_home_init
