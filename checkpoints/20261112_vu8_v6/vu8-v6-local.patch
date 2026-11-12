@@ -131,7 +131,7 @@
              focus_w = w
  
              if name.startswith("poster_"):
--                # N�her ans Poster und an beiden Seiten etwas k�rzer.
+-                # Näher ans Poster und an beiden Seiten etwas kürzer.
 -                focus_y = y + h + 4
 -                focus_x = x + 7
 -                focus_w = max(20, w - 14)
@@ -156,7 +156,7 @@
              )
              self["focus_glow"].instance.show()
  
--            # Schmaler, klarer wei�er Kern.
+-            # Schmaler, klarer weißer Kern.
 +            self["focus_bottom"].instance.setBackgroundColor(parseColor("#FFD400"))
              self["focus_bottom"].instance.move(
                  EFP(focus_x, focus_y)
@@ -376,7 +376,7 @@
          self._set_cfg(cfg, normalized)
 @@ -43542,10 +43608,23 @@
              if not token or not user_id:
-                 raise RuntimeError("Login-Antwort enth�lt kein Token oder keine User-ID")
+                 raise RuntimeError("Login-Antwort enthält kein Token oder keine User-ID")
  
 +            # Preserve the existing login on upgrades before switching the active server.
 +            active = self._cfg(config.embyflow.server).rstrip("/")
@@ -611,7 +611,7 @@
 +    <screen name="EmbyFlowStartupUpdateNotice" position="center,center" size="1000,570"
 +            flags="wfNoBorder" backgroundColor="#0C1827">
 +        <eLabel position="0,0" size="1000,4" backgroundColor="#26DFF5" />
-+        <eLabel text="Update verf�gbar" position="40,36" size="920,58" font="Bold;42"
++        <eLabel text="Update verfügbar" position="40,36" size="920,58" font="Bold;42"
 +                foregroundColor="#F4F7FB" transparent="1" />
 +        <widget name="versions" position="40,105" size="920,66" font="Bold;26"
 +                foregroundColor="#26DFF5" transparent="1" />
@@ -628,13 +628,13 @@
 +
 +    def __init__(self, session, manifest):
 +        Screen.__init__(self, session)
-+        self["versions"] = Label("Neu %s � Installiert %s" % (
++        self["versions"] = Label("Neu %s · Installiert %s" % (
 +            _embyflow_update_display_version(manifest["version"]),
 +            _embyflow_update_display_version(PLUGIN_VERSION),
 +        ))
 +        self["notes"] = Label("")
 +        self["page"] = Label("")
-+        self["later"] = Label("Sp�ter")
++        self["later"] = Label("Später")
 +        self["install"] = Label("Jetzt aktualisieren")
 +        self.install_selected = False
 +        self.page_index = 0
@@ -661,18 +661,18 @@
 +        lines = []
 +        for note in notes:
 +            lines.extend(textwrap.wrap(
-+                note, width=57, initial_indent=" ", subsequent_indent="  ",
++                note, width=57, initial_indent="• ", subsequent_indent="  ",
 +                break_on_hyphens=False,
 +            ))
 +        return ["\n".join(lines[i:i + 6]) for i in range(0, len(lines), 6)] or [
-+            "Keine �nderungsnotizen angegeben."
++            "Keine Änderungsnotizen angegeben."
 +        ]
 +
 +    def show_page(self, step):
 +        self.page_index = max(0, min(len(self.pages) - 1, self.page_index + step))
 +        self["notes"].setText(self.pages[self.page_index])
 +        self["page"].setText(
-+            "%d/%d �   �nderungen" % (self.page_index + 1, len(self.pages))
++            "%d/%d · ↑ ↓ Änderungen" % (self.page_index + 1, len(self.pages))
 +            if len(self.pages) > 1 else ""
 +        )
 +
