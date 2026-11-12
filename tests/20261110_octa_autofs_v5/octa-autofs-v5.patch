@@ -1,0 +1,622 @@
+--- a/plugin.py
++++ b/plugin.py
+@@ -40602,7 +40602,7 @@
+                     % (
+                         time.strftime("%H:%M:%S"),
+                         str(title or ""),
+-                        STREAM_SERVICE_TYPE,
++                        getattr(ref, "type", STREAM_SERVICE_TYPE),
+                         delay_ms,
+                     )
+                 )
+@@ -105286,261 +105286,385 @@
+ # EMBYFLOW_UNIVERSAL_DIRECT_AUDIO_V1_20261028_END
+ 
+ 
+-# EMBYFLOW_NFS_DIRECT_TS_TEST_V1
+-# Exact NAS path mapping only. Never match by file name alone.
+-# Receiver-specific mount; other receivers retain their original playback.
+-# RC26.3: Read the already configured indirect AutoFS map. Do not execute it.
++# RC26.3 AutoFS: resolve the selected Emby TS to a configured NFS export.
+ _EMBYFLOW_NFS_ORIGINAL_OPEN = _open_embyflow_player_now
+ 
+-
+-def _embyflow_nfs_exact_media_file(info):
+-    # Fail closed. Never choose a film merely because its basename matches.
+-    try:
+-        import os as _nfs_os
+-        import re as _nfs_re
+-        import shlex as _nfs_shlex
+-        from urllib.parse import urlsplit as _nfs_urlsplit, parse_qs as _nfs_parse_qs
+-
+-        if not isinstance(info, dict) or info.get('local_file'):
+-            return None
+-        url = str(info.get('url') or '')
+-        if not url.lower().startswith(('http://', 'https://')):
+-            return None
+-        # Never bypass a server-requested remux, HLS, transcoding or
+-        # subtitle-burn-in session. Only an explicitly static source qualifies.
+-        parsed = _nfs_urlsplit(url)
+-        lowered_path = parsed.path.lower()
+-        query_values = _nfs_parse_qs(parsed.query)
+-        static_yes = any(k.lower() == 'static' and any(
+-            str(v).lower() == 'true' for v in vals)
+-            for k, vals in query_values.items())
+-        original_file = '/original.' in lowered_path
+-        if not (static_yes or original_file):
+-            return None
+-        if (lowered_path.endswith(('.m3u8', '.mpd')) or
+-                '/hls/' in lowered_path or '/transcod' in lowered_path):
+-            return None
+-        mode = str(info.get('playback_mode') or info.get('play_method') or '').lower()
+-        if any(tag in mode for tag in ('transcod', 'remux', 'hls', 'quality', 'compat')):
+-            return None
+-        if info.get('audio_compat_hls') or info.get('transcoding') or info.get('is_transcoding'):
+-            return None
+-        item = info.get('item') or {}
+-        if str(item.get('Type') or item.get('type') or '').lower() not in ('movie', 'episode'):
+-            return None
+-        sources = item.get('MediaSources') or item.get('media_sources') or []
+-        if not isinstance(sources, list):
+-            return None
+-        query = _nfs_parse_qs(_nfs_urlsplit(url).query)
+-        wanted = str(info.get('media_source_id') or info.get('MediaSourceId') or
+-                     next((v[0] for k, v in query.items()
+-                           if k.lower() == 'mediasourceid' and v), '') or '')
+-        selected = [src for src in sources if isinstance(src, dict) and
+-                    (not wanted or str(src.get('Id') or src.get('id') or '') == wanted)]
+-        if len(selected) != 1:
+-            return None
+-        src = selected[0]
+-        server_path = str(src.get('Path') or src.get('path') or item.get('Path') or '')
+-        if not server_path.startswith('/') or not server_path.lower().endswith('.ts'):
+-            return None
+-        if '://' in server_path or '\\' in server_path or any(
+-                part in ('.', '..') for part in server_path.split('/')):
+-            return None
+-        try:
+-            expected_size = int(src.get('Size') or item.get('Size') or 0)
+-        except (ValueError, TypeError):
+-            expected_size = 0
+-        if expected_size < 0:
+-            return None
+-
+-        # Identify the actual mountpoint of the indirect AutoFS map.
+-        mount_parents = []
+-        with open('/proc/mounts', 'r') as mounts:
+-            for row in mounts:
+-                fields = row.split()
+-                if len(fields) >= 3 and fields[0] == '/etc/auto.network' and fields[2] == 'autofs':
+-                    parent = _nfs_re.sub(r'\\([0-7]{3})',
+-                        lambda match: chr(int(match.group(1), 8)), fields[1])
+-                    if parent.startswith('/'):
+-                        mount_parents.append(parent)
+-        if len(set(mount_parents)) != 1:
+-            return None
+-        parent = mount_parents[0]
+-        matches = set()
+-        with open('/etc/auto.network', 'r') as automap:
+-            for row in automap:
+-                try:
+-                    fields = _nfs_shlex.split(row, comments=True)
+-                except ValueError:
+-                    continue
+-                if len(fields) != 3:
+-                    continue
+-                key, options, source = fields
+-                if (not _nfs_re.fullmatch(r'[A-Za-z0-9_.-]+', key)
+-                        or key in ('.', '..')
+-                        or not _nfs_re.search(r'(?:^-|^|,)fstype=(?:nfs|nfs4)(?:,|$)', options)):
+-                    continue
+-                # The export must be an absolute path. No wildcard/pattern maps.
+-                _host, sep, export = source.partition(':/')
+-                if not sep or not _host or not export:
+-                    continue
+-                prefix = '/' + export.rstrip('/')
+-                if not server_path.startswith(prefix + '/'):
+-                    continue
+-                relative = server_path[len(prefix) + 1:]
+-                root = _nfs_os.path.join(parent, key)
+-                candidate = _nfs_os.path.join(root, relative)
+-                # A bounded subprocess contains potentially blocking AutoFS
+-                # operations. The GUI never calls stat()/realpath() on NAS.
+-                import subprocess as _nfs_subprocess
+-                import sys as _nfs_sys
+-                probe = (
+-                    'import os,sys,stat\n'
+-                    'root,path,size=sys.argv[1],sys.argv[2],int(sys.argv[3])\n'
+-                    'rr=os.path.realpath(root); rp=os.path.realpath(path)\n'
+-                    'st=os.stat(rp)\n'
+-                    'assert rp.startswith(rr.rstrip(os.sep)+os.sep)\n'
+-                    'assert stat.S_ISREG(st.st_mode) and os.access(rp,os.R_OK)\n'
+-                    'assert not size or st.st_size==size\n'
+-                    'print(rp)\n'
+-                )
+-                try:
+-                    checked = _nfs_subprocess.run(
+-                        [_nfs_sys.executable, '-c', probe, root, candidate, str(expected_size)],
+-                        stdout=_nfs_subprocess.PIPE, stderr=_nfs_subprocess.DEVNULL,
+-                        text=True, timeout=2.5, check=False)
+-                except (_nfs_subprocess.TimeoutExpired, OSError):
+-                    continue
+-                if checked.returncode != 0:
+-                    continue
+-                resolved = checked.stdout.strip()
+-                if not resolved or '\n' in resolved:
+-                    continue
+-                matches.add(resolved)
+-                if len(matches) > 1:
+-                    return None
+-        return next(iter(matches)) if len(matches) == 1 else None
+-    except (OSError, ValueError, TypeError, AttributeError):
+-        return None
+-
+-# The resolver can trigger an AutoFS mount. Never run it in the GUI thread.
+-# A monotonically increasing per-session token prevents older requests from
+-# starting playback after the user has selected another item.
++import shutil as _nfs_shutil
++import subprocess as _nfs_subprocess
+ import threading as _nfs_threading
+ import time as _nfs_time
++from urllib.parse import parse_qs as _nfs_parse_qs, unquote as _nfs_unquote, urlsplit as _nfs_urlsplit
++
+ _EMBYFLOW_NFS_PENDING = {}
+-_EMBYFLOW_NFS_JOB_SERIAL = [0]
+ _EMBYFLOW_NFS_POLL_MS = 75
+-_EMBYFLOW_NFS_DEADLINE_SECONDS = 4.0
++_EMBYFLOW_NFS_DEADLINE_SECONDS = 8.0
++_EMBYFLOW_NFS_PROBE_SECONDS = 6.0
++_EMBYFLOW_NFS_PROBE = '''
++import os, stat, sys
++
++root, path, size = sys.argv[1:]
++try:
++    root = os.path.realpath(root)
++    path = os.path.realpath(path)
++    if not path.startswith(root.rstrip(os.sep) + os.sep):
++        sys.exit(2)
++    st = os.stat(path)
++    if not stat.S_ISREG(st.st_mode) or not os.access(path, os.R_OK):
++        sys.exit(3)
++    if int(size) and st.st_size != int(size):
++        sys.exit(4)
++except OSError:
++    sys.exit(3)
++print(path)
++'''
++
++
++def _embyflow_nfs_query(parsed):
++    query = {}
++    for key, values in _nfs_parse_qs(parsed.query, keep_blank_values=True).items():
++        query.setdefault(key.lower(), []).extend(values)
++    return query
++
++
++def _embyflow_nfs_direct_modes(info, item):
++    modes = (info.get('playback_mode'), info.get('play_method'), item.get('EmbyFlowPlaybackMode'))
++    modes = {str(mode).strip().lower() for mode in modes if mode}
++    if (modes.difference(('direct', 'directplay', 'direct-play')) or
++            any(info.get(key) for key in ('audio_compat_hls', 'transcoding', 'is_transcoding',
++                                          'embyflow_local_av1_fallback'))):
++        return None
++    return modes
++
++
++def _embyflow_nfs_direct_query(info, item):
++    modes = _embyflow_nfs_direct_modes(info, item)
++    if modes is None:
++        return None
++    parsed = _nfs_urlsplit(str(info.get('url') or ''))
++    query = _embyflow_nfs_query(parsed)
++    path = _nfs_unquote(parsed.path)
++    lowered_path = path.lower()
++    if (lowered_path.endswith(('.m3u8', '.mpd')) or '/hls/' in lowered_path or
++            '/transcod' in lowered_path):
++        return None
++    safe_keys = {'static', 'mediasourceid', 'api_key', 'deviceid', 'playsessionid',
++                 'audiostreamindex', 'subtitlestreamindex'}
++    if query.keys() - safe_keys:
++        return None
++    if 'static' in query:
++        return query if {value.lower() for value in query['static']} == {'true'} else None
++    if '/original.' in lowered_path:
++        return query
++    # An unmarked URL qualifies only with an explicit Direct Play decision and
++    # the standard Emby endpoint for this exact item.
++    item_id = str(item.get('Id') or item.get('id') or '')
++    match = re.search(r'/Videos/([^/]+)/stream(?:\.[A-Za-z0-9]+)?$', path, re.IGNORECASE)
++    return query if modes and match and match.group(1) == item_id else None
++
++
++def _embyflow_nfs_exports():
++    import shlex
++
++    parents = set()
++    exports = set()
++    with open('/proc/mounts', 'r') as mounts:
++        for row in mounts:
++            fields = row.split()
++            if len(fields) < 3:
++                continue
++            source, root = (re.sub(r'\\([0-7]{3})', lambda m: chr(int(m[1], 8)), field)
++                            for field in fields[:2])
++            if fields[2] == 'autofs' and source in ('/etc/auto.network', 'auto.network'):
++                parents.add(root)
++            if fields[2] in ('nfs', 'nfs4'):
++                host, sep, export = source.rpartition(':/')
++                if sep and host and root.startswith('/media/autofs/'):
++                    exports.add((root, '/' + export.rstrip('/')))
++
++    if parents:
++        try:
++            with open('/etc/auto.network', 'r') as automap:
++                for row in automap:
++                    try:
++                        fields = shlex.split(row, comments=True)
++                    except ValueError:
++                        continue
++                    if len(fields) not in (2, 3):
++                        continue
++                    key, source = fields[0], fields[-1]
++                    if not re.fullmatch(r'[A-Za-z0-9_.-]+', key) or key in ('.', '..'):
++                        continue
++                    if len(fields) == 3:
++                        options = fields[1]
++                        if not options.startswith('-'):
++                            continue
++                        fstype = re.search(r'(?:^-|,)fstype=([^,]+)', options)
++                        if fstype and fstype[1] not in ('nfs', 'nfs4'):
++                            continue
++                    host, sep, export = source.rpartition(':/')
++                    if sep and host and export and not any(char in export for char in '*&$'):
++                        exports.update((os.path.join(parent, key), '/' + export.rstrip('/'))
++                                       for parent in parents)
++        except FileNotFoundError:
++            if not exports:
++                raise
++    return exports
++
++
++def _embyflow_nfs_selected_source(info, sources, query):
++    source_ids = {str(value) for value in (info.get('media_source_id'), info.get('MediaSourceId'),
++                                           *query.get('mediasourceid', ())) if value}
++    if len(source_ids) > 1:
++        return None, 'conflicting-source-ids'
++    wanted = next(iter(source_ids), '')
++    selected = [src for src in sources if isinstance(src, dict) and
++                (not wanted or str(src.get('Id') or src.get('id') or '') == wanted)]
++    if len(selected) > 1:
++        return None, 'ambiguous-media-source'
++    if not selected and (wanted or sources):
++        return None, 'media-source-not-found'
++    return selected[0] if selected else {}, None
++
++
++def _embyflow_nfs_resolve_media_file(info, deadline, cancelled, use_suffix_search=False):
++    item = info['item']
++    query = _embyflow_nfs_direct_query(info, item)
++    if query is None:
++        return None, None, 'not-direct-play'
++
++    sources = item.get('MediaSources') or item.get('media_sources') or []
++    source, reason = _embyflow_nfs_selected_source(info, sources, query)
++    if reason:
++        return None, None, reason
++    server_path = str(source.get('Path') or source.get('path') or
++                      ((item.get('Path') or item.get('path')) if len(sources) <= 1 else '') or '')
++    if not server_path:
++        return None, None, 'missing-media-path'
++    if not server_path.lower().endswith('.ts'):
++        return None, None, 'not-ts'
++    if (not server_path.startswith('/') or '\\' in server_path or
++            any(part in ('', '.', '..') for part in server_path[1:].split('/')) or
++            any(char in server_path for char in '\0\r\n')):
++        return None, None, 'invalid-media-path'
++    try:
++        expected_size = int(source.get('Size') or (item.get('Size') if len(sources) <= 1 else 0) or 0)
++    except (ValueError, TypeError):
++        expected_size = 0
++    if expected_size < 0:
++        return None, None, 'invalid-media-size'
++
++    try:
++        exports = _embyflow_nfs_exports()
++    except FileNotFoundError:
++        return None, None, 'mount-map-missing'
++    except OSError:
++        return None, None, 'mount-map-unreadable'
++    if not exports:
++        return None, None, 'no-autofs-nfs-exports'
++    candidates = set()
++    for root, export in exports:
++        if server_path.startswith(root.rstrip('/') + '/'):
++            candidates.add((root, server_path))
++        elif server_path.startswith(export.rstrip('/') + '/'):
++            relative = server_path[len(export.rstrip('/')) + 1:]
++            candidates.add((root, os.path.join(root, relative)))
++    if not candidates and not use_suffix_search:
++        return None, None, 'no-exact-export-match'
++
++    # Enigma2 embeds Python. Launch a Python CLI instead of reusing the host executable.
++    python = _nfs_shutil.which('python3')
++    if not python:
++        return None, None, 'python3-not-found'
++    if candidates:
++        path, reason = _embyflow_nfs_probe_candidates(python, candidates, expected_size, deadline, cancelled)
++        if path or not use_suffix_search or reason != 'file-unavailable':
++            return path, source, reason
++
++    # GigaBlue V5 also finds a file when the server and receiver use different
++    # share prefixes. Only a unique file with Emby's exact size qualifies.
++    if not expected_size:
++        return None, None, 'suffix-match-requires-file-size'
++    roots = {root for root, export in exports}
++    if len(roots) > 16:
++        return None, None, 'too-many-network-mounts'
++    parts = server_path[1:].split('/')
++    suffix_candidates = {(root, os.path.join(root, *parts[-depth:]))
++                         for root in roots for depth in range(1, min(4, len(parts)) + 1)}
++    path, reason = _embyflow_nfs_probe_candidates(
++        python, suffix_candidates - candidates, expected_size, deadline, cancelled)
++    return path, source, 'verified-suffix-match' if path else reason
++
++
++def _embyflow_nfs_probe_candidates(python, candidates, expected_size, deadline, cancelled):
++    matches = set()
++    failures = set()
++    for root, candidate in sorted(candidates):
++        remaining = deadline - _nfs_time.monotonic()
++        if cancelled.is_set() or remaining <= 0:
++            return None, 'resolve-timeout'
++        try:
++            checked = _nfs_subprocess.run(
++                [python, '-c', _EMBYFLOW_NFS_PROBE, root, candidate, str(expected_size)],
++                stdout=_nfs_subprocess.PIPE, stderr=_nfs_subprocess.DEVNULL,
++                text=True, timeout=min(remaining, _EMBYFLOW_NFS_PROBE_SECONDS), check=False)
++        except _nfs_subprocess.TimeoutExpired:
++            return None, 'mount-probe-timeout'
++        except OSError:
++            return None, 'mount-probe-launch-error'
++        if checked.returncode:
++            failures.add({2: 'path-outside-mount', 3: 'file-unavailable',
++                          4: 'file-size-mismatch'}.get(checked.returncode, 'mount-probe-error'))
++            continue
++        resolved = checked.stdout.rstrip('\r\n')
++        if not resolved.startswith('/') or '\n' in resolved:
++            return None, 'mount-probe-invalid-output'
++        # Keep the validated mount path and the .ts suffix for Enigma2.
++        matches.add((resolved, candidate))
++    if not matches:
++        return None, ','.join(sorted(failures)) or 'file-unavailable'
++    if len({resolved for resolved, candidate in matches}) != 1:
++        return None, 'ambiguous-nas-file'
++    return min(candidate for resolved, candidate in matches), 'resolved'
++
++
++def _embyflow_nfs_log(event, detail):
++    try:
++        with embyflow_open_log('/tmp/embyflow_nfs_direct.log', 'a') as log:
++            log.write('%s %s %s\n' % (_nfs_time.strftime('%H:%M:%S'), event, detail))
++    except Exception:
++        pass
++
++
++def _embyflow_nfs_is_sf8008():
++    # The Octagon debug log identifies the Supreme build as sf8008.
++    models = {EMBYFLOW_RUNTIME_PROFILE.get('model')}
++    try:
++        from Components.SystemInfo import BoxInfo
++        models.update(BoxInfo.getItem(key) for key in ('model', 'machinebuild'))
++    except (ImportError, AttributeError):
++        pass
++    return bool({'sf8008', 'sf8008supreme'}.intersection(
++        str(model or '').strip().lower() for model in models))
++
++
++def _embyflow_nfs_is_direct_ts(info, item):
++    if _embyflow_nfs_direct_modes(info, item) is None:
++        return False
++    parsed = _nfs_urlsplit(info['url'])
++    query = _embyflow_nfs_query(parsed)
++    sources = item.get('MediaSources') or item.get('media_sources') or []
++    source, _ = _embyflow_nfs_selected_source(info, sources, query)
++
++    def is_ts(metadata):
++        path = str(metadata.get('Path') or metadata.get('path') or '')
++        container = str(metadata.get('Container') or metadata.get('container') or '')
++        return path.lower().endswith('.ts') if path else container.lower() in ('ts', 'mpegts')
++
++    if source and any(source.get(key) for key in ('Path', 'path', 'Container', 'container')):
++        return is_ts(source)
++    if sources and all(isinstance(entry, dict) and is_ts(entry) for entry in sources):
++        return True
++    if len(sources) <= 1 and is_ts(item):
++        return True
++    return parsed.path.lower().endswith('.ts')
+ 
+ 
+ def _embyflow_nfs_direct_open(session, ref, title, stream_url, playback_info=None):
++    key = id(session)
++    previous = _EMBYFLOW_NFS_PENDING.pop(key, None)
++    if previous:
++        previous['cleanup']()
++
+     info = dict(playback_info or {})
+-    info.setdefault('url', stream_url)
+-
+-    # Skip the resolver entirely for clearly ineligible sources.
+-    # This is only a cheap prefilter; the worker still performs all strict
+-    # static-stream, source identity and path validation.
++    info['url'] = stream_url or info.get('url')
+     item = info.get('item') or {}
+-    source_url = str(info.get('url') or '')
+-    if (info.get('local_file') or
+-            not source_url.lower().startswith(('http://', 'https://')) or
++    if (info.get('local_file') or not str(info['url'] or '').lower().startswith(('http://', 'https://')) or
+             not isinstance(item, dict) or
+             str(item.get('Type') or item.get('type') or '').lower() not in ('movie', 'episode')):
+         return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, ref, title, stream_url, playback_info)
+ 
+-    _EMBYFLOW_NFS_JOB_SERIAL[0] += 1
+-    serial = _EMBYFLOW_NFS_JOB_SERIAL[0]
+-    key = id(session)
+-    previous = _EMBYFLOW_NFS_PENDING.pop(key, None)
+-    if previous:
+-        try:
+-            previous['timer'].stop()
+-        except Exception:
+-            pass
+-        # Detach the previous job's closure from its library screen.
+-        previous_cleanup = previous.get('detach_close')
+-        if previous_cleanup:
+-            previous_cleanup()
+-
+-    job = {'serial': serial, 'done': False, 'path': None,
+-           'started': _nfs_time.monotonic(), 'timer': eTimer()}
+-    _EMBYFLOW_NFS_PENDING[key] = job
+-
+-    # If the library screen is closed while AutoFS is still being probed,
+-    # the result must never resurrect a player behind the user's back.
++    is_sf8008 = _embyflow_nfs_is_sf8008()
++
++    def failed_start(reason):
++        if is_sf8008 and _embyflow_nfs_is_direct_ts(info, item):
++            _embyflow_nfs_log('NAS-START-BLOCKED', 'reason=' + reason)
++            return session.open(MessageBox,
++                                'Die TS-Datei konnte nicht direkt vom NAS gestartet werden.\n\n'
++                                'Fehlercode: %s' % reason,
++                                MessageBox.TYPE_ERROR)
++        _embyflow_nfs_log('HTTP-FALLBACK', 'reason=' + reason)
++        return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, ref, title, stream_url, playback_info)
++
++    timer = eTimer()
++    cancelled = _nfs_threading.Event()
++    deadline = _nfs_time.monotonic() + _EMBYFLOW_NFS_DEADLINE_SECONDS
++    job = {'result': None}
+     owner = getattr(session, 'current_dialog', None)
+-    # Playback can start from the grid as well as the home screen.
+-    # Only bind to known library owners; closing an unrelated dialog must
+-    # not cancel a film start.
+-    if isinstance(owner, (EmbyFlowE2Screen, EmbyFlowGridScreen)):
+-        def detach_close():
+-            try:
+-                owner.onClose.remove(cancel_when_owner_closes)
+-            except (AttributeError, ValueError):
+-                pass
+-
+-        def cancel_when_owner_closes():
+-            if _EMBYFLOW_NFS_PENDING.get(key) is job:
+-                _EMBYFLOW_NFS_PENDING.pop(key, None)
+-                try:
+-                    job['timer'].stop()
+-                except Exception:
+-                    pass
+-            detach_close()
+-
+-        owner.onClose.append(cancel_when_owner_closes)
+-        job['detach_close'] = detach_close
++    owner_close = owner.onClose if isinstance(owner, (EmbyFlowE2Screen, EmbyFlowGridScreen)) else None
++
++    def cleanup(detach=True):
++        cancelled.set()
++        timer.stop()
++        if detach and owner_close is not None and cancel_on_close in owner_close:
++            owner_close.remove(cancel_on_close)
++
++    def cancel_on_close():
++        if _EMBYFLOW_NFS_PENDING.get(key) is job:
++            _EMBYFLOW_NFS_PENDING.pop(key, None)
++            cleanup(detach=False)
+ 
+     def find_file():
+         try:
+-            path = _embyflow_nfs_exact_media_file(info)
+-        except Exception:
+-            path = None
+-        # Only plain data crosses the thread boundary. No Enigma2 API calls.
+-        job['path'] = path
+-        job['done'] = True
++            result = _embyflow_nfs_resolve_media_file(info, deadline, cancelled,
++                                                       use_suffix_search=is_sf8008)
++        except Exception as error:
++            result = None, None, 'resolver-error-' + type(error).__name__
++        job['result'] = (_nfs_time.monotonic(), result)
+ 
+     def finish_on_gui():
+         if _EMBYFLOW_NFS_PENDING.get(key) is not job:
+             return
+-        expired = _nfs_time.monotonic() - job['started'] >= _EMBYFLOW_NFS_DEADLINE_SECONDS
+-        if not job['done'] and not expired:
+-            job['timer'].start(_EMBYFLOW_NFS_POLL_MS, True)
++        finished = job['result']
++        if finished is None and _nfs_time.monotonic() < deadline:
++            timer.start(_EMBYFLOW_NFS_POLL_MS, True)
+             return
+-
+         _EMBYFLOW_NFS_PENDING.pop(key, None)
+-        job['timer'].stop()
+-        cleanup = job.get('detach_close')
+-        if cleanup:
+-            cleanup()
+-        path = job['path'] if job['done'] and not expired else None
++        cleanup()
++        path, source, reason = finished[1] if finished and finished[0] <= deadline else (
++            None, None, 'resolve-timeout')
+         if path:
+             try:
+-                local_info = dict(info)
+-                local_info.update(url=path, local_file=True,
+-                                  local_service_type=1, local_extension='.ts',
+-                                  playback_mode='direct', service_type=1,
++                local_info = dict(info, url=path, local_file=True, local_service_type=1,
++                                  local_extension='.ts', playback_mode='direct', service_type=1,
+                                   engine_mode='e2')
++                sources = item.get('MediaSources') or item.get('media_sources') or []
++                if source and sources and sources[0] is not source:
++                    local_info['item'] = dict(item, MediaSources=[source] +
++                                              [entry for entry in sources if entry is not source])
+                 local_ref = eServiceReference(1, 0, path)
+                 local_ref.setName(title)
+-                try:
+-                    with embyflow_open_log('/tmp/embyflow_nfs_direct.log', 'a') as log:
+-                        log.write('%s NFS-DIRECT title=%s path=%s service=1\n' %
+-                                  (time.strftime('%H:%M:%S'), title, path))
+-                except Exception:
+-                    pass
++            except Exception as error:
++                reason = 'native-reference-error-' + type(error).__name__
++            else:
++                _embyflow_nfs_log('NFS-DIRECT', 'service=1 match=' + reason)
+                 return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, local_ref, title, path, local_info)
+-            except Exception:
+-                # If the direct path is unsuitable, preserve previous playback.
+-                pass
+-        return _EMBYFLOW_NFS_ORIGINAL_OPEN(session, ref, title, stream_url, playback_info)
+-
+-    # Hold the callbacks with the timer until resolution or timeout.
+-    job['timer'].callback.append(finish_on_gui)
+-    _nfs_threading.Thread(target=find_file, name='EmbyFlowNFSResolver', daemon=True).start()
+-    job['timer'].start(_EMBYFLOW_NFS_POLL_MS, True)
+-    return None
++        return failed_start(reason)
++
++    job['cleanup'] = cleanup
++    try:
++        if hasattr(timer, 'callback'):
++            timer.callback.append(finish_on_gui)
++        else:
++            job['timer_connection'] = timer.timeout.connect(finish_on_gui)
++        _EMBYFLOW_NFS_PENDING[key] = job
++        if owner_close is not None:
++            owner_close.append(cancel_on_close)
++        _nfs_threading.Thread(target=find_file, name='EmbyFlowNFSResolver', daemon=True).start()
++        timer.start(_EMBYFLOW_NFS_POLL_MS, True)
++    except Exception as error:
++        _EMBYFLOW_NFS_PENDING.pop(key, None)
++        cleanup()
++        return failed_start('resolver-start-error-' + type(error).__name__)
++
+ 
+ _open_embyflow_player_now = _embyflow_nfs_direct_open
+-# EMBYFLOW_NFS_DIRECT_TS_TEST_V1_END
