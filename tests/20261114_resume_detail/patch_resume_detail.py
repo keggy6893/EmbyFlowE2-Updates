@@ -25,10 +25,10 @@ if "_embyflow_nfs_direct_open" not in source or "_efpolish_ready" not in source:
     sys.exit("STOP: unsupported installed EmbyFlowE2 base")
 with open(sys.argv[1], encoding="utf-8") as f:
     patch = f.read()
-chunks = re.split(r"(?=^@@ -\\d+)", patch, flags=re.MULTILINE)
+chunks = re.split(r"(?=^@@ -\d+)", patch, flags=re.MULTILINE)
 selected = {}
 for chunk in chunks:
-    match = re.match(r"@@ -(\\d+)", chunk)
+    match = re.match(r"@@ -(\d+)", chunk)
     if not match or int(match.group(1)) not in HUNKS:
         continue
     lines = chunk.splitlines(keepends=True)[1:]
