@@ -1,14 +1,13 @@
 {
-  "version": "2026-RC26.3-TS-NFS-TEST",
-  "build": 2026110601,
+  "version": "2026-RC26.4-OCTAGON-AUTOFS-V5",
+  "build": 2026111404,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/tests/20261031_rc26/plugin_RC26_3_TS_NFS_BUILD_FIX.py",
-  "sha256": "37dc1281ea2853ee89eca83390e0afac0147e8569cb3957070b970f9877eb46a",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/main/tests/20261031_rc26/plugin_RC26_4_Octagon_AutoFS_V5_2026111404.py",
+  "sha256": "3fa61e5572f2ac041475d36f7cc0bcac9ec7e1c3730eea922e6d7cd5141b4e2c",
   "changelog": [
-    "RC26.3 TS/NFS-Test fuer Anskar auf GigaBlue; Versionskennung nach dem Neustart korrekt.",
-    "Versionsfix: PLUGIN_UPDATE_BUILD entspricht jetzt dem Manifest-Build 2026110601.",
-    "TS/NFS-Wiedergabecode ist gegenueber dem lokal getesteten Stand unveraendert."
+    "Octagon SF8008: TS-Aufnahmen auf konfigurierten NFS-Freigaben starten direkt über Enigma2.",
+    "Auf der SF8008 Supreme mit OpenATV 8.0.1 wurde der Wechsel der Tonspur bei direkter NAS-Wiedergabe getestet."
   ]
 }
