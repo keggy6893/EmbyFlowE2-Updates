@@ -1,14 +1,13 @@
 {
-  "version": "2026-RC26.5-UNIVERSAL-NAS-RESUME-TEST",
-  "build": 2026111410,
+  "version": "2026-RC26.5-LOGIN-FIX-TEST",
+  "build": 2026111411,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/rcdev-universal-test-20261114/tests/20261114_universal_release/plugin.py",
-  "sha256": "c15ac3a028d4b30b2343667912b4bd24a9ac782c4729cfe9619671dbc1b18e79",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/rcdev-universal-test-20261114/tests/20261114_universal_release/plugin_2026111411.py",
+  "sha256": "e0c2a4be1aaee77f8bf3deaaf984f24dde92473994ae266382dbed8b9e1c2d6a",
   "changelog": [
-    "ISOLIERTER TEST: Gemeinsamer AutoFS-Resolver fuer TS/MKV/MP4/M2TS mit validiertem NAS-Dateipfad und HTTP-Fallback.",
-    "Film-Detailansicht: Fortsetzen und Von vorn abspielen direkt, ohne zusaetzliches Resume-Fenster.",
-    "Weiterschauen-Synchronisierung noch nicht korrigiert; keine Freigabe fuer alle Nutzer."
+    "Gespeicherte Anmeldedaten werden beim Serverwechsel wieder pro Server-Slot geladen.",
+    "Testbuild fuer RC26.5."
   ]
 }
