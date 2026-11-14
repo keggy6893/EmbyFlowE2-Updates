@@ -1,0 +1,12 @@
+{
+  "version": "2026-RC26.3-HTTPS-TEST",
+  "build": 2026111402,
+  "channel": "rcdev",
+  "target": "plugin.py",
+  "artifact_type": "plugin_py",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/https-test-2026111402/tests/20261114_https/plugin.py",
+  "sha256": "b3e675a8cbf5874fbd0b4561fcae2db6c5c40ff6b41b4ba04e1621992c269aea",
+  "changelog": [
+    "Updatefenster: Abbrechen ist per Fernbedienung auswählbar."
+  ]
+}
