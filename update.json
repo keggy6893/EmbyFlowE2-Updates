@@ -1,16 +1,14 @@
 {
-  "version": "2026-RCDEV-TEST-20261028-DIRECT-AUDIO",
-  "build": 2026102801,
+  "version": "2026-RC26.1",
+  "build": 2026103102,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/6e323f16178347d5a8cc4b05a286288d235bf75c/EmbyFlowE2_2026102801.py",
-  "sha256": "a99ae4ce9756abf9a32c826bba23d44406b409bf28caf96bfe4e37a8cab06d7e",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/ef5d75ac7263d583d6060330f1b0f771c3e104e4/tests/20261031_rc26/plugin_RC26.1.py",
+  "sha256": "84fac22c607ae90f05dcbef34bcc3b87a4475c2642904e00d2e237bb435874d4",
   "changelog": [
-    "Direkte Wiedergabe: erkannte deutsche Decoder-Tonspuren werden receiverunabhaengig bevorzugt; manuelle Tonwahl bleibt vorrangig.",
-    "GRUEN oeffnet bei direkter Wiedergabe die nativen Tonspuren. Sprach- und Codec-Zuordnung erfolgen anhand der aktiven Filmversion.",
-    "Serverseitige Tonwechsel und Transcoding behalten den vorhandenen Weg; bei laufendem Tonwechsel erscheint eine Meldung statt eines stummen Abbruchs.",
-    "Bestaetigt vom Nutzer: 2012 in 1080p startet auf Vu+ Duo 4K SE mit OpenATV auf Deutsch DTS 5.1; GRUEN zeigt Deutsch und Englisch korrekt.",
-    "Lokale Tests bestanden. Weitere Receiver und Anskars bisheriger HTTP-Standbildfall sind mit diesem Test nicht als behoben bestaetigt."
+    "RC26.1 vom 31.10.2026 fuer bestehende RC-Installationen.",
+    "Aktualisierte Versionskennung und Updateadresse.",
+    "Bestehende Einstellungen werden beim Plugin-Dateiaustausch nicht ueberschrieben."
   ]
 }
