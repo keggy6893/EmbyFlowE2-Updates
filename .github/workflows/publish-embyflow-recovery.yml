@@ -1,0 +1,38 @@
+name: Publish EmbyFlowE2 Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'recovery/embyflowe2-recovery-0.2.ipk.b64'
+      - '.github/workflows/publish-embyflow-recovery.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode and verify existing recovery package
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode recovery/embyflowe2-recovery-0.2.ipk.b64 > enigma2-plugin-extensions-embyflowe2-recovery_0.2-r0_all.ipk
+          echo 'eaae8046115619f2547a58d05a51da9ae60ef468a760de869bbe470c54855092  enigma2-plugin-extensions-embyflowe2-recovery_0.2-r0_all.ipk' | sha256sum --check
+          ar t enigma2-plugin-extensions-embyflowe2-recovery_0.2-r0_all.ipk | grep -qx 'data.tar.gz'
+          ar t enigma2-plugin-extensions-embyflowe2-recovery_0.2-r0_all.ipk | grep -qx 'control.tar.gz'
+      - name: Publish standalone recovery prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          asset=enigma2-plugin-extensions-embyflowe2-recovery_0.2-r0_all.ipk
+          if gh release view recovery-v0.2 >/dev/null 2>&1; then
+            gh release upload recovery-v0.2 "$asset" --clobber
+          else
+            gh release create recovery-v0.2 "$asset" --prerelease --title "EmbyFlowE2 Recovery 0.2 (Alt-Updater)" --notes "Standalone recovery for legacy installations affected by Python py_compile import errors. This does not replace EmbyFlowE2. Install through the Enigma2 package manager, launch EmbyFlowE2 Recovery from the plugin menu, restart Enigma2 and then update EmbyFlowE2 normally. Tested locally; receiver compatibility remains to be verified."
+          fi
