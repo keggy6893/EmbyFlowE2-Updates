@@ -1,0 +1,103 @@
+name: Publish RC26.8 bottom action bar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-rc26-8-footer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-official-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply tested footer patch and verify plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f plugin_2026111521.py
+          test -f release_tools/continue_footer_b_rc26_8.patch.gz.b64
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          m=json.loads(pathlib.Path('update.json').read_text())
+          assert m['version']=='2026-RC26.7' and m['build']==2026111521, 'STOP: baseline changed'
+          assert hashlib.sha256(pathlib.Path('plugin_2026111521.py').read_bytes()).hexdigest()==m['sha256'], 'STOP: RC26.7 hash mismatch'
+          PY
+          base64 -d release_tools/continue_footer_b_rc26_8.patch.gz.b64 | gzip -d > /tmp/continue_footer_b_rc26_8.patch
+          git apply --check /tmp/continue_footer_b_rc26_8.patch
+          git apply /tmp/continue_footer_b_rc26_8.patch
+          python3 - <<'PY'
+          import pathlib,re
+          p=pathlib.Path('plugin_2026111521.py')
+          patched=p.read_bytes()
+          assert patched.count(b'EMBYFLOW_CONTINUE_BOTTOM_ACTIONS_V1')==1
+          assert patched.count(b'EMBYFLOW_CONTINUE_FOOTER_SLOT')==2
+          assert patched.count(b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1')==1
+          assert patched.count(b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3')==1
+          assert patched.count(b'EMBYFLOW_STARTUP_UPDATE_PROMPT_V1')==1
+          assert patched.count(b'EMBYFLOW_STARTUP_UPDATE_CHECK_V1')==1
+          assert patched.count(b'self.onLayoutFinish.append(self._embyflow_startup_update_check)')==1
+          assert patched.count(b'continue_footer_red')>=2 and patched.count(b'continue_footer_exit')>=2
+          updated,n=re.subn(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*\d+\s*$',b'PLUGIN_UPDATE_BUILD = 2026111522',patched,count=1)
+          assert n==1,'STOP: build marker missing'
+          updated,n=re.subn(rb'(?m)^PLUGIN_VERSION\s*=.*$',b"PLUGIN_VERSION = '2026-RC26.8'",updated,count=1)
+          assert n==1,'STOP: version marker missing'
+          compile(updated,'plugin_2026111522.py','exec',dont_inherit=True)
+          pathlib.Path('plugin_2026111522.py').write_bytes(updated)
+          PY
+          git restore plugin_2026111521.py
+          python3 -m py_compile plugin_2026111522.py
+      - name: Publish verified immutable source and release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view RC26.8 >/dev/null 2>&1; then
+            echo 'STOP: RC26.8 tag already exists'; exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugin_2026111522.py
+          git commit -m 'RC26.8: tested bottom color-key bar in Weiterschauen'
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          gh release create RC26.8 plugin_2026111522.py --title 'EmbyFlowE2 RC26.8' --notes 'Official plugin.py update with the tested color-key footer in Weiterschauen: ROT Entfernen, GELB Favorit, OK Details, EXIT Zurueck. Retains RC26.7 startup update notification and safety mechanisms. No IPK needed for existing installations.'
+      - name: Set official updater manifest to RC26.8
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,hashlib,os
+          p=pathlib.Path('update.json')
+          m=json.loads(p.read_text(encoding='utf-8'))
+          assert m['build']==2026111521 and m['version']=='2026-RC26.7'
+          assert m['target']=='plugin.py' and m['artifact_type']=='plugin_py'
+          src=pathlib.Path('plugin_2026111522.py')
+          m.update({
+              'version':'2026-RC26.8',
+              'build':2026111522,
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/plugin_2026111522.py',
+              'sha256':hashlib.sha256(src.read_bytes()).hexdigest(),
+              'changelog':[
+                'Weiterschauen: Farbige Aktionsleiste unten (ROT Entfernen, GELB Favorit, OK Details, EXIT Zurueck).',
+                'Die kleinen Tastenhinweise oben rechts sind in Weiterschauen ausgeblendet.',
+                'Automatische Update-Meldung und Design-V3-Dialoge aus RC26.7 bleiben erhalten.'
+              ]
+          })
+          p.write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+          git add update.json
+          git commit -m 'Offer RC26.8 through official one-click GitHub updater'
+          git push origin HEAD:main
