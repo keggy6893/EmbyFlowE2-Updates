@@ -1,0 +1,29 @@
+name: RC26.9 modular helper equivalence
+on:
+  push:
+    branches: ['refactor/rc26-9-foundation']
+    paths:
+      - 'refactor_modules/**'
+      - 'tools/build_modular_candidate.py'
+      - 'tests/test_local_media_extraction.py'
+      - '.github/workflows/refactor-rc269-modular.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  extraction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check original RC26.9 baseline
+        run: python3 tests/test_rc269_refactor_baseline.py
+      - name: Check extracted logic and build modular candidate
+        run: python3 tests/test_local_media_extraction.py
+      - name: Upload modular candidate for inspection (not a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: embyflow-rc269-modular-candidate-NOT-FOR-INSTALL
+          path: |
+            refactor_candidates/plugin_rc269_modular.py
+            refactor_modules/local_media_utils.py
+          retention-days: 7
