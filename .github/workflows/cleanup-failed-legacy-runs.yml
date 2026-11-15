@@ -19,6 +19,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          for wf in all-subtitle-streams-0629.yml publish-1302-herofix1.yml restore-classic-subtitles-0628.yml; do
+            echo "Disabling obsolete legacy workflow $wf"
+            gh api -X PUT "repos/$GH_REPO/actions/workflows/$wf/disable"
+          done
           sleep 12
           gh api --paginate "repos/$GH_REPO/actions/runs?per_page=100&status=failure" \
             --jq '.workflow_runs[] | select(.created_at | startswith("2026-11-15")) | select(.path == ".github/workflows/all-subtitle-streams-0629.yml" or .path == ".github/workflows/publish-1302-herofix1.yml" or .path == ".github/workflows/restore-classic-subtitles-0628.yml") | .id' \
