@@ -60,9 +60,980 @@ jobs:
           python3 - "$TARGET" <<'PY'
           import sys, pathlib
           p=pathlib.Path(sys.argv[1])
-          x=p.read_bytes()
-          compile(x,str(p),'exec',dont_inherit=True)
           import re,os
+          x=p.read_bytes()
+          x,n=re.subn(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*\d+\s*          found=re.findall(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*(\d+)\s*$', x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: internal build ID mismatch: %r' % found)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+,x)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+, x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: plugin build ID mismatch')
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+,x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: plugin build ID does not match release build: %r' % found)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+,
+                      b'PLUGIN_UPDATE_BUILD = '+os.environ['BUILD_NUMBER'].encode(), x, count=1)
+          assert n==1,'Missing or ambiguous build ID'
+          x,n=re.subn(rb'(?m)^PLUGIN_VERSION\s*=.*          found=re.findall(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*(\d+)\s*$', x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: internal build ID mismatch: %r' % found)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+,x)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+, x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: plugin build ID mismatch')
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+,x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: plugin build ID does not match release build: %r' % found)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+              assert expected in x,expected
+          assert x.count(b'def _embyflow_continue_hide_item(')==1
+          assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
+          assert b'EmbyFlowE2-Updates/main/update.json' in x
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in x
+          print("CANDIDATE_SYNTAX_AND_UPDATE_SOURCE_OK",len(x))
+          PY
+          echo "TARGET=$TARGET" >> "$GITHUB_ENV"
+      - name: Repack the existing full RC26.5 installation package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/embyflow-source-ipk
+          gh release download RC26.5 --pattern 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' --dir /tmp/embyflow-source-ipk
+          python3 - <<'PY'
+          import os,io,tarfile,subprocess,pathlib,re
+          baseline=next(pathlib.Path('/tmp/embyflow-source-ipk').glob('*.ipk'))
+          build=os.environ['BUILD_NUMBER']
+          tag=os.environ['RELEASE_TAG']
+          target=pathlib.Path(os.environ['TARGET'])
+          plugin=target.read_bytes()
+          out=pathlib.Path('enigma2-plugin-extensions-embyflowe2_2026.11.15.1-r%s_all.ipk'%build)
+          def tar_rewrite(data, replace_path, replacement, control=False):
+              src=tarfile.open(fileobj=io.BytesIO(data),mode='r:gz')
+              buf=io.BytesIO()
+              with tarfile.open(fileobj=buf,mode='w:gz') as dest:
+                  replaced=0
+                  for item in src.getmembers():
+                      payload=src.extractfile(item).read() if item.isfile() else None
+                      if item.name.lstrip('./')==replace_path:
+                          assert item.isfile()
+                          payload=replacement(payload) if callable(replacement) else replacement
+                          item.size=len(payload)
+                          replaced+=1
+                      dest.addfile(item,io.BytesIO(payload) if payload is not None else None)
+              assert replaced==1,(replace_path,replaced)
+              return buf.getvalue()
+          data=subprocess.check_output(['ar','p',str(baseline),'data.tar.gz'])
+          data=tar_rewrite(data,'usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py',plugin)
+          ctrl=subprocess.check_output(['ar','p',str(baseline),'control.tar.gz'])
+          def update_control(raw):
+              old=raw.decode()
+              changed=re.sub(r'(?m)^Version:.*$', 'Version: 2026.11.15.1-r'+build,old,count=1)
+              changed=re.sub(r'(?m)^Description:.*$', 'Description: EmbyFlowE2 '+tag+' official update',changed,count=1)
+              assert changed!=old
+              return changed.encode()
+          ctrl=tar_rewrite(ctrl,'control',update_control)
+          import tempfile
+          with tempfile.TemporaryDirectory() as td:
+              dir=pathlib.Path(td)
+              (dir/'debian-binary').write_bytes(b'2.0\n')
+              (dir/'control.tar.gz').write_bytes(ctrl)
+              (dir/'data.tar.gz').write_bytes(data)
+              subprocess.run(['ar','q',str(out.resolve()),'debian-binary','control.tar.gz','data.tar.gz'],cwd=dir,check=True)
+          assert out.stat().st_size>500000
+          from hashlib import sha256
+          extracted=tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['ar','p',str(out),'data.tar.gz'])))
+          stored=next(m for m in extracted.getmembers() if m.name.endswith('/plugin.py'))
+          assert extracted.extractfile(stored).read()==plugin
+          print('IPK_VERIFIED',out,sha256(plugin).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('IPK_FILE=%s\n'%out)
+          PY
+      - name: Save immutable source and release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$TARGET"
+          git commit -m "Release $RELEASE_TAG: tested Weiterschauen V3"
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$IPK_FILE" "$TARGET" --title "EmbyFlowE2 $RELEASE_TAG" --notes "Official EmbyFlowE2 update. Weiterschauen: ROT locally hides the selected entry without deleting media; confirmation and success messages use the tested EmbyFlowE2 V3 design. Existing updater remains in place."
+          fi
+      - name: Update official manifest only after release succeeds
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || 'RC26.6' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build || '2026111518' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          f=pathlib.Path(os.environ['TARGET'])
+          digest=hashlib.sha256(f.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          old=json.loads(path.read_text())
+          if int(old.get('build',0))>=int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('STOP: Version must increase')
+          old.update({
+              'version':'2026-'+os.environ['RELEASE_TAG'],
+              'build':int(os.environ['BUILD_NUMBER']),
+              'channel':'rcdev',
+              'target':'plugin.py',
+              'artifact_type':'plugin_py',
+              'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/'+f.name,
+              'sha256':digest,
+              'changelog':['Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.',
+                           'Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3.']
+          })
+          path.write_text(json.dumps(old,ensure_ascii=False,indent=2)+'\n')
+          assert hashlib.sha256(f.read_bytes()).hexdigest()==old['sha256']
+          print('MANIFEST_VERIFIED',old['version'],old['download'])
+          PY
+          git add update.json
+          git commit -m "Point official updater to verified $RELEASE_TAG"
+          git push origin HEAD:main
+,
+                      b"PLUGIN_VERSION = '2026-"+os.environ['RELEASE_TAG'].encode()+b"'", x, count=1)
+          assert n==1,'Missing or ambiguous version'
+          p.write_bytes(x)
+          compile(x,str(p),'exec',dont_inherit=True)
           found=re.findall(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*(\d+)\s*$', x)
           if found != [os.environ['BUILD_NUMBER'].encode()]:
               raise SystemExit('STOP: internal build ID mismatch: %r' % found)
