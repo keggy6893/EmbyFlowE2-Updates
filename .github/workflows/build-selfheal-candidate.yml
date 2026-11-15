@@ -1,0 +1,37 @@
+name: Build EmbyFlowE2 self-healing update candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_selfheal_candidate.py'
+      - 'tools/embyflow_updater_selfheal.py'
+      - '.github/workflows/build-selfheal-candidate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and validate official source + selfheal
+        run: |
+          set -euo pipefail
+          python3 tools/build_selfheal_candidate.py
+          python3 -m py_compile recovery/plugin_selfheal_candidate.py
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('plugin_2026111411.py').read_bytes()
+          fixed = Path('recovery/plugin_selfheal_candidate.py').read_bytes()
+          assert b'_embyflow_ensure_py_compile_fallback()' in fixed
+          assert len(fixed) > len(source)
+          assert fixed.count(b'def _embyflow_update_install_plugin(') == 1
+          print('SELFHEAL_CANDIDATE_VALIDATED')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EmbyFlowE2-selfheal-candidate-not-for-public
+          path: recovery/plugin_selfheal_candidate.py
