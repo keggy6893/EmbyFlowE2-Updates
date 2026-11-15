@@ -1,0 +1,93 @@
+name: Publish RC26.9 poster and dedup fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-rc26-9-continue.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-official-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check baseline and apply tested VU+ patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, hashlib, pathlib
+          m = json.loads(pathlib.Path('update.json').read_text())
+          assert m['version'] == '2026-RC26.8' and m['build'] == 2026111522, 'STOP: new release already active'
+          assert m['target']=='plugin.py' and m['artifact_type']=='plugin_py'
+          p = pathlib.Path('plugin_2026111522.py')
+          assert p.exists() and hashlib.sha256(p.read_bytes()).hexdigest() == 'a4479697018e908036832e59f810344c9f3ca791634225b1cc5f7f265676f541', 'STOP: unexpected source'
+          PY
+          base64 -d release_tools/continue_dedup_series_poster_dot_footer_rc26_9.patch.gz.b64 | gzip -d > /tmp/rc26_9.patch
+          git apply --check /tmp/rc26_9.patch
+          git apply /tmp/rc26_9.patch
+          mv plugin_2026111522.py plugin_2026111523.py
+          git restore plugin_2026111522.py
+          python3 - <<'PY'
+          import hashlib,pathlib
+          p=pathlib.Path('plugin_2026111523.py')
+          b=p.read_bytes()
+          assert hashlib.sha256(b).hexdigest() == 'b7bcf3dc4bbefd4c938b7747258eb8bcbc061be0d303aa0b19c11ec31d7cdbb9', 'STOP: output differs from locally tested source'
+          for marker in [b'EMBYFLOW_CONTINUE_SAFE_DISPLAY_DEDUP_V1',b'EMBYFLOW_CONTINUE_SERIES_POSTER_FIRST_V1',b'EMBYFLOW_CONTINUE_DOT_FOOTER_V2',b'EMBYFLOW_CONTINUE_HIDE_ALPHABET_V2',b'EMBYFLOW_STARTUP_UPDATE_PROMPT_V1',b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1']:
+              assert b.count(marker)==1, marker
+          assert b"PLUGIN_VERSION = '2026-RC26.9'" in b
+          assert b'PLUGIN_UPDATE_BUILD = 2026111523' in b
+          compile(b, str(p), 'exec', dont_inherit=True)
+          print('VERIFIED_RC26_9_SHA256='+hashlib.sha256(b).hexdigest())
+          PY
+          python3 -m py_compile plugin_2026111523.py
+      - name: Commit official release source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view RC26.9 >/dev/null 2>&1; then echo 'STOP: RC26.9 release exists'; exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugin_2026111523.py
+          git commit -m 'RC26.9: tested dedup, series posters and unobtrusive footer'
+          git push origin HEAD:main
+          echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          gh release create RC26.9 plugin_2026111523.py --title 'EmbyFlowE2 RC26.9' --notes 'Tested Weiterschauen: duplicate display filtering, portrait series posters, compact color-dot footer, no A-Z sidebar. Existing functionality retained. Installs through the built-in updater without an IPK.'
+      - name: Update official manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib,hashlib,os
+          p=pathlib.Path('update.json'); m=json.loads(p.read_text())
+          assert m['build']==2026111522 and m['version']=='2026-RC26.8'
+          s=pathlib.Path('plugin_2026111523.py')
+          m.update({
+             'version':'2026-RC26.9',
+             'build':2026111523,
+             'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/plugin_2026111523.py',
+             'sha256':hashlib.sha256(s.read_bytes()).hexdigest(),
+             'changelog':[
+               'Weiterschauen: doppelte Film-Eintraege in der Anzeige filtern (keine Dateien loeschen).',
+               'Serienepisoden erhalten vorrangig echte Hochkantposter von Serie oder Staffel.',
+               'Kleine farbige Punkte statt grosser Button-Leiste; rechter Rand bleibt ohne A-Z-Buchstaben.',
+               'Automatische Update-Meldung und bisherige Sicherheit bleiben erhalten.'
+             ]
+          })
+          p.write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git add update.json
+          git commit -m 'Offer RC26.9 through existing EmbyFlowE2 updater'
+          git push origin HEAD:main
