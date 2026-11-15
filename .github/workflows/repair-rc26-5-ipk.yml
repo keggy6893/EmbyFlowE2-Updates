@@ -1,0 +1,95 @@
+name: Repair official RC26.5 IPK update address
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-rc26-5-ipk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and rebuild RC26.5 IPK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: keggy6893/EmbyFlowE2-Updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          gh release download RC26.5 -p 'enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk' -D work
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, io, os, subprocess, tarfile
+          
+          original = Path("work/enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk")
+          expected = "0123cc45e174a5aa3a3cbcde0f0f452c68bd9017c3a0747cda37ff81dec53cd0"
+          assert hashlib.sha256(original.read_bytes()).hexdigest() == expected, "Original release asset changed; stopping"
+          
+          root = Path("work/package")
+          root.mkdir(parents=True, exist_ok=True)
+          subprocess.run(["ar", "x", str(original.resolve())], cwd=root, check=True)
+          data = root / "data.tar.gz"
+          old = b"EmbyFlowE2-Updates/rcdev-universal-test-20261114/tests/20261114_universal_release/update.json"
+          new = b"EmbyFlowE2-Updates/main/update.json"
+          source = io.BytesIO(data.read_bytes())
+          output = io.BytesIO()
+          found = 0
+          with tarfile.open(fileobj=source, mode="r:gz") as src, tarfile.open(fileobj=output, mode="w:gz") as dst:
+              for member in src:
+                  content = src.extractfile(member).read() if member.isfile() else None
+                  if member.name.endswith("/EmbyFlowE2/plugin.py"):
+                      assert content is not None and content.count(old) == 1, "Update address not uniquely found"
+                      content = content.replace(old, new, 1)
+                      assert old not in content and content.count(new) >= 1
+                      compile(content, member.name, "exec")
+                      member.size = len(content)
+                      found += 1
+                  dst.addfile(member, io.BytesIO(content) if content is not None else None)
+          assert found == 1, "Expected exactly one plugin.py"
+          data.write_bytes(output.getvalue())
+          fixed = Path("work/enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk")
+          fixed.unlink()
+          subprocess.run(["ar", "q", str(fixed.resolve()), "debian-binary", "control.tar.gz", "data.tar.gz"], cwd=root, check=True)
+          sha = hashlib.sha256(fixed.read_bytes()).hexdigest()
+          Path("work/sha256.txt").write_text(sha + "\n")
+          print("Corrected IPK SHA256:", sha)
+          PY
+      - name: Verify and replace official release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: keggy6893/EmbyFlowE2-Updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME='enigma2-plugin-extensions-embyflowe2_2026.11.14.1-r1411_all.ipk'
+          STAGE='rc26.5-public-update-verified.ipk'
+          SHA="$(cat work/sha256.txt)"
+          cp "work/$NAME" "work/$STAGE"
+          gh release upload RC26.5 "work/$STAGE" --clobber
+          gh release download RC26.5 -p "$STAGE" -D work/check
+          echo "$SHA  work/check/$STAGE" | sha256sum -c -
+          gh release delete-asset RC26.5 "$NAME" --yes
+          gh release upload RC26.5 "work/$NAME"
+          gh release download RC26.5 -p "$NAME" -D work/check
+          echo "$SHA  work/check/$NAME" | sha256sum -c -
+          gh release view RC26.5 --json body --jq .body > work/release-body.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("work/release-body.txt")
+          s = p.read_text()
+          sha = Path("work/sha256.txt").read_text().strip()
+          pattern = r"SHA-256 der IPK `[0-9a-f]{64}`"
+          replacement = "SHA-256 der IPK `" + sha + "`"
+          if re.search(pattern, s):
+              s = re.sub(pattern, replacement, s)
+          else:
+              s += "\n\n" + replacement + "."
+          p.write_text(s)
+          PY
+          gh release edit RC26.5 --notes-file work/release-body.txt
+          gh release delete-asset RC26.5 "$STAGE" --yes
+          echo "Published corrected RC26.5 IPK with SHA256: $SHA"
