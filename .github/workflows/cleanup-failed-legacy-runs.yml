@@ -1,0 +1,30 @@
+name: Clean up failed legacy workflow runs
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-failed-legacy-runs.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove only failed legacy runs from November 15
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: keggy6893/EmbyFlowE2-Updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 12
+          gh api --paginate "repos/$GH_REPO/actions/runs?per_page=100&status=failure" \
+            --jq '.workflow_runs[] | select(.created_at | startswith("2026-11-15")) | select(.path == ".github/workflows/all-subtitle-streams-0629.yml" or .path == ".github/workflows/publish-1302-herofix1.yml" or .path == ".github/workflows/restore-classic-subtitles-0628.yml") | .id' \
+            | sort -u > /tmp/legacy-failed-runs.txt
+          while read -r id; do
+            [ -n "$id" ] || continue
+            echo "Removing failed legacy run $id"
+            gh api -X DELETE "repos/$GH_REPO/actions/runs/$id"
+          done < /tmp/legacy-failed-runs.txt
