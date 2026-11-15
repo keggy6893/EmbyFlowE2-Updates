@@ -1,0 +1,22 @@
+name: Experimental modular updater integration tests
+on:
+  push:
+    branches: ['refactor/rc26-9-foundation']
+    paths:
+      - 'tools/update_coordinator.py'
+      - 'tests/test_update_coordinator.py'
+      - '.github/workflows/refactor-update-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify official RC26.9 baseline remains unchanged
+        run: python3 tests/test_rc269_refactor_baseline.py
+      - name: Run all multi-file update and recovery tests
+        run: python3 -m unittest discover -s tests -p 'test_*bundle.py' -v
+      - name: Run update coordination and manifest compatibility tests
+        run: python3 -m unittest discover -s tests -p 'test_update_coordinator.py' -v
