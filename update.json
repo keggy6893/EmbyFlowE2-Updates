@@ -1,13 +1,13 @@
 {
-  "version": "2026-RC26.5",
-  "build": 2026111411,
+  "version": "2026-RC26.6",
+  "build": 2026111518,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/ccb3b60afd0c4e092c282d635a67de10820e4511/plugin_2026111411.py",
-  "sha256": "cd8d70295b24ec778b8a82e4981fbff098eefc110f370d5d84e1f3d796194984",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/b8f30fc628855dfa7b3711ed492084a4741e09fa/plugin_2026111518.py",
+  "sha256": "cccf424fdd336f3faf34ff79a51c5a66d973e61613f560fbc5b242e4a6887e04",
   "changelog": [
-    "Anmeldedaten werden pro Server-Slot gespeichert und beim Serverwechsel geladen.",
-    "AutoFS/NAS-Resolver sowie Fortsetzen und Von vorn abspielen in der Filmansicht."
+    "Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.",
+    "Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3."
   ]
 }
