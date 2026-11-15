@@ -1,0 +1,103 @@
+name: Publish RC26.7 startup update notification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-rc26-7-startup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: embyflow-official-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify baseline and build startup update
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f plugin_2026111518.py
+          test -f release_tools/startup_update_rc26_7.patch.gz.b64
+          python3 - <<'PY'
+          import json
+          m=json.load(open('update.json'))
+          assert m['build']==2026111518, 'STOP: unexpected release baseline'
+          assert m['version']=='2026-RC26.6'
+          PY
+          base64 -d release_tools/startup_update_rc26_7.patch.gz.b64 | gzip -d > /tmp/rc26-7-startup.patch
+          git apply --check /tmp/rc26-7-startup.patch
+          git apply /tmp/rc26-7-startup.patch
+          python3 - <<'PY'
+          import pathlib,re
+          p=pathlib.Path('plugin_2026111518.py')
+          original=p.read_bytes()
+          assert original.count(b'EMBYFLOW_STARTUP_UPDATE_PROMPT_V1')==1
+          assert original.count(b'EMBYFLOW_STARTUP_UPDATE_CHECK_V1')==1
+          assert original.count(b'self.onLayoutFinish.append(self._embyflow_startup_update_check)')==1
+          assert original.count(b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3')==1
+          assert original.count(b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1')==1
+          fixed,n=re.subn(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*\d+\s*$',b'PLUGIN_UPDATE_BUILD = 2026111521',original,count=1)
+          assert n==1,'Build number not found'
+          fixed,n=re.subn(rb'(?m)^PLUGIN_VERSION\s*=.*$',b"PLUGIN_VERSION = '2026-RC26.7'",fixed,count=1)
+          assert n==1,'Plugin version not found'
+          assert b'EmbyFlowE2-Updates/main/update.json' in fixed, 'Incorrect update endpoint'
+          assert b'rcdev-universal-test-20261114/tests/20261114_universal_release/update.json' not in fixed
+          compile(fixed,'plugin_2026111521.py','exec',dont_inherit=True)
+          assert fixed.count(b'PLUGIN_UPDATE_BUILD = 2026111521')==1
+          pathlib.Path('plugin_2026111521.py').write_bytes(fixed)
+          p.write_bytes(original)  # Restore tracked baseline before commit.
+          PY
+          git restore plugin_2026111518.py
+          python3 -m py_compile plugin_2026111521.py
+      - name: Publish immutable source to GitHub
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view RC26.7 >/dev/null 2>&1; then
+            echo 'STOP: RC26.7 tag already exists'; exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugin_2026111521.py
+          git commit -m 'RC26.7: startup update notification with tested Weiterschauen V3'
+          git push origin HEAD:main
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT" >> "$GITHUB_ENV"
+          gh release create RC26.7 plugin_2026111521.py --title 'EmbyFlowE2 RC26.7' --notes 'Official plugin.py update. Automatically checks for a new update at startup and offers GRUEN Zum Update / ROT Spaeter in EmbyFlowE2 style. Includes Weiterschauen ROT hide and V3 dialog. No IPK required for existing healthy installations.'
+      - name: Switch official update.json to RC26.7
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,hashlib,os
+          src=pathlib.Path('plugin_2026111521.py')
+          digest=hashlib.sha256(src.read_bytes()).hexdigest()
+          path=pathlib.Path('update.json')
+          m=json.loads(path.read_text(encoding='utf-8'))
+          assert m['build']==2026111518
+          m.update({
+            'version':'2026-RC26.7',
+            'build':2026111521,
+            'download':'https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/'+os.environ['SOURCE_COMMIT']+'/plugin_2026111521.py',
+            'sha256':digest,
+            'changelog':['Update-Meldung automatisch beim EmbyFlowE2-Start (GRUEN Update, ROT Spaeter).',
+                         'Weiterschauen: ROT entfernt den Eintrag aus der Ansicht, ohne die Filmdatei zu loeschen.',
+                         'Bestaetigungs- und Erfolgsmeldung im EmbyFlowE2-Design V3.']
+          })
+          assert m['target']=='plugin.py' and m['artifact_type']=='plugin_py'
+          path.write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+          git add update.json
+          git commit -m 'Offer RC26.7 through official EmbyFlowE2 update button'
+          git push origin HEAD:main
