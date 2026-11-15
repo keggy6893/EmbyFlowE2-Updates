@@ -63,7 +63,10 @@ jobs:
           x=p.read_bytes()
           compile(x,str(p),'exec',dont_inherit=True)
           import re,os
-          found=re.findall(rb'(?m)^PLUGIN_UPDATE_BUILD\\s*=\\s*(\\d+)\\s*(b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
+          found=re.findall(rb'(?m)^PLUGIN_UPDATE_BUILD\s*=\s*(\d+)\s*$', x)
+          if found != [os.environ['BUILD_NUMBER'].encode()]:
+              raise SystemExit('STOP: internal build ID mismatch: %r' % found)
+          for expected in (b'EMBYFLOW_CONTINUE_LOCAL_HIDE_V1',b'EMBYFLOW_CONTINUE_CONFIRM_STYLE_V2',b'EMBYFLOW_CONTINUE_SUCCESS_STYLE_V3',b'"red": self.remove_continue_selected'):
               assert expected in x,expected
           assert x.count(b'def _embyflow_continue_hide_item(')==1
           assert x.count(b'class EmbyFlowContinueSuccessDialog(')==1
