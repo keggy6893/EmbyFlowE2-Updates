@@ -1,0 +1,24 @@
+name: Experimental modular bootstrap tests
+on:
+  push:
+    branches: ['refactor/rc26-9-foundation']
+    paths:
+      - 'tools/modular_bootstrap.py'
+      - 'tests/test_modular_bootstrap.py'
+      - '.github/workflows/refactor-bootstrap.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm official RC26.9 is unchanged
+        run: python3 tests/test_rc269_refactor_baseline.py
+      - name: Check startup recovery happens before plugin import
+        run: python3 -m unittest discover -s tests -p 'test_modular_bootstrap.py' -v
+      - name: Check updater regression tests
+        run: python3 -m unittest discover -s tests -p 'test_*bundle.py' -v
+      - name: Check coordination
+        run: python3 -m unittest discover -s tests -p 'test_update_coordinator.py' -v
