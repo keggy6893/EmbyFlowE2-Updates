@@ -1,14 +1,14 @@
 {
-  "version": "2026-RC26.7",
-  "build": 2026111521,
+  "version": "2026-RC26.8",
+  "build": 2026111522,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/57a62e6e056bd357d294d9b68c5ee1eacd8b4225/plugin_2026111521.py",
-  "sha256": "d1fc2fd77a980bfc0c9ca94dd5922994b17366d170e98d330bdaaf58f1877db6",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/85ddb2aad465bfcbc93ed1dac22a77e365002bec/plugin_2026111522.py",
+  "sha256": "a4479697018e908036832e59f810344c9f3ca791634225b1cc5f7f265676f541",
   "changelog": [
-    "Update-Meldung automatisch beim EmbyFlowE2-Start (GRUEN Update, ROT Spaeter).",
-    "Weiterschauen: ROT entfernt den Eintrag aus der Ansicht, ohne die Filmdatei zu loeschen.",
-    "Bestaetigungs- und Erfolgsmeldung im EmbyFlowE2-Design V3."
+    "Weiterschauen: Farbige Aktionsleiste unten (ROT Entfernen, GELB Favorit, OK Details, EXIT Zurueck).",
+    "Die kleinen Tastenhinweise oben rechts sind in Weiterschauen ausgeblendet.",
+    "Automatische Update-Meldung und Design-V3-Dialoge aus RC26.7 bleiben erhalten."
   ]
 }
