@@ -1,0 +1,14 @@
+name: RC26.9 refactor baseline checks
+on:
+  push:
+    branches: ['refactor/rc26-9-foundation']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify immutable RC26.9 source and updater metadata
+        run: python3 tests/test_rc269_refactor_baseline.py
