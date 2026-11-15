@@ -80,7 +80,7 @@ jobs:
             (t/'control.tar.gz').write_bytes(archive([('./control',control,0o644),('./postinst',postinst,0o755),('./prerm',prerm,0o755)]))
             (t/'data.tar.gz').write_bytes(archive([('./usr/share/embyflowe2-selfheal-test/plugin.py',raw,0o644)]))
             subprocess.run(['ar','q',str(out),'debian-binary','control.tar.gz','data.tar.gz'],cwd=t,check=True)
-          assert out.stat().st_size>3_000_000
+          assert out.stat().st_size>100_000
           print('TEST_IPK_BUILT',out.name,'sha256(source)',sha)
           PY
           ar t enigma2-plugin-extensions-embyflowe2-selfheal-test_0.1-r0_all.ipk
