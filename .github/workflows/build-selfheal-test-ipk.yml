@@ -1,0 +1,99 @@
+name: Build EmbyFlowE2 Selfheal Test IPK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-selfheal-test-ipk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and validate self-heal test IPK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/build_selfheal_candidate.py
+          python3 - <<'PY'
+          from pathlib import Path
+          from io import BytesIO
+          import tarfile,hashlib,tempfile,subprocess
+          source=Path('recovery/plugin_selfheal_candidate.py')
+          raw=source.read_bytes()
+          compile(raw,str(source),'exec')
+          assert raw.count(b'def _embyflow_update_install_plugin(')==1
+          assert raw.count(b'    _embyflow_ensure_py_compile_fallback()')==1
+          sha=hashlib.sha256(raw).hexdigest()
+          pkg='enigma2-plugin-extensions-embyflowe2-selfheal-test'
+          version='0.1-r0'
+          out=Path(pkg+'_'+version+'_all.ipk').resolve()
+          control='Package: '+pkg+'\nVersion: '+version+'\nArchitecture: all\nMaintainer: EmbyFlowE2\nSection: extensions\nPriority: optional\nDescription: Test-only updater self-healing overlay for EmbyFlowE2\n'
+          postinst='''#!/bin/sh
+          set -eu
+          TARGET=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py
+          PAYLOAD=/usr/share/embyflowe2-selfheal-test/plugin.py
+          BACKUP=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py.before-selfheal-test
+          [ -f "$TARGET" ] || { echo "STOP: Existing EmbyFlowE2 installation missing" >&2; exit 1; }
+          [ -f "$PAYLOAD" ] || { echo "STOP: Test payload missing" >&2; exit 1; }
+          if [ ! -e "$BACKUP" ]; then cp -p "$TARGET" "$BACKUP"; fi
+          cp "$PAYLOAD" "$TARGET.selfheal.tmp"
+          chmod 0644 "$TARGET.selfheal.tmp"
+          mv -f "$TARGET.selfheal.tmp" "$TARGET"
+          echo "TEST_INSTALLED; restart Enigma2 GUI manually"
+          exit 0
+          '''
+          prerm='''#!/bin/sh
+          set -eu
+          TARGET=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py
+          BACKUP=/usr/lib/enigma2/python/Plugins/Extensions/EmbyFlowE2/plugin.py.before-selfheal-test
+          if [ -f "$TARGET" ] && [ -f "$BACKUP" ]; then
+            CURRENT=$(sha256sum "$TARGET" | cut -d ' ' -f 1)
+            if [ "$CURRENT" = "SHA_HERE" ]; then
+              cp -p "$BACKUP" "$TARGET.selfheal-restore.tmp"
+              mv -f "$TARGET.selfheal-restore.tmp" "$TARGET"
+              rm -f "$BACKUP"
+              echo "Previous EmbyFlowE2 restored"
+            else
+              echo "Current plugin has changed; backup retained, no rollback"
+            fi
+          fi
+          exit 0
+          '''.replace('SHA_HERE',sha)
+          def archive(members):
+            buf=BytesIO()
+            with tarfile.open(fileobj=buf,mode='w:gz',format=tarfile.GNU_FORMAT) as tar:
+              for name,data,mode in members:
+                if isinstance(data,str): data=data.encode('utf-8')
+                ti=tarfile.TarInfo(name)
+                ti.size=len(data);ti.mode=mode;ti.mtime=0
+                tar.addfile(ti,BytesIO(data))
+            return buf.getvalue()
+          with tempfile.TemporaryDirectory() as td:
+            t=Path(td)
+            (t/'debian-binary').write_bytes(b'2.0\n')
+            (t/'control.tar.gz').write_bytes(archive([('./control',control,0o644),('./postinst',postinst,0o755),('./prerm',prerm,0o755)]))
+            (t/'data.tar.gz').write_bytes(archive([('./usr/share/embyflowe2-selfheal-test/plugin.py',raw,0o644)]))
+            subprocess.run(['ar','q',str(out),'debian-binary','control.tar.gz','data.tar.gz'],cwd=t,check=True)
+          assert out.stat().st_size>3_000_000
+          print('TEST_IPK_BUILT',out.name,'sha256(source)',sha)
+          PY
+          ar t enigma2-plugin-extensions-embyflowe2-selfheal-test_0.1-r0_all.ipk
+          tar -tzf <(ar p enigma2-plugin-extensions-embyflowe2-selfheal-test_0.1-r0_all.ipk data.tar.gz) | grep -F 'plugin.py'
+      - name: Publish isolated TEST prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          file=enigma2-plugin-extensions-embyflowe2-selfheal-test_0.1-r0_all.ipk
+          if gh release view selfheal-test-v0.1 >/dev/null 2>&1; then
+            gh release upload selfheal-test-v0.1 "$file" --clobber
+          else
+            gh release create selfheal-test-v0.1 "$file" --prerelease --title 'EmbyFlowE2 Selfheal TEST 0.1' --notes 'Test-only IPK. On installation, backs up and overlays the existing EmbyFlowE2 plugin.py with a self-healing updater candidate. Test on one spare Enigma2 receiver before broader deployment. Not an official RC26.5 replacement. GUI restart required.'
+          fi
