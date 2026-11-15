@@ -1,0 +1,10 @@
+<keymap>
+    <map context="EmbyFlowE2Actions">
+        <key id="KEY_RED" mapto="red" flags="m" />
+        <key id="KEY_GREEN" mapto="green" flags="m" />
+        <key id="KEY_YELLOW" mapto="yellow" flags="m" />
+        <key id="KEY_BLUE" mapto="blue" flags="m" />
+        <key id="KEY_BACK" mapto="cancel" flags="m" />
+        <key id="KEY_EXIT" mapto="cancel" flags="m" />
+    </map>
+</keymap>
