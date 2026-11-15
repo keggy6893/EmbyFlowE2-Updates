@@ -1,13 +1,14 @@
 {
-  "version": "2026-RC26.6",
-  "build": 2026111518,
+  "version": "2026-RC26.7",
+  "build": 2026111521,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/b8f30fc628855dfa7b3711ed492084a4741e09fa/plugin_2026111518.py",
-  "sha256": "cccf424fdd336f3faf34ff79a51c5a66d973e61613f560fbc5b242e4a6887e04",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/57a62e6e056bd357d294d9b68c5ee1eacd8b4225/plugin_2026111521.py",
+  "sha256": "d1fc2fd77a980bfc0c9ca94dd5922994b17366d170e98d330bdaaf58f1877db6",
   "changelog": [
-    "Weiterschauen: ROT blendet ausgewaehlten Eintrag lokal aus, ohne Medien zu loeschen.",
-    "Bestaetigungs- und Erfolgsmeldungen im EmbyFlowE2-Design V3."
+    "Update-Meldung automatisch beim EmbyFlowE2-Start (GRUEN Update, ROT Spaeter).",
+    "Weiterschauen: ROT entfernt den Eintrag aus der Ansicht, ohne die Filmdatei zu loeschen.",
+    "Bestaetigungs- und Erfolgsmeldung im EmbyFlowE2-Design V3."
   ]
 }
