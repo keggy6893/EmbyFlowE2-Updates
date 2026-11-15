@@ -1,14 +1,15 @@
 {
-  "version": "2026-RC26.8",
-  "build": 2026111522,
+  "version": "2026-RC26.9",
+  "build": 2026111523,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/85ddb2aad465bfcbc93ed1dac22a77e365002bec/plugin_2026111522.py",
-  "sha256": "a4479697018e908036832e59f810344c9f3ca791634225b1cc5f7f265676f541",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/a2f73bfc4448b4e32c35bb79b807bffdffa68109/plugin_2026111523.py",
+  "sha256": "b7bcf3dc4bbefd4c938b7747258eb8bcbc061be0d303aa0b19c11ec31d7cdbb9",
   "changelog": [
-    "Weiterschauen: Farbige Aktionsleiste unten (ROT Entfernen, GELB Favorit, OK Details, EXIT Zurueck).",
-    "Die kleinen Tastenhinweise oben rechts sind in Weiterschauen ausgeblendet.",
-    "Automatische Update-Meldung und Design-V3-Dialoge aus RC26.7 bleiben erhalten."
+    "Weiterschauen: doppelte Film-Eintraege in der Anzeige filtern (keine Dateien loeschen).",
+    "Serienepisoden erhalten vorrangig echte Hochkantposter von Serie oder Staffel.",
+    "Kleine farbige Punkte statt grosser Button-Leiste; rechter Rand bleibt ohne A-Z-Buchstaben.",
+    "Automatische Update-Meldung und bisherige Sicherheit bleiben erhalten."
   ]
 }
