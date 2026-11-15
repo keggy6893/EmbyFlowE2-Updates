@@ -1,0 +1,20 @@
+name: Experimental multi-file updater safety tests
+on:
+  push:
+    branches: ['refactor/rc26-9-foundation']
+    paths:
+      - 'tools/transactional_bundle.py'
+      - 'tests/test_transactional_bundle.py'
+      - '.github/workflows/refactor-bundle-safety.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify official RC26.9 unchanged
+        run: python3 tests/test_rc269_refactor_baseline.py
+      - name: Run isolated staging and rollback tests
+        run: python3 -m unittest discover -s tests -p test_transactional_bundle.py -v
