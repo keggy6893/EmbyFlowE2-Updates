@@ -18,6 +18,9 @@ from transactional_bundle import _relative_name
 LOCK_NAME = ".embyflow-update.lock"
 MAX_FILES = 128
 MAX_PAYLOAD_BYTES = 32 * 1024 * 1024
+# The package initializer and standalone recovery entrypoint must remain
+# immutable during ordinary modular updates. They are provisioned separately.
+PROTECTED_STARTUP_PATHS = frozenset(("__init__.py", "startup_recovery_guard.py"))
 
 
 def parse_manifest(value):
@@ -44,6 +47,8 @@ def parse_manifest(value):
         if not isinstance(entry, dict) or set(entry) != {"path", "sha256"}:
             raise BundleError("Unexpected file entry")
         name = _relative_name(entry["path"])
+        if name in PROTECTED_STARTUP_PATHS:
+            raise BundleError("Protected startup file cannot be updated: " + name)
         sha = entry["sha256"]
         if name in expected:
             raise BundleError("Duplicate file")
