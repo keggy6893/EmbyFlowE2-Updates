@@ -68,6 +68,14 @@ class CoordinatorTests(unittest.TestCase):
             apply_release(self.root, m, self.files)
         self.assertEqual((self.root / "plugin.py").read_bytes(), b"previous = 1\n")
 
+    def test_protected_startup_files_cannot_be_updated(self):
+        for protected in ("__init__.py", "startup_recovery_guard.py"):
+            with self.subTest(path=protected):
+                payloads = dict(self.files)
+                payloads[protected] = b"x = 1\n"
+                with self.assertRaisesRegex(BundleError, "Protected startup file"):
+                    parse_manifest(make_manifest(payloads))
+
     def test_reject_mismatched_payload(self):
         with self.assertRaises(BundleError):
             apply_release(self.root, self.manifest, {"plugin.py": self.files["plugin.py"]})
