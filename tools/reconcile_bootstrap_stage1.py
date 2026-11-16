@@ -105,8 +105,11 @@ def resume_stage1_offline(root, *, original_sha256, plugin_sha256, atomic_writer
     # Independent digest verification before changing the entrypoint.
     if _sha(guard.read_bytes()) != status["guard_sha256"]:
         raise Stage1RecoveryError("Guard verification failed")
-    original_mode = backup.stat().st_mode & 0o777
-    atomic_writer(initializer, expected["__init__.py"], mode=original_mode)
+    # Stage-one backups are deliberately stored with 0600 permissions.
+    # Never copy that restricted backup mode onto the importable initializer.
+    # Use readable source-file permissions; a later production migration may
+    # persist and restore exact original mode in a durable journal.
+    atomic_writer(initializer, expected["__init__.py"], mode=0o644)
     after = inspect_stage1(root)
     if after["state"] != "activated":
         raise Stage1RecoveryError("Stage-one activation was not durable")
