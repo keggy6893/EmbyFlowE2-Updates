@@ -53,6 +53,7 @@ class StageOneCrashTests(unittest.TestCase):
         self.assertEqual(inspect_stage1(self.root)["state"], "backup_only")
         self.assertTrue(self._resume()["changed"])
         self.assertEqual(inspect_stage1(self.root)["state"], "activated")
+        self.assertEqual((self.root / "__init__.py").stat().st_mode & 0o777, 0o644)
         self.assertEqual((self.root / "plugin.py").read_bytes(), self.old_plugin)
 
     def test_after_guard_recovers_to_activated(self):
