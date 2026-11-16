@@ -1,0 +1,26 @@
+name: Build real RC26.9 modular update bundle
+on:
+  push:
+    branches: ['refactor/rc26-9-foundation']
+    paths:
+      - 'tools/build_receiver_bundle.py'
+      - 'tests/test_real_modular_bundle.py'
+      - '.github/workflows/refactor-real-bundle.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check official RC26.9 baseline
+        run: python3 tests/test_rc269_refactor_baseline.py
+      - name: Verify full-size receiver bundle and simulated install/rollback
+        run: python3 -m unittest discover -s tests -p 'test_real_modular_bundle.py' -v
+      - name: Upload isolated development bundle (never a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc269-modular-dev-bundle-NOT-FOR-INSTALL
+          path: refactor_candidates/rc269_bundle/
+          retention-days: 7
