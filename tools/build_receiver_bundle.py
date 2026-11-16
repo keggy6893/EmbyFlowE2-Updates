@@ -9,6 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 from build_modular_candidate import build as build_candidate
+from build_updater_sidecars import staged_sidecars
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "refactor_candidates" / "rc269_bundle"
@@ -33,9 +34,9 @@ def make_bundle():
     compile(helper, "refactor_modules/local_media_utils.py", "exec")
     files = {
         "plugin.py": converted.encode("utf-8"),
-        "refactor_modules/__init__.py": b"",
         "refactor_modules/local_media_utils.py": helper,
     }
+    files.update(staged_sidecars())
     DIST.mkdir(parents=True, exist_ok=True)
     for name, payload in files.items():
         path = DIST / name
