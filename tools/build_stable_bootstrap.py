@@ -34,7 +34,7 @@ def patch_initializer(existing):
             insert_line = max(insert_line, index + 1)
     body = tree.body
     pos = 0
-    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, (ast.Str, ast.Constant)) and isinstance(getattr(body[0].value, "value", None), str):
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(getattr(body[0].value, "value", None), str):
         insert_line = max(insert_line, body[0].end_lineno)
         pos = 1
     while pos < len(body) and isinstance(body[pos], ast.ImportFrom) and body[pos].module == "__future__":
