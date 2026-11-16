@@ -41,7 +41,7 @@ class RealModularBundleTests(unittest.TestCase):
             root = pathlib.Path(folder)
             (root / "plugin.py").write_bytes(b"previous = 1\n")
             result = apply_release(root, self.manifest, self.files)
-            self.assertEqual(result["installed_files"], 3)
+            self.assertEqual(result["installed_files"], len(self.files))
             self.assertEqual((root / "plugin.py").read_bytes(), self.files["plugin.py"])
             self.assertEqual(recover_on_start(root), 0)
             self.assertTrue((root / "refactor_modules/local_media_utils.py").exists())
