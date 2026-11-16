@@ -9,6 +9,8 @@ on:
       - 'tests/test_bundle_transport.py'
       - 'tools/update_router.py'
       - 'tests/test_update_router.py'
+      - 'tools/modular_tar_bridge.py'
+      - 'tests/test_modular_tar_bridge.py'
       - '.github/workflows/refactor-real-bundle.yml'
   workflow_dispatch:
 permissions:
@@ -26,6 +28,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_bundle_transport.py' -v
       - name: Check backward-compatible update routing
         run: python3 -m unittest discover -s tests -p 'test_update_router.py' -v
+      - name: Verify modular tar.gz archive security and rollback
+        run: python3 -m unittest discover -s tests -p 'test_modular_tar_bridge.py' -v
       - name: Upload isolated development bundle (never a release)
         uses: actions/upload-artifact@v4
         with:
