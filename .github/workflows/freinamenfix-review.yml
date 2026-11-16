@@ -1,0 +1,30 @@
+name: Build Freinamenfix review ZIP (isolated)
+on:
+  push:
+    branches: [freinamenfix-pruefpaket-20261116]
+    paths:
+      - '.github/workflows/freinamenfix-review.yml'
+      - 'tests/20261116_freinamenfix/build_review_bundle.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  review-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Generate and verify review ZIP
+        run: python3 tests/20261116_freinamenfix/build_review_bundle.py
+      - name: Commit ZIP only on review branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add EmbyFlowE2_RC26.9_Freinamenfix_PRUEFPAKET.zip
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish isolated Freinamenfix review ZIP, not an update"
+            git push origin HEAD:freinamenfix-pruefpaket-20261116
+          fi
