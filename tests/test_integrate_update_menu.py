@@ -24,13 +24,13 @@ class UpdateMenuBridgeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.before = (ROOT / "plugin_2026111523.py").read_text(encoding="utf-8")
         cls.after = patch_source(cls.before)
-        cls.func = isolated_normalizer(
+        cls.func = staticmethod(isolated_normalizer(
             cls.after,
             {"json": json, "re": __import__("re"),
              "EMBYFLOW_UPDATE_CHANNEL": "rcdev",
              "EMBYFLOW_UPDATE_ALLOWED_INITIAL_HOSTS": ("raw.githubusercontent.com",),
              "_embyflow_update_https_url": lambda url, hosts: url.startswith("https://raw.githubusercontent.com/")}
-        )
+        ))
 
     def test_syntax_and_exactly_one_install_path(self):
         self.assertEqual(self.after.count(MARKER), 1)
