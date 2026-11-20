@@ -1,15 +1,16 @@
 {
-  "version": "2026-RC26.9",
-  "build": 2026111523,
+  "version": "2026-RC27.0",
+  "build": 2026112001,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/a2f73bfc4448b4e32c35bb79b807bffdffa68109/plugin_2026111523.py",
-  "sha256": "b7bcf3dc4bbefd4c938b7747258eb8bcbc061be0d303aa0b19c11ec31d7cdbb9",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/9dc4e40a4b2f0d0b0d6609cfceda1544704da9b4/plugin_2026112001.py",
+  "sha256": "68656f1d0f38e3dfad23617c5636011ed4b6e5fd006c4454788264b571c2a288",
   "changelog": [
-    "Weiterschauen: doppelte Film-Eintraege in der Anzeige filtern (keine Dateien loeschen).",
-    "Serienepisoden erhalten vorrangig echte Hochkantposter von Serie oder Staffel.",
-    "Kleine farbige Punkte statt grosser Button-Leiste; rechter Rand bleibt ohne A-Z-Buchstaben.",
-    "Automatische Update-Meldung und bisherige Sicherheit bleiben erhalten."
+    "Meine Medien: eigene Filme, Serien, Aufnahmen und Downloads von HDD, USB und NAS mit Postern.",
+    "Download mit einem Klick: läuft im Hintergrund, Warteschlange, Meldung wenn fertig.",
+    "Staffel-Ansicht mit großem Poster und Folgenliste.",
+    "Einschlaf-Timer und Bildschirmschoner (GELB in der Info).",
+    "Läuft auch ohne refactor_modules (z. B. GigaBlue)."
   ]
 }
