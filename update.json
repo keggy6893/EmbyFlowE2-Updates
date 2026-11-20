@@ -1,12 +1,13 @@
 {
-  "version": "2026-RC27.0",
-  "build": 2026112001,
+  "version": "2026-RC27.1",
+  "build": 2026112002,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/9dc4e40a4b2f0d0b0d6609cfceda1544704da9b4/plugin_2026112001.py",
-  "sha256": "68656f1d0f38e3dfad23617c5636011ed4b6e5fd006c4454788264b571c2a288",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/39c9e2129d4e69fae15a539932f481cb6a9eb283/plugin_2026112002.py",
+  "sha256": "05b6d6409b02f9aa7b76c220376a9fd9571097689e3a53e25e66a58615757fe5",
   "changelog": [
+    "Update-Prüfung: hängt ein GitHub-Server, probiert die Box automatisch die anderen und einen Ersatzweg.",
     "Meine Medien: eigene Filme, Serien, Aufnahmen und Downloads von HDD, USB und NAS mit Postern.",
     "Download mit einem Klick: läuft im Hintergrund, Warteschlange, Meldung wenn fertig.",
     "Staffel-Ansicht mit großem Poster und Folgenliste.",
