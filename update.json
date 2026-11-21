@@ -1,17 +1,17 @@
 {
-  "version": "2026-RC27.3",
-  "build": 2026112102,
+  "version": "2026-RC27.4",
+  "build": 2026112103,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/f4d5b8fbd7ddfbec839b4f6c1c6dbc514030d277/plugin_2026112102.py",
-  "sha256": "39714f984e487abe1ad5dd9e370ead9ff8f5b2df6cafa372096545cef7d4342b",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/4cf93ef0035ecf4a39c9c9319dcc7a7722d886d3/plugin_2026112103.py",
+  "sha256": "7d2bb51188e5f2ebc1f92a4d05146cfd384c545c233ae29d8f262e11c4abde76",
   "changelog": [
+    "Neuer Player im EmbyFlow-Stil mit Restzeit-Ring. Taste 2 wechselt: Normal, Groß (gut lesbar), Klassisch.",
     "Detailseite: Fortsetzen-Zeit wird nach dem Film sofort aktualisiert.",
     "NAS-Direktwiedergabe schneller auf langsamen Boxen (z. B. GigaBlue): ein Prüfprogramm statt vieler, 15 s Zeit, Zuordnung wird gemerkt.",
     "Update-Fragen im EmbyFlow-Stil.",
     "Update-Prüfung: hängt ein GitHub-Server, probiert die Box automatisch die anderen und einen Ersatzweg.",
-    "Meine Medien: eigene Filme, Serien, Aufnahmen und Downloads von HDD, USB und NAS mit Postern.",
-    "Download mit einem Klick: läuft im Hintergrund, Warteschlange, Meldung wenn fertig."
+    "Meine Medien: eigene Filme, Serien, Aufnahmen und Downloads von HDD, USB und NAS mit Postern."
   ]
 }
