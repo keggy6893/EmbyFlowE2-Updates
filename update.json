@@ -1,17 +1,17 @@
 {
-  "version": "2026-RC27.1",
-  "build": 2026112002,
+  "version": "2026-RC27.2",
+  "build": 2026112101,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/39c9e2129d4e69fae15a539932f481cb6a9eb283/plugin_2026112002.py",
-  "sha256": "05b6d6409b02f9aa7b76c220376a9fd9571097689e3a53e25e66a58615757fe5",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/293b856bde359e284985a8d2b72769a53491938d/plugin_2026112101.py",
+  "sha256": "625e92ddb13585c4caff8c7c2bd4b75ea510752e55562e14c515423d4dd6ae96",
   "changelog": [
+    "NAS-Direktwiedergabe schneller auf langsamen Boxen (z. B. GigaBlue): ein Prüfprogramm statt vieler, 15 s Zeit, Zuordnung wird gemerkt.",
+    "Update-Fragen im EmbyFlow-Stil.",
     "Update-Prüfung: hängt ein GitHub-Server, probiert die Box automatisch die anderen und einen Ersatzweg.",
     "Meine Medien: eigene Filme, Serien, Aufnahmen und Downloads von HDD, USB und NAS mit Postern.",
     "Download mit einem Klick: läuft im Hintergrund, Warteschlange, Meldung wenn fertig.",
-    "Staffel-Ansicht mit großem Poster und Folgenliste.",
-    "Einschlaf-Timer und Bildschirmschoner (GELB in der Info).",
-    "Läuft auch ohne refactor_modules (z. B. GigaBlue)."
+    "Staffel-Ansicht mit großem Poster und Folgenliste."
   ]
 }
