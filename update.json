@@ -1,17 +1,17 @@
 {
-  "version": "2026-RC27.5",
-  "build": 2026112104,
+  "version": "2026-RC27.6",
+  "build": 2026112201,
   "channel": "rcdev",
   "target": "plugin.py",
   "artifact_type": "plugin_py",
-  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/9a5f114834bd13ba405349ecbdfe3bb66891604a/plugin_2026112104.py",
-  "sha256": "59cebcee317cd12bff24e1ce52d1ba14a5cd45d154e0215451c770cd4b7ddda2",
+  "download": "https://raw.githubusercontent.com/keggy6893/EmbyFlowE2-Updates/d0a0946d6ac402edb878dca8e7e1c8a144f59c6f/plugin_2026112201.py",
+  "sha256": "18ced333d906afba4bb13ef283be561763ed48e5a981a41bd0d75b33520ba5cf",
   "changelog": [
-    "Neu: Demnächst – Kinostarts und Neues bei Netflix, Prime Video, Disney+, Apple TV und Paramount+, mit Trailern. „Schon verfügbar“, wenn der Titel auf dem eigenen Server liegt.",
-    "Neuer Player im EmbyFlow-Stil mit Restzeit-Ring. Taste 2 wechselt: Normal, Groß (gut lesbar), Klassisch.",
-    "Detailseite: Fortsetzen-Zeit wird nach dem Film sofort aktualisiert.",
-    "NAS-Direktwiedergabe schneller auf langsamen Boxen (z. B. GigaBlue): ein Prüfprogramm statt vieler, 15 s Zeit, Zuordnung wird gemerkt.",
-    "Update-Fragen im EmbyFlow-Stil.",
-    "Update-Prüfung: hängt ein GitHub-Server, probiert die Box automatisch die anderen und einen Ersatzweg."
+    "Neu: Anfragen über Seerr – suchen, anfragen, eigene Anfragen ansehen. Ab Werk unsichtbar, freischalten auf der Startseite mit 7 3 7 7.",
+    "Seerr-Suche mit der EmbyFlow-Tastatur (A–Z, Zifferntasten wie SMS, letzte Suchen, Treffer beim Tippen).",
+    "Gibt es einen Titel in 4K und HD, fragt EmbyFlow, welche Version laufen soll.",
+    "Trailer: Einmal gefundene Trailer werden gemerkt – der zweite Start geht sofort.",
+    "Optional eigener TMDb-Schlüssel für offizielle deutsche Trailer (Startseite 8 6 3 2).",
+    "Für eigenes NAS: Trailer als „Filmname-trailer.mp4“ im Filmordner speichern (ab Werk aus, 8 6 3 2 → Blau)."
   ]
 }
