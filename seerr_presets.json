@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "providers": [
+    {
+      "name": "Streamboy",
+      "match": ["streamboy", "iovagy"],
+      "seerr": "https://wunsch.streamboy.tv"
+    }
+  ]
+}
